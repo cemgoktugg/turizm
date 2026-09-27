@@ -63,6 +63,11 @@ function pattern(id, color) {
   </pattern>`;
 }
 
+/** SVG metinlerinde XML özel karakterlerini kaçışlar (ör. "Hac & Umre") */
+function xml(text) {
+  return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 function svg({
   w = 1600,
   h = 1000,
@@ -99,12 +104,12 @@ function svg({
   ${withMosque ? mosque(w * 0.82, h * 0.96, (w / 1600) * 0.8, "#040d09", 0.4) : ""}
   ${
     label
-      ? `<text x="${w / 2}" y="${h * 0.46}" text-anchor="middle" font-family="Georgia, serif" font-size="${w * 0.05}" fill="#faf6ee" font-weight="700" letter-spacing="1">${label}</text>`
+      ? `<text x="${w / 2}" y="${h * 0.46}" text-anchor="middle" font-family="Georgia, serif" font-size="${w * 0.05}" fill="#faf6ee" font-weight="700" letter-spacing="1">${xml(label)}</text>`
       : ""
   }
   ${
     sub
-      ? `<text x="${w / 2}" y="${h * 0.55}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${w * 0.02}" fill="#ecd79b" letter-spacing="4" text-transform="uppercase">${sub}</text>`
+      ? `<text x="${w / 2}" y="${h * 0.55}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${w * 0.02}" fill="#ecd79b" letter-spacing="4" text-transform="uppercase">${xml(sub)}</text>`
       : ""
   }
 </svg>`;
@@ -116,9 +121,10 @@ function write(name, content) {
 }
 
 // Hero slaytları
-write("hero-1.svg", svg({ h: 900, palette: "night", label: "Rotamız Huzura", sub: "HAC & UMRE", seed: 3 }));
-write("hero-2.svg", svg({ h: 900, palette: "emerald", label: "Kutsal Yolculuk", sub: "MEKKE — MEDİNE", seed: 5 }));
-write("hero-3.svg", svg({ h: 900, palette: "dawn", label: "Manevi Huzur", sub: "2026 SEZONU", seed: 9 }));
+// Hero görselleri arka plan olarak kullanıldığı için yazısız üretilir (başlık sitede ayrıca yazılır)
+write("hero-1.svg", svg({ h: 900, palette: "night", label: "", sub: "", seed: 3 }));
+write("hero-2.svg", svg({ h: 900, palette: "emerald", label: "", sub: "", seed: 5 }));
+write("hero-3.svg", svg({ h: 900, palette: "dawn", label: "", sub: "", seed: 9 }));
 
 // Kategoriler
 write("kategori-hac.svg", svg({ palette: "night", label: "Hac", seed: 11 }));
