@@ -4,6 +4,7 @@ import type { SiteSettings } from "@/lib/settings";
 import { whatsappLink, telLink } from "@/lib/settings";
 import { SmartImage } from "@/components/ui/smart-image";
 import { SocialIcon } from "@/components/site/social-icon";
+import type { ContentData } from "@/lib/content/registry";
 
 const COLUMNS = [
   {
@@ -38,7 +39,13 @@ const COLUMNS = [
   },
 ];
 
-export function Footer({ settings }: { settings: SiteSettings }) {
+export function Footer({
+  settings,
+  content,
+}: {
+  settings: SiteSettings;
+  content: ContentData<"shared.footer">;
+}) {
   const socials = [
     { href: settings.facebook, name: "facebook" as const },
     { href: settings.instagram, name: "instagram" as const },
@@ -52,12 +59,8 @@ export function Footer({ settings }: { settings: SiteSettings }) {
       <div className="border-b border-white/10">
         <div className="container-tr flex flex-col items-center justify-between gap-6 py-10 text-center md:flex-row md:text-left">
           <div>
-            <h3 className="font-serif text-2xl font-bold text-white">
-              Kutsal yolculuğunuz için hazır mısınız?
-            </h3>
-            <p className="mt-2 text-sm text-cream-200/70">
-              Uzman danışmanlarımız size en uygun programı bulmak için hazır.
-            </p>
+            <h3 className="font-serif text-2xl font-bold text-white">{content.ctaTitle}</h3>
+            {content.ctaText && <p className="mt-2 text-sm text-cream-200/70">{content.ctaText}</p>}
           </div>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Link
@@ -95,10 +98,9 @@ export function Footer({ settings }: { settings: SiteSettings }) {
               </span>
             </span>
           </Link>
-          <p className="mt-5 max-w-sm text-sm leading-relaxed text-cream-200/70">
-            {settings.footerNote ||
-              "Yetkili acenta güvencesiyle hac, umre ve kültür turları düzenliyoruz."}
-          </p>
+          {settings.footerNote && (
+            <p className="mt-5 max-w-sm text-sm leading-relaxed text-cream-200/70">{settings.footerNote}</p>
+          )}
 
           <ul className="mt-6 space-y-3 text-sm">
             <li className="flex items-start gap-3">
@@ -156,25 +158,24 @@ export function Footer({ settings }: { settings: SiteSettings }) {
       </div>
 
       {/* Güven rozetleri */}
-      <div className="border-t border-white/10">
-        <div className="container-tr flex flex-wrap items-center justify-center gap-x-8 gap-y-3 py-6 text-xs font-semibold uppercase tracking-wider text-cream-200/50">
-          <span>TÜRSAB A Grubu Belge</span>
-          <span className="text-gold-400">•</span>
-          <span>Diyanet Yetki Belgeli</span>
-          <span className="text-gold-400">•</span>
-          <span>IATA Üyesi</span>
-          <span className="text-gold-400">•</span>
-          <span>Güvenli Ödeme</span>
+      {content.trustBadges.length > 0 && (
+        <div className="border-t border-white/10">
+          <div className="container-tr flex flex-wrap items-center justify-center gap-x-8 gap-y-3 py-6 text-xs font-semibold uppercase tracking-wider text-cream-200/50">
+            {content.trustBadges.map((badge, i) => (
+              <span key={i} className="flex items-center gap-8">
+                {i > 0 && <span className="text-gold-400">•</span>}
+                <span>{badge}</span>
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Telif */}
       <div className="border-t border-white/10 bg-brand-950">
         <div className="container-tr flex flex-col items-center justify-between gap-2 py-5 text-xs text-cream-200/50 sm:flex-row">
           <p>© {new Date().getFullYear()} {settings.siteName}. Tüm hakları saklıdır.</p>
-          <p>
-            Bu bir demo projedir · SQLite &amp; Next.js ile geliştirilmiştir
-          </p>
+          {content.bottomNote && <p>{content.bottomNote}</p>}
         </div>
       </div>
     </footer>

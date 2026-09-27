@@ -1,25 +1,21 @@
-import type { Metadata } from "next";
 import { PageHero } from "@/components/site/page-hero";
 import { YetkiContent } from "@/components/site/yetki-content";
 import { CtaBand } from "@/components/site/cta-band";
+import { getContent, pageMetadata } from "@/lib/content";
 
-export const metadata: Metadata = {
-  title: "Umre Yetki Belgeleri",
-  description:
-    "Umre organizasyonu için TÜRSAB, Diyanet ve IATA yetki belgelerimiz. Şeffaf ve güvenilir hizmet.",
-  alternates: { canonical: "/umre/yetki-belgeleri" },
-};
+export const generateMetadata = () => pageMetadata("page.umre-yetki");
 
-export default function UmreYetkiPage() {
+export default async function UmreYetkiPage() {
+  const c = await getContent("page.umre-yetki");
   return (
     <>
       <PageHero
-        title="Umre Yetki Belgelerimiz"
-        description="Umre programlarımızı resmî yetki belgeleri ile düzenliyor, güveninize layık olmak için çalışıyoruz."
-        image="/images/belge-tursab.svg"
+        title={c.title}
+        description={c.description}
+        image={c.image}
         crumbs={[{ label: "Umre", href: "/umre" }, { label: "Yetki Belgeleri" }]}
       />
-      <YetkiContent intro="Umre organizasyonlarımız TÜRSAB A grubu işletme belgesi ve Diyanet İşleri Başkanlığı yetkisi ile yürütülmektedir. Tüm süreçlerimiz şeffaf, güvenli ve mevzuata uygun şekilde gerçekleştirilir." />
+      <YetkiContent intro={c.intro} />
       <CtaBand />
     </>
   );

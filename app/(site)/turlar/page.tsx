@@ -1,60 +1,44 @@
-import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
+import { activeTourWhere } from "@/lib/queries";
+import { getContent, pageMetadata } from "@/lib/content";
 import { PageHero } from "@/components/site/page-hero";
 import { TourFilter, type FilterOption } from "@/components/site/tour-filter";
 import { TourGrid } from "@/components/site/tour-grid";
 import { CtaBand } from "@/components/site/cta-band";
 import { BreadcrumbJsonLd } from "@/components/seo/json-ld";
-import type { Prisma } from "@prisma/client";
 
-export const metadata: Metadata = {
-  title: "Tüm Turlar",
-  description:
-    "Hac, umre, lüks umre, Ramazan umresi ve kültür turlarının tamamı. Kategoriye göre filtreleyin.",
-  alternates: { canonical: "/turlar" },
-};
+export const generateMetadata = () => pageMetadata("page.turlar");
 
-export default async function TurlarPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ kategori?: string }>;
-}) {
+export default async function TurlarPage({ searchParams }: { searchParams: Promise<{ kategori?: string }> }) {
   const { kategori } = await searchParams;
 
-  const categories = await prisma.tourCategory.findMany({
-    orderBy: { order: "asc" },
-    include: { _count: { select: { tours: { where: { isPublished: true } } } } },
-  });
+  const [c, categories, tours] = await Promise.all([
+    getContent("page.turlar"),
+    prisma.tourCategory.findMany({
+      orderBy: [{ order: "asc" }, { name: "asc" }],
+      include: { _count: { select: { tours: { where: activeTourWhere() } } } },
+    }),
+    prisma.tour.findMany({
+      where: activeTourWhere(kategori ? { category: { slug: kategori } } : {}),
+      include: { category: true },
+      orderBy: [{ isFeatured: "desc" }, { departureDate: "asc" }],
+    }),
+  ]);
 
-  const options: FilterOption[] = categories.map((c) => ({
-    label: c.name,
-    slug: c.slug,
-    count: c._count.tours,
-  }));
-
-  const where: Prisma.TourWhereInput = { isPublished: true };
-  if (kategori) where.category = { slug: kategori };
-
-  const tours = await prisma.tour.findMany({
-    where,
-    include: { category: true },
-    orderBy: [{ isFeatured: "desc" }, { departureDate: "asc" }],
-  });
+  // Sadece listelenecek turu olan kategoriler (ve seçili olan) filtrede gösterilir
+  const options: FilterOption[] = categories
+    .filter((cat) => cat._count.tours > 0 || cat.slug === kategori)
+    .map((cat) => ({ label: cat.name, slug: cat.slug, count: cat._count.tours }));
 
   return (
     <>
       <BreadcrumbJsonLd
         items={[
           { name: "Ana Sayfa", url: "/" },
-          { name: "Turlar", url: "/turlar" },
+          { name: c.title, url: "/turlar" },
         ]}
       />
-      <PageHero
-        title="Tüm Turlarımız"
-        description="Hac ve umreden kültür turlarına, tüm programlarımızı tek bir yerde inceleyin."
-        image="/images/hero-2.svg"
-        crumbs={[{ label: "Turlar" }]}
-      />
+      <PageHero title={c.title} description={c.description} image={c.image} crumbs={[{ label: "Turlar" }]} />
 
       <section className="py-16 lg:py-20">
         <div className="container-tr">

@@ -6,23 +6,41 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { CheckCircle2, Loader2, Send } from "lucide-react";
 import { z } from "zod";
-import { leadSchema, type LeadInput } from "@/lib/validations";
+import { leadSchema, type LeadInput, type LeadSource } from "@/lib/validations";
 import { createLead } from "@/app/actions/leads";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea, Field } from "@/components/ui/form-controls";
 
 type TourOption = { id: string; title: string };
 
+export type BookingTexts = {
+  submitLabel: string;
+  consentText: string;
+  successTitle: string;
+  successText: string;
+};
+
+const DEFAULT_TEXTS: BookingTexts = {
+  submitLabel: "Başvuruyu Gönder",
+  consentText: "Formu göndererek bilgilerinizin başvurunuz kapsamında işlenmesini kabul edersiniz.",
+  successTitle: "Başvurunuz Alındı",
+  successText: "Talebiniz bize ulaştı. Danışmanlarımız en kısa sürede sizinle iletişime geçecek.",
+};
+
 export function BookingForm({
   tourId,
   tourTitle,
   tourOptions,
   variant = "card",
+  source,
+  texts = DEFAULT_TEXTS,
 }: {
   tourId?: string;
   tourTitle?: string;
   tourOptions?: TourOption[];
   variant?: "card" | "bare";
+  source: LeadSource;
+  texts?: BookingTexts;
 }) {
   const [done, setDone] = useState(false);
 
@@ -30,13 +48,15 @@ export function BookingForm({
     register,
     handleSubmit,
     reset,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<z.input<typeof leadSchema>, unknown, LeadInput>({
     resolver: zodResolver(leadSchema),
     defaultValues: {
       tourId: tourId ?? "",
       tourTitle: tourTitle ?? "",
-      personCount: 1,
+      personCount: "1",
+      source,
       website: "",
     },
   });
@@ -48,6 +68,9 @@ export function BookingForm({
       reset();
       toast.success(res.message);
     } else {
+      for (const [field, message] of Object.entries(res.fieldErrors ?? {})) {
+        setError(field as keyof z.input<typeof leadSchema>, { message });
+      }
       toast.error(res.message);
     }
   }
@@ -58,12 +81,8 @@ export function BookingForm({
         <div className="mx-auto grid size-14 place-items-center rounded-full bg-brand-600 text-white">
           <CheckCircle2 className="size-8" />
         </div>
-        <h3 className="mt-4 font-serif text-xl font-bold text-brand-900">
-          Başvurunuz Alındı
-        </h3>
-        <p className="mt-2 text-sm text-muted">
-          Talebiniz bize ulaştı. Danışmanlarımız en kısa sürede sizinle iletişime geçecek.
-        </p>
+        <h3 className="mt-4 font-serif text-xl font-bold text-brand-900">{texts.successTitle}</h3>
+        <p className="mt-2 text-sm text-muted">{texts.successText}</p>
         <Button variant="outline" className="mt-5" onClick={() => setDone(false)}>
           Yeni Başvuru
         </Button>
@@ -96,7 +115,7 @@ export function BookingForm({
         <Field label="E-posta" error={errors.email?.message}>
           <Input placeholder="ornek@eposta.com" inputMode="email" {...register("email")} />
         </Field>
-        <Field label="Kişi Sayısı" error={errors.personCount?.message}>
+        <Field label="Kişi Sayısı" error={errors.personCount?.message as string | undefined}>
           <Input type="number" min={1} max={50} {...register("personCount")} />
         </Field>
       </div>
@@ -138,13 +157,11 @@ export function BookingForm({
           </>
         ) : (
           <>
-            <Send className="size-5" /> Başvuruyu Gönder
+            <Send className="size-5" /> {texts.submitLabel}
           </>
         )}
       </Button>
-      <p className="text-center text-xs text-muted">
-        Formu göndererek bilgilerinizin başvurunuz kapsamında işlenmesini kabul edersiniz.
-      </p>
+      {texts.consentText && <p className="text-center text-xs text-muted">{texts.consentText}</p>}
     </form>
   );
 

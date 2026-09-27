@@ -1,50 +1,29 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
-import type { ActionResult } from "./leads";
-
-const ALLOWED_KEYS = [
-  "siteName",
-  "tagline",
-  "phone",
-  "whatsapp",
-  "email",
-  "address",
-  "workingHours",
-  "facebook",
-  "instagram",
-  "youtube",
-  "twitter",
-  "logo",
-  "mapEmbed",
-  "footerNote",
-  "heroSlides",
-];
+import { settingsSchema } from "@/lib/validations";
+import { adminAction, invalid, type ActionResult } from "@/lib/action";
+import { revalidateSite } from "@/lib/revalidate";
 
 /** Site ayarlarını topluca günceller (upsert) */
-export async function updateSettings(
-  input: Record<string, string>,
-): Promise<ActionResult> {
-  const user = await getCurrentUser();
-  if (!user) return { ok: false, message: "Yetkisiz erişim." };
+export async function updateSettings(input: unknown): Promise<ActionResult> {
+  return adminAction(async () => {
+    const parsed = settingsSchema.safeParse(input);
+    if (!parsed.success) return invalid(parsed.error);
 
-  const entries = Object.entries(input).filter(([key]) =>
-    ALLOWED_KEYS.includes(key),
-  );
+    await prisma.$transaction(
+      Object.entries(parsed.data).map(([key, value]) =>
+        prisma.siteSetting.upsert({
+          where: { key },
+          create: { key, value: value ?? "" },
+          update: { value: value ?? "" },
+        }),
+      ),
+    );
+    // Artık kullanılmayan eski anahtar (hero slaytları içerik yönetimine taşındı)
+    await prisma.siteSetting.deleteMany({ where: { key: "heroSlides" } });
 
-  await prisma.$transaction(
-    entries.map(([key, value]) =>
-      prisma.siteSetting.upsert({
-        where: { key },
-        create: { key, value: value ?? "" },
-        update: { value: value ?? "" },
-      }),
-    ),
-  );
-
-  revalidatePath("/", "layout");
-  revalidatePath("/admin/settings");
-  return { ok: true, message: "Ayarlar kaydedildi." };
+    revalidateSite();
+    return { ok: true, message: "Ayarlar kaydedildi. Değişiklikler sitede yayında." };
+  });
 }

@@ -3,11 +3,13 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-/** Bugüne göre gelecekteki bir tarih üretir */
-function future(days: number): Date {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  d.setHours(4, 0, 0, 0);
+/**
+ * "YYYY-MM-DD" → Date (UTC gece yarısı; admin formundaki tarih alanıyla aynı biçim).
+ * Ramazan ve Hac tarihleri hicri takvime göre yaklaşıktır; Diyanet ilanına göre güncelleyin.
+ */
+function day(iso: string, addDays = 0): Date {
+  const d = new Date(`${iso}T00:00:00.000Z`);
+  d.setUTCDate(d.getUTCDate() + addDays);
   return d;
 }
 
@@ -27,6 +29,8 @@ async function main() {
   await prisma.documentCertificate.deleteMany();
   await prisma.siteSetting.deleteMany();
   await prisma.user.deleteMany();
+  await prisma.contentBlock.deleteMany();
+  // Not: Medya kayıtları (yüklenen görseller) seed ile silinmez
 
   // ---- Admin kullanıcı ----
   const password = await bcrypt.hash("admin123", 10);
@@ -46,6 +50,7 @@ async function main() {
       {
         name: "Hac",
         slug: "hac",
+        icon: "Landmark",
         description:
           "Ömürde bir kez farz olan hac ibadetini, tecrübeli kadromuz ve merkezi otellerimizle huzur içinde eda edin.",
         image: "/images/kategori-hac.svg",
@@ -54,6 +59,7 @@ async function main() {
       {
         name: "Umre",
         slug: "umre",
+        icon: "Moon",
         description:
           "Yıl boyunca farklı tarih ve bütçelerde, kesin kayıtlı umre programları.",
         image: "/images/kategori-umre.svg",
@@ -62,6 +68,7 @@ async function main() {
       {
         name: "Lüks Umre",
         slug: "luks-umre",
+        icon: "Crown",
         description:
           "Harem'e sıfır 5 yıldızlı oteller, özel rehberlik ve VIP hizmet ile ayrıcalıklı umre.",
         image: "/images/kategori-luks.svg",
@@ -70,6 +77,7 @@ async function main() {
       {
         name: "Ramazan Umresi",
         slug: "ramazan-umresi",
+        icon: "Star",
         description:
           "Ramazan'ın manevi ikliminde, mukabele ve iftar programları eşliğinde umre.",
         image: "/images/kategori-ramazan.svg",
@@ -78,6 +86,7 @@ async function main() {
       {
         name: "Kültür Turları",
         slug: "kultur-turlari",
+        icon: "Globe2",
         description:
           "Kudüs, Balkanlar ve daha fazlası; tarih ve maneviyatı birleştiren kültür turları.",
         image: "/images/kategori-kultur.svg",
@@ -149,7 +158,7 @@ async function main() {
     categorySlug: string;
     short: string;
     description: string;
-    depDays: number;
+    departure: string;
     days: number;
     nights: number;
     depCity: string;
@@ -170,7 +179,6 @@ async function main() {
     faqs?: { question: string; answer: string }[];
     images: string[];
   }) {
-    const durationDays = data.days;
     return prisma.tour.create({
       data: {
         title: data.title,
@@ -178,8 +186,8 @@ async function main() {
         categoryId: cat(data.categorySlug),
         shortDescription: data.short,
         description: data.description,
-        departureDate: future(data.depDays),
-        returnDate: future(data.depDays + durationDays),
+        departureDate: day(data.departure),
+        returnDate: day(data.departure, data.nights),
         durationDays: data.days,
         durationNights: data.nights,
         departureCity: data.depCity,
@@ -246,7 +254,7 @@ async function main() {
     short: "Uygun bütçeyle, merkezi otellerde konforlu 13 günlük umre programı.",
     description:
       "Ekonomik umre programımız; uygun fiyat avantajını konforlu konaklama ve tecrübeli rehberlik ile birleştirir. Mekke ve Medine'de Harem'e yürüme mesafesindeki otellerde konaklarsınız. Tüm transfer, yemek ve ziyaretler fiyata dâhildir.",
-    depDays: 40,
+    departure: "2026-10-15",
     days: 13,
     nights: 12,
     depCity: "İstanbul",
@@ -276,7 +284,7 @@ async function main() {
     short: "Daha uzun süre kalarak ibadetlerinizi acele etmeden eda edeceğiniz kapsamlı program.",
     description:
       "20 günlük programımız, kutsal topraklarda daha uzun vakit geçirmek isteyenler için ideal. Hem Mekke hem Medine'de uzun konaklama ile ibadetlerinizi telaşsız tamamlar, çevre ziyaretlerini rahatça gerçekleştirirsiniz.",
-    depDays: 55,
+    departure: "2026-11-10",
     days: 20,
     nights: 19,
     depCity: "İstanbul",
@@ -306,7 +314,7 @@ async function main() {
     short: "Harem'e sıfır 5 yıldızlı oteller, VIP transfer ve özel rehberlik ile ayrıcalıklı umre.",
     description:
       "Lüks umre programımızda konfor en üst seviyede. Mekke'de Harem manzaralı 5 yıldızlı otel, Medine'de Mescid-i Nebevi'ye sıfır konaklama, VIP karşılama ve sınırlı kişi sayısıyla özel kafile. Ayrıcalıklı bir manevi yolculuk sizi bekliyor.",
-    depDays: 35,
+    departure: "2026-10-22",
     days: 12,
     nights: 11,
     depCity: "İstanbul",
@@ -331,12 +339,12 @@ async function main() {
   // 4) Ramazan Umresi
   const t4 = await createTour({
     title: "Ramazan Umresi Programı",
-    slug: "ramazan-umresi-2026",
+    slug: "ramazan-umresi-2027",
     categorySlug: "ramazan-umresi",
     short: "Ramazan'ın bereketinde, mukabele ve iftar programları ile unutulmaz umre.",
     description:
       "Ramazan umresi, umrenin sevabının kat kat arttığı mübarek bir fırsattır. Programımızda teravih, mukabele ve iftar organizasyonları ile Ramazan'ı kutsal topraklarda en güzel şekilde idrak edersiniz.",
-    depDays: 240,
+    departure: "2027-02-22",
     days: 15,
     nights: 14,
     depCity: "İstanbul",
@@ -358,7 +366,7 @@ async function main() {
     images: ["/images/tur-ramazan-umresi.svg", "/images/otel-mekke-1.svg", "/images/otel-medine-2.svg", "/images/kategori-ramazan.svg"],
   });
 
-  // 5) 2026 Hac Ön Kayıt
+  // 5) 2027 Hac Ön Kayıt
   const hacProgram: Day[] = [
     [1, "Hareket", "İstanbul'dan Cidde'ye hareket ve Mekke'ye intikal."],
     [2, "Umre ve Yerleşim", "Kudüm umresinin eda edilmesi ve otele yerleşim."],
@@ -373,13 +381,13 @@ async function main() {
   ];
 
   const t5 = await createTour({
-    title: "2026 Hac Ön Kayıt Programı",
-    slug: "2026-hac-on-kayit-programi",
+    title: "2027 Hac Ön Kayıt Programı",
+    slug: "2027-hac-on-kayit-programi",
     categorySlug: "hac",
-    short: "2026 hac sezonu için ön kayıtlar başladı. Diyanet uyumlu, tecrübeli kadro ile hac.",
+    short: "2027 hac sezonu için ön kayıtlar başladı. Diyanet uyumlu, tecrübeli kadro ile hac.",
     description:
-      "Ömürde bir kez farz olan hac ibadeti için 2026 ön kayıtlarımız açıldı. Müstakil çadır, merkezi oteller ve deneyimli kafile başkanları ile hac vazifenizi huzur içinde eda edin. Kontenjan sınırlıdır.",
-    depDays: 330,
+      "Ömürde bir kez farz olan hac ibadeti için 2027 ön kayıtlarımız açıldı. Müstakil çadır, merkezi oteller ve deneyimli kafile başkanları ile hac vazifenizi huzur içinde eda edin. Kontenjan sınırlıdır.",
+    departure: "2027-04-28",
     days: 30,
     nights: 29,
     depCity: "İstanbul",
@@ -430,7 +438,7 @@ async function main() {
     short: "Üç semavi dinin buluştuğu kutsal şehir Kudüs ve Mescid-i Aksa ziyareti.",
     description:
       "İlk kıblemiz Mescid-i Aksa'yı ziyaret edeceğiniz bu manevi ve kültürel turda; Kubbetü's-Sahra, Ağlama Duvarı, Beytüllahim ve Halilürrahman gibi tarihi mekânları rehber eşliğinde gezeceksiniz.",
-    depDays: 60,
+    departure: "2026-11-05",
     days: 5,
     nights: 4,
     depCity: "İstanbul",
@@ -489,7 +497,7 @@ async function main() {
     short: "Osmanlı'nın izlerini taşıyan Balkan şehirlerinde 7 günlük kültür ve tarih turu.",
     description:
       "Saraybosna'dan Üsküp'e, Ohrid'den Belgrad'a Balkanların incisi şehirleri keşfedin. Osmanlı mirası camiler, tarihi köprüler ve eşsiz doğa manzaraları ile dolu bir tur sizi bekliyor.",
-    depDays: 75,
+    departure: "2026-11-19",
     days: 7,
     nights: 6,
     depCity: "İstanbul",
@@ -805,15 +813,14 @@ Mikat, kutsal topraklara manevi bir hazırlıkla girmenin ilk adımıdır.`,
     email: "info@rotamizhuzura.com",
     address: "Merkez Mah. Huzur Cad. No:1 Fatih / İstanbul",
     workingHours: "Hafta içi 09:00 - 18:00, Cumartesi 10:00 - 16:00",
-    facebook: "https://facebook.com",
-    instagram: "https://instagram.com",
-    youtube: "https://youtube.com",
-    twitter: "https://x.com",
+    // Sosyal medya hesapları panelden eklenir; boş olanlar sitede gösterilmez
+    facebook: "",
+    instagram: "",
+    youtube: "",
+    twitter: "",
     logo: "/images/logo-mark.svg",
     mapEmbed:
       "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3009.9!2d28.955!3d41.019!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zRmF0aWg!5e0!3m2!1str!2str!4v1700000000000",
-    heroSlides:
-      "/images/hero-1.svg\n/images/hero-2.svg\n/images/hero-3.svg",
     footerNote:
       "Rotamız Huzura, TÜRSAB ve Diyanet İşleri Başkanlığı yetki belgeli bir seyahat acentasıdır.",
   };
@@ -835,6 +842,7 @@ Mikat, kutsal topraklara manevi bir hazırlıkla girmenin ilk adımıdır.`,
       tourTitle: t1.title,
       tourId: t1.id,
       message: "13 günlük umre programı hakkında bilgi almak istiyorum.",
+      source: "tur-detay",
       status: "Yeni",
     },
   });

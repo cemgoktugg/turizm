@@ -8,20 +8,16 @@ import { SmartImage } from "@/components/ui/smart-image";
 import { buttonVariants } from "@/components/ui/button";
 import { whatsappLink } from "@/lib/settings";
 import { cn } from "@/lib/utils";
-
-const SLIDE_TEXT = [
-  { title: "Rotamız Huzura", sub: "Yetkili acenta güvencesiyle, manevi ve konforlu hac & umre yolculukları." },
-  { title: "Kutsal Topraklara", sub: "Harem'e sıfır oteller, tecrübeli rehberlik ve unutulmaz bir manevi deneyim." },
-  { title: "Huzurun Adresi", sub: "2026 sezonu hac ve umre programlarında kesin kayıtlar başladı." },
-];
+import type { ContentData } from "@/lib/content/registry";
 
 export function HeroSlider({
-  slides,
+  content,
   whatsapp,
 }: {
-  slides: string[];
+  content: ContentData<"home.hero">;
   whatsapp: string;
 }) {
+  const slides = content.slides.length ? content.slides : [{ image: "", title: "", subtitle: "" }];
   const [index, setIndex] = useState(0);
   const count = slides.length;
 
@@ -31,7 +27,7 @@ export function HeroSlider({
     return () => clearInterval(id);
   }, [count]);
 
-  const text = SLIDE_TEXT[index % SLIDE_TEXT.length];
+  const slide = slides[index % count];
 
   return (
     <section className="relative h-[88vh] min-h-[560px] w-full overflow-hidden bg-brand-950">
@@ -45,12 +41,7 @@ export function HeroSlider({
           transition={{ duration: 1.2, ease: "easeInOut" }}
           className="absolute inset-0"
         >
-          <SmartImage
-            src={slides[index]}
-            alt="Rotamız Huzura"
-            loading="eager"
-            className="size-full"
-          />
+          <SmartImage src={slide.image} alt={slide.title} loading="eager" className="size-full" fallback="/images/hero-1.svg" />
         </motion.div>
       </AnimatePresence>
 
@@ -61,15 +52,17 @@ export function HeroSlider({
       {/* İçerik */}
       <div className="container-tr relative flex h-full flex-col justify-center">
         <div className="max-w-2xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.6 }}
-            className="inline-flex items-center gap-2 rounded-full border border-gold-400/40 bg-gold-400/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-gold-300 backdrop-blur"
-          >
-            <Star className="size-3.5 fill-gold-400 text-gold-400" />
-            TÜRSAB & Diyanet Yetki Belgeli
-          </motion.div>
+          {content.badge && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, duration: 0.6 }}
+              className="inline-flex items-center gap-2 rounded-full border border-gold-400/40 bg-gold-400/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-gold-300 backdrop-blur"
+            >
+              <Star className="size-3.5 fill-gold-400 text-gold-400" />
+              {content.badge}
+            </motion.div>
+          )}
 
           <AnimatePresence mode="wait">
             <motion.h1
@@ -80,7 +73,7 @@ export function HeroSlider({
               transition={{ duration: 0.5 }}
               className="mt-6 font-serif text-4xl font-bold leading-[1.05] text-white sm:text-6xl lg:text-7xl"
             >
-              {text.title}
+              {slide.title}
             </motion.h1>
           </AnimatePresence>
 
@@ -93,7 +86,7 @@ export function HeroSlider({
               transition={{ duration: 0.5, delay: 0.05 }}
               className="mt-5 max-w-xl text-base leading-relaxed text-cream-100/85 sm:text-lg"
             >
-              {text.sub}
+              {slide.subtitle}
             </motion.p>
           </AnimatePresence>
 
@@ -103,26 +96,29 @@ export function HeroSlider({
             transition={{ delay: 0.3, duration: 0.6 }}
             className="mt-9 flex flex-wrap items-center gap-3"
           >
-            <Link href="/umre" className={buttonVariants({ variant: "gold", size: "lg" })}>
-              Umre Turlarını İncele <MoveRight className="size-5" />
-            </Link>
-            <Link
-              href="/hac/programlari"
-              className={buttonVariants({ variant: "white", size: "lg" })}
-            >
-              Hac Programları
-            </Link>
-            <a
-              href={whatsappLink(whatsapp, "Merhaba, hac/umre programları hakkında bilgi almak istiyorum.")}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={cn(
-                buttonVariants({ variant: "ghost", size: "lg" }),
-                "border border-white/30 bg-white/5 text-white backdrop-blur hover:bg-white/15 hover:text-white",
-              )}
-            >
-              <MessageCircle className="size-5" /> WhatsApp'tan Bilgi Al
-            </a>
+            {content.primaryLabel && content.primaryHref && (
+              <Link href={content.primaryHref} className={buttonVariants({ variant: "gold", size: "lg" })}>
+                {content.primaryLabel} <MoveRight className="size-5" />
+              </Link>
+            )}
+            {content.secondaryLabel && content.secondaryHref && (
+              <Link href={content.secondaryHref} className={buttonVariants({ variant: "white", size: "lg" })}>
+                {content.secondaryLabel}
+              </Link>
+            )}
+            {content.whatsappLabel && (
+              <a
+                href={whatsappLink(whatsapp, content.whatsappMessage || undefined)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(
+                  buttonVariants({ variant: "ghost", size: "lg" }),
+                  "border border-white/30 bg-white/5 text-white backdrop-blur hover:bg-white/15 hover:text-white",
+                )}
+              >
+                <MessageCircle className="size-5" /> {content.whatsappLabel}
+              </a>
+            )}
           </motion.div>
         </div>
       </div>

@@ -1,49 +1,37 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  CalendarDays,
-  Clock,
-  MapPin,
-  Plane,
-  Building2,
-  Bed,
-  MessageCircle,
-} from "lucide-react";
+import { CalendarDays, Clock, MapPin, Plane, Building2, Bed, MessageCircle, CalendarX2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { getTourBySlug } from "@/lib/queries";
+import { activeTourWhere, getTourBySlug, isPastTour } from "@/lib/queries";
 import { getSettings, whatsappLink } from "@/lib/settings";
+import { getContent } from "@/lib/content";
 import { PageHero } from "@/components/site/page-hero";
 import { TourGallery } from "@/components/site/tour-gallery";
 import { TourDetailTabs } from "@/components/site/tour-detail-tabs";
 import { BookingForm } from "@/components/site/booking-form";
+import { TourCard } from "@/components/site/tour-card";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { formatPrice, formatDateRange, splitLines } from "@/lib/utils";
-import {
-  TourJsonLd,
-  FaqJsonLd,
-  BreadcrumbJsonLd,
-} from "@/components/seo/json-ld";
+import { TourJsonLd, FaqJsonLd, BreadcrumbJsonLd } from "@/components/seo/json-ld";
 
 export async function generateStaticParams() {
-  const tours = await prisma.tour.findMany({
-    where: { isPublished: true },
-    select: { slug: true },
-  });
+  const tours = await prisma.tour.findMany({ where: activeTourWhere(), select: { slug: true } });
   return tours.map((t) => ({ slug: t.slug }));
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const tour = await getTourBySlug(slug);
   if (!tour) return { title: "Tur bulunamadı" };
+  const past = isPastTour(tour.departureDate);
   return {
     title: tour.seoTitle || tour.title,
     description: tour.seoDescription || tour.shortDescription || undefined,
     alternates: { canonical: `/turlar/${tour.slug}` },
+    // Tarihi geçmiş turlar arama motorlarında öne çıkmasın
+    robots: past ? { index: false, follow: true } : undefined,
     openGraph: {
       title: tour.title,
       description: tour.shortDescription || undefined,
@@ -52,21 +40,28 @@ export async function generateMetadata({
   };
 }
 
-export default async function TourDetailPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+export default async function TourDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const tour = await getTourBySlug(slug);
   if (!tour) notFound();
 
-  const settings = await getSettings();
+  const past = isPastTour(tour.departureDate);
+  const [settings, booking, similar] = await Promise.all([
+    getSettings(),
+    getContent("shared.booking"),
+    past
+      ? prisma.tour.findMany({
+          where: activeTourWhere({ categoryId: tour.categoryId, id: { not: tour.id } }),
+          include: { category: true },
+          orderBy: { departureDate: "asc" },
+          take: 3,
+        })
+      : Promise.resolve([]),
+  ]);
 
-  const galleryImages = [
-    tour.coverImage,
-    ...tour.images.map((i) => i.url),
-  ].filter((v, i, arr): v is string => Boolean(v) && arr.indexOf(v) === i);
+  const galleryImages = [tour.coverImage, ...tour.images.map((i) => i.url)].filter(
+    (v, i, arr): v is string => Boolean(v) && arr.indexOf(v) === i,
+  );
 
   const included = splitLines(tour.includedServices);
   const excluded = splitLines(tour.excludedServices);
@@ -95,14 +90,16 @@ export default async function TourDetailPage({
 
   return (
     <>
-      <TourJsonLd
-        title={tour.title}
-        description={tour.shortDescription}
-        image={tour.coverImage}
-        price={tour.startingPrice}
-        currency={tour.currency}
-        slug={tour.slug}
-      />
+      {!past && (
+        <TourJsonLd
+          title={tour.title}
+          description={tour.shortDescription}
+          image={tour.coverImage}
+          price={tour.startingPrice}
+          currency={tour.currency}
+          slug={tour.slug}
+        />
+      )}
       <FaqJsonLd faqs={tour.faqs} />
       <BreadcrumbJsonLd
         items={[
@@ -126,24 +123,34 @@ export default async function TourDetailPage({
         <div className="container-tr grid gap-10 lg:grid-cols-[1.6fr_1fr]">
           {/* Sol içerik */}
           <div>
+            {past && (
+              <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-900">
+                <CalendarX2 className="mt-0.5 size-6 shrink-0" />
+                <div>
+                  <p className="font-semibold">{booking.pastTourTitle}</p>
+                  <p className="mt-1 text-sm">{booking.pastTourText}</p>
+                </div>
+              </div>
+            )}
+
             <TourGallery images={galleryImages} title={tour.title} />
 
             {/* Hızlı bilgiler */}
-            <div className="mt-8 grid gap-4 rounded-3xl border border-border bg-cream-50 p-6 sm:grid-cols-2 lg:grid-cols-3">
-              {facts.map((f, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white text-brand-700 shadow-sm">
-                    <f.icon className="size-5" />
-                  </span>
-                  <div>
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted">
-                      {f.label}
-                    </p>
-                    <p className="text-sm font-semibold text-brand-900">{f.value}</p>
+            {facts.length > 0 && (
+              <div className="mt-8 grid gap-4 rounded-3xl border border-border bg-cream-50 p-6 sm:grid-cols-2 lg:grid-cols-3">
+                {facts.map((f, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white text-brand-700 shadow-sm">
+                      <f.icon className="size-5" />
+                    </span>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted">{f.label}</p>
+                      <p className="text-sm font-semibold text-brand-900">{f.value}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
 
             {(tour.makkahDistance || tour.madinahDistance) && (
               <div className="mt-4 flex flex-wrap gap-3">
@@ -163,12 +170,12 @@ export default async function TourDetailPage({
             {/* Açıklama */}
             {tour.description && (
               <div className="mt-10">
-                <h2 className="font-serif text-2xl font-bold text-brand-900">
-                  Program Hakkında
-                </h2>
-                <p className="mt-4 leading-relaxed text-brand-800/90">
-                  {tour.description}
-                </p>
+                <h2 className="font-serif text-2xl font-bold text-brand-900">Program Hakkında</h2>
+                <div className="mt-4 space-y-3 leading-relaxed text-brand-800/90">
+                  {splitLines(tour.description).map((p, i) => (
+                    <p key={i}>{p}</p>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -182,22 +189,14 @@ export default async function TourDetailPage({
                   {tour.prices.map((p, i) => (
                     <div
                       key={p.id}
-                      className={`flex items-center justify-between px-5 py-4 ${
-                        i % 2 === 0 ? "bg-white" : "bg-cream-50"
-                      }`}
+                      className={`flex items-center justify-between px-5 py-4 ${i % 2 === 0 ? "bg-white" : "bg-cream-50"}`}
                     >
-                      <span className="text-sm font-medium text-brand-800">
-                        {p.roomType}
-                      </span>
-                      <span className="font-serif text-lg font-bold text-brand-700">
-                        {formatPrice(p.price, p.currency)}
-                      </span>
+                      <span className="text-sm font-medium text-brand-800">{p.roomType}</span>
+                      <span className="font-serif text-lg font-bold text-brand-700">{formatPrice(p.price, p.currency)}</span>
                     </div>
                   ))}
                 </div>
-                <p className="mt-2 text-xs text-muted">
-                  * Fiyatlar kişi başıdır ve bilgilendirme amaçlıdır. Güncel fiyat için lütfen iletişime geçin.
-                </p>
+                {booking.priceDisclaimer && <p className="mt-2 text-xs text-muted">{booking.priceDisclaimer}</p>}
               </div>
             )}
 
@@ -221,35 +220,54 @@ export default async function TourDetailPage({
                 <p className="mt-1 font-serif text-4xl font-bold text-white">
                   {formatPrice(tour.startingPrice, tour.currency ?? "USD")}
                 </p>
-                <p className="mt-1 text-xs text-cream-100/70">kişi başı, çift kişilik odada</p>
+                {tour.startingPrice != null && (
+                  <p className="mt-1 text-xs text-cream-100/70">{tour.priceNote || booking.defaultPriceNote}</p>
+                )}
               </div>
               <div className="p-6">
-                <h3 className="font-serif text-lg font-bold text-brand-900">
-                  Hemen Rezervasyon Yapın
-                </h3>
-                <p className="mt-1 text-sm text-muted">
-                  Formu doldurun, sizi arayalım.
-                </p>
-                <div className="mt-4">
-                  <BookingForm
-                    tourId={tour.id}
-                    tourTitle={tour.title}
-                    variant="bare"
-                  />
-                </div>
+                {past ? (
+                  <>
+                    <h3 className="font-serif text-lg font-bold text-brand-900">Kayıtlar kapandı</h3>
+                    <p className="mt-1 text-sm text-muted">{booking.pastTourText}</p>
+                    <Link href="/turlar" className={`${buttonVariants({ variant: "primary" })} mt-4 w-full`}>
+                      Güncel Turları İncele
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="font-serif text-lg font-bold text-brand-900">{booking.sidebarTitle}</h3>
+                    <p className="mt-1 text-sm text-muted">{booking.sidebarText}</p>
+                    <div className="mt-4">
+                      <BookingForm tourId={tour.id} tourTitle={tour.title} variant="bare" source="tur-detay" texts={booking} />
+                    </div>
+                  </>
+                )}
                 <a
                   href={whatsappLink(settings.whatsapp, waText)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-[#25D366] py-2.5 text-sm font-semibold text-[#1eb955] transition hover:bg-[#25D366] hover:text-white"
                 >
-                  <MessageCircle className="size-4" /> WhatsApp'tan Sor
+                  <MessageCircle className="size-4" /> WhatsApp&apos;tan Sor
                 </a>
               </div>
             </div>
           </aside>
         </div>
       </section>
+
+      {similar.length > 0 && (
+        <section className="bg-cream-50 py-16">
+          <div className="container-tr">
+            <h2 className="mb-8 font-serif text-2xl font-bold text-brand-900">Yaklaşan Benzer Programlar</h2>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {similar.map((t) => (
+                <TourCard key={t.id} tour={t} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
     </>
   );
 }

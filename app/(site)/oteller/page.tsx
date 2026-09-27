@@ -1,7 +1,7 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { MoveRight } from "lucide-react";
 import { getHotelsByCity } from "@/lib/queries";
+import { getContent, pageMetadata } from "@/lib/content";
 import { PageHero } from "@/components/site/page-hero";
 import { HotelCard } from "@/components/site/hotel-card";
 import { CtaBand } from "@/components/site/cta-band";
@@ -10,32 +10,23 @@ import { Reveal } from "@/components/ui/reveal";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = {
-  title: "Oteller",
-  description:
-    "Mekke ve Medine'de Harem'e yakın, konforlu otel seçeneklerimiz. Otel mesafeleri ve galeri görünümü.",
-  alternates: { canonical: "/oteller" },
-};
+export const generateMetadata = () => pageMetadata("page.oteller");
 
 export default async function OtellerPage() {
-  const [mekke, medine] = await Promise.all([
+  const [c, mekke, medine] = await Promise.all([
+    getContent("page.oteller"),
     getHotelsByCity("Mekke"),
     getHotelsByCity("Medine"),
   ]);
 
   const groups = [
-    { city: "Mekke", href: "/oteller/mekke", hotels: mekke, desc: "Harem-i Şerif'e yürüme mesafesindeki otellerimiz." },
-    { city: "Medine", href: "/oteller/medine", hotels: medine, desc: "Mescid-i Nebevi'ye yakın konforlu otellerimiz." },
-  ];
+    { city: "Mekke", href: "/oteller/mekke", hotels: mekke, desc: c.mekkeDescription },
+    { city: "Medine", href: "/oteller/medine", hotels: medine, desc: c.medineDescription },
+  ].filter((g) => g.hotels.length > 0);
 
   return (
     <>
-      <PageHero
-        title="Otellerimiz"
-        description="Kutsal mekânlara yakın, konforlu ve güvenli konaklama seçeneklerimizle yolculuğunuz huzurlu geçsin."
-        image="/images/otel-mekke-3.svg"
-        crumbs={[{ label: "Oteller" }]}
-      />
+      <PageHero title={c.title} description={c.description} image={c.image} crumbs={[{ label: "Oteller" }]} />
 
       {groups.map((g, gi) => (
         <section key={g.city} className={cn("py-16 lg:py-20", gi % 2 === 1 && "bg-cream-50")}>
@@ -48,10 +39,7 @@ export default async function OtellerPage() {
                 title={`${g.city} Otelleri`}
                 description={g.desc}
               />
-              <Link
-                href={g.href}
-                className={cn(buttonVariants({ variant: "outline" }), "hidden shrink-0 sm:inline-flex")}
-              >
+              <Link href={g.href} className={cn(buttonVariants({ variant: "outline" }), "hidden shrink-0 sm:inline-flex")}>
                 Tümünü Gör <MoveRight className="size-4" />
               </Link>
             </div>

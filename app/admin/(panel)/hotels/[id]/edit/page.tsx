@@ -3,14 +3,12 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { HotelForm } from "@/components/admin/hotel-form";
+import { parseImages } from "@/lib/utils";
+import type { HOTEL_CITIES } from "@/lib/validations";
 
 export const metadata = { title: "Otel Düzenle" };
 
-export default async function EditHotelPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function EditHotelPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const hotel = await prisma.hotel.findUnique({ where: { id } });
   if (!hotel) notFound();
@@ -28,12 +26,12 @@ export default async function EditHotelPage({
         defaultValues={{
           name: hotel.name,
           slug: hotel.slug,
-          city: hotel.city,
+          city: hotel.city as (typeof HOTEL_CITIES)[number],
           region: hotel.region ?? "",
           distance: hotel.distance ?? "",
-          stars: hotel.stars ?? undefined,
+          stars: hotel.stars == null ? "" : String(hotel.stars),
           description: hotel.description ?? "",
-          images: hotel.images ?? "",
+          images: parseImages(hotel.images),
           isPublished: hotel.isPublished,
         }}
       />

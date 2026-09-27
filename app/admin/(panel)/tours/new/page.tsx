@@ -1,15 +1,12 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { prisma } from "@/lib/prisma";
 import { TourForm } from "@/components/admin/tour-form";
+import { getTourFormOptions } from "@/lib/admin-data";
 
 export const metadata = { title: "Yeni Tur" };
 
 export default async function NewTourPage() {
-  const categories = await prisma.tourCategory.findMany({
-    orderBy: { order: "asc" },
-    select: { id: true, name: true },
-  });
+  const { categories, hotels } = await getTourFormOptions();
 
   return (
     <div>
@@ -17,7 +14,7 @@ export default async function NewTourPage() {
         <ArrowLeft className="size-4" /> Turlara Dön
       </Link>
       <h2 className="mb-6 font-serif text-2xl font-bold text-brand-900">Yeni Tur Ekle</h2>
-      <TourForm categories={categories} />
+      <TourForm categories={categories} hotels={hotels} />
     </div>
   );
 }

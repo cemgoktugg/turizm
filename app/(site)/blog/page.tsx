@@ -1,30 +1,20 @@
-import type { Metadata } from "next";
 import { getBlogPosts } from "@/lib/queries";
+import { getContent, pageMetadata } from "@/lib/content";
 import { PageHero } from "@/components/site/page-hero";
 import { BlogCard } from "@/components/site/blog-card";
 import { CtaBand } from "@/components/site/cta-band";
 import { Reveal } from "@/components/ui/reveal";
 import { BookOpen } from "lucide-react";
 
-export const metadata: Metadata = {
-  title: "Blog & Rehber",
-  description:
-    "Hac ve umre hakkında rehber yazılar: hazırlık, ihram, mikat, menasik ve daha fazlası.",
-  alternates: { canonical: "/blog" },
-};
+export const generateMetadata = () => pageMetadata("page.blog");
 
 export default async function BlogPage() {
-  const posts = await getBlogPosts();
+  const [posts, c] = await Promise.all([getBlogPosts(), getContent("page.blog")]);
   const [featured, ...rest] = posts;
 
   return (
     <>
-      <PageHero
-        title="Blog & Rehber"
-        description="Manevi yolculuğunuza hazırlanırken işinize yarayacak bilgiler ve rehber içerikler."
-        image="/images/blog-ilk-umre.svg"
-        crumbs={[{ label: "Blog" }]}
-      />
+      <PageHero title={c.title} description={c.description} image={c.image} crumbs={[{ label: "Blog" }]} />
 
       <section className="py-16 lg:py-20">
         <div className="container-tr">

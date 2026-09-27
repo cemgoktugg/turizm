@@ -1,29 +1,21 @@
-import { prisma } from "@/lib/prisma";
 import { AdminPageHeader } from "@/components/admin/ui";
 import { SettingsForm } from "@/components/admin/settings-form";
+import { getSettings } from "@/lib/settings";
+import type { SettingsInput } from "@/lib/validations";
 
 export const metadata = { title: "Site Ayarları" };
-export const dynamic = "force-dynamic";
-
-const KEYS = [
-  "siteName", "tagline", "logo", "footerNote",
-  "phone", "whatsapp", "email", "workingHours", "address",
-  "facebook", "instagram", "youtube", "twitter",
-  "mapEmbed", "heroSlides",
-];
 
 export default async function AdminSettingsPage() {
-  const rows = await prisma.siteSetting.findMany();
-  const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
-  const values = Object.fromEntries(KEYS.map((k) => [k, map[k] ?? ""]));
+  const { raw: _raw, ...values } = await getSettings();
+  void _raw;
 
   return (
     <div>
       <AdminPageHeader
         title="Site Ayarları"
-        description="İletişim bilgileri, sosyal medya, logo ve ana sayfa ayarlarını buradan yönetin."
+        description="İletişim bilgileri, sosyal medya, logo, harita ve SEO ayarları. Sayfa metinleri için 'Sayfa İçerikleri' menüsünü kullanın."
       />
-      <SettingsForm values={values} />
+      <SettingsForm values={values as SettingsInput} />
     </div>
   );
 }

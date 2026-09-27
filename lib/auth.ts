@@ -1,34 +1,30 @@
 import "server-only";
-import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { cache } from "react";
 import { prisma } from "./prisma";
+import {
+  SESSION_COOKIE,
+  SESSION_MAX_AGE,
+  signSession,
+  verifySession,
+} from "./session";
 
-export const SESSION_COOKIE = "admin_session";
-const MAX_AGE = 60 * 60 * 24 * 7; // 7 gün
+export { SESSION_COOKIE } from "./session";
 
-function getSecret(): string {
-  return process.env.JWT_SECRET || "change-this-secret-key";
-}
-
-export type SessionPayload = {
-  sub: string;
-  email: string;
+export type CurrentUser = {
+  id: string;
   name: string;
+  email: string;
   role: string;
+  /** Şifre hiç değiştirilmemişse (seed'deki varsayılan şifre) true */
+  mustChangePassword: boolean;
 };
 
-export function signToken(payload: SessionPayload): string {
-  return jwt.sign(payload, getSecret(), { expiresIn: MAX_AGE });
-}
+let dummyHash: string | undefined;
 
-export function verifyToken(token: string): SessionPayload | null {
-  try {
-    return jwt.verify(token, getSecret()) as SessionPayload;
-  } catch {
-    return null;
-  }
+export async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 10);
 }
 
 /** E-posta + şifre doğrular, geçerliyse kullanıcıyı döndürür */
@@ -36,22 +32,31 @@ export async function verifyCredentials(email: string, password: string) {
   const user = await prisma.user.findUnique({
     where: { email: email.toLowerCase().trim() },
   });
-  if (!user) return null;
+  if (!user) {
+    // Zamanlama farkıyla e-posta tahminini zorlaştırmak için yine de hash karşılaştır
+    await bcrypt.compare(password, (dummyHash ??= bcrypt.hashSync("zamanlama-dengesi", 10)));
+    return null;
+  }
   const ok = await bcrypt.compare(password, user.password);
-  if (!ok) return null;
-  return user;
+  return ok ? user : null;
+}
+
+export async function checkPassword(userId: string, password: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { password: true } });
+  if (!user) return false;
+  return bcrypt.compare(password, user.password);
 }
 
 /** Oturum çerezini oluşturur */
-export async function createSession(payload: SessionPayload) {
-  const token = signToken(payload);
+export async function createSession(user: { id: string; tokenVersion: number }) {
+  const token = signSession({ sub: user.id, ver: user.tokenVersion });
   const store = await cookies();
   store.set(SESSION_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: MAX_AGE,
+    maxAge: SESSION_MAX_AGE,
   });
 }
 
@@ -61,12 +66,40 @@ export async function destroySession() {
   store.delete(SESSION_COOKIE);
 }
 
-/** Aktif kullanıcıyı döndürür (istek başına önbelleklenir) */
-export const getCurrentUser = cache(
-  async (): Promise<SessionPayload | null> => {
-    const store = await cookies();
-    const token = store.get(SESSION_COOKIE)?.value;
-    if (!token) return null;
-    return verifyToken(token);
-  },
-);
+/**
+ * Aktif kullanıcıyı döndürür (istek başına önbelleklenir).
+ * İmza + kullanıcının hâlâ var olması + tokenVersion eşleşmesi kontrol edilir.
+ */
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
+  const store = await cookies();
+  const payload = verifySession(store.get(SESSION_COOKIE)?.value);
+  if (!payload) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: payload.sub },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      tokenVersion: true,
+      passwordChangedAt: true,
+    },
+  });
+  if (!user || user.tokenVersion !== payload.ver) return null;
+
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    mustChangePassword: user.passwordChangedAt === null,
+  };
+});
+
+/** Server action'larda yetki kontrolü */
+export async function requireAdmin(): Promise<CurrentUser> {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Yetkisiz erişim. Lütfen tekrar giriş yapın.");
+  return user;
+}

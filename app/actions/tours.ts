@@ -1,185 +1,168 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
 import { uniqueSlug } from "@/lib/slug";
-import { adminTourSchema } from "@/lib/validations";
-import type { ActionResult } from "./leads";
+import { adminTourSchema, type AdminTourInput } from "@/lib/validations";
+import { adminAction, invalid, type ActionResult } from "@/lib/action";
+import { revalidateSite } from "@/lib/revalidate";
 
 function toDate(v?: string): Date | null {
   if (!v) return null;
   const d = new Date(v);
-  return isNaN(d.getTime()) ? null : d;
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
-async function assertAdmin() {
-  const user = await getCurrentUser();
-  if (!user) throw new Error("Yetkisiz erişim.");
-  return user;
-}
-
-function scalarData(data: Record<string, unknown>) {
-  const d = data as Record<string, string | number | boolean | undefined>;
+function scalarData(d: AdminTourInput) {
   return {
-    title: d.title as string,
-    shortDescription: (d.shortDescription as string) || null,
-    description: (d.description as string) || null,
-    categoryId: d.categoryId as string,
-    departureDate: toDate(d.departureDate as string),
-    returnDate: toDate(d.returnDate as string),
-    durationDays: d.durationDays != null ? Number(d.durationDays) : null,
-    durationNights: d.durationNights != null ? Number(d.durationNights) : null,
-    departureCity: (d.departureCity as string) || null,
-    airline: (d.airline as string) || null,
-    makkahHotel: (d.makkahHotel as string) || null,
-    madinahHotel: (d.madinahHotel as string) || null,
-    makkahDistance: (d.makkahDistance as string) || null,
-    madinahDistance: (d.madinahDistance as string) || null,
-    startingPrice: d.startingPrice != null ? Number(d.startingPrice) : null,
-    currency: (d.currency as string) || "USD",
-    coverImage: (d.coverImage as string) || null,
-    includedServices: (d.includedServices as string) || null,
-    excludedServices: (d.excludedServices as string) || null,
-    requiredDocuments: (d.requiredDocuments as string) || null,
-    isFeatured: Boolean(d.isFeatured),
-    isPublished: Boolean(d.isPublished),
-    seoTitle: (d.seoTitle as string) || null,
-    seoDescription: (d.seoDescription as string) || null,
+    title: d.title,
+    shortDescription: d.shortDescription || null,
+    description: d.description || null,
+    categoryId: d.categoryId,
+    departureDate: toDate(d.departureDate),
+    returnDate: toDate(d.returnDate),
+    durationDays: d.durationDays ?? null,
+    durationNights: d.durationNights ?? null,
+    departureCity: d.departureCity || null,
+    airline: d.airline || null,
+    makkahHotel: d.makkahHotel || null,
+    madinahHotel: d.madinahHotel || null,
+    makkahDistance: d.makkahDistance || null,
+    madinahDistance: d.madinahDistance || null,
+    startingPrice: d.startingPrice ?? null,
+    currency: d.currency,
+    priceNote: d.priceNote || null,
+    coverImage: d.coverImage || null,
+    includedServices: d.includedServices || null,
+    excludedServices: d.excludedServices || null,
+    requiredDocuments: d.requiredDocuments || null,
+    isFeatured: d.isFeatured,
+    isPublished: d.isPublished,
+    seoTitle: d.seoTitle || null,
+    seoDescription: d.seoDescription || null,
   };
 }
 
-export async function createTour(input: unknown): Promise<ActionResult> {
-  await assertAdmin();
-  const parsed = adminTourSchema.safeParse(input);
-  if (!parsed.success) {
-    return { ok: false, message: parsed.error.issues[0]?.message ?? "Geçersiz veri." };
-  }
-  const data = parsed.data;
-  const slug = await uniqueSlug("tour", data.slug || data.title);
-  const images = (data.images || "")
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  await prisma.tour.create({
-    data: {
-      ...scalarData(data),
-      slug,
-      images: { create: images.map((url, i) => ({ url, order: i })) },
-      prices: {
-        create: (data.prices ?? []).map((p, i) => ({
-          roomType: p.roomType,
-          price: p.price,
-          currency: data.currency || "USD",
-          order: i,
-        })),
-      },
-      dayPrograms: {
-        create: (data.dayPrograms ?? []).map((p) => ({
-          dayNumber: p.dayNumber,
-          title: p.title,
-          description: p.description,
-        })),
-      },
-      faqs: {
-        create: (data.faqs ?? []).map((f, i) => ({
-          question: f.question,
-          answer: f.answer,
-          order: i,
-        })),
-      },
+function relationData(d: AdminTourInput) {
+  return {
+    images: { create: d.images.filter(Boolean).map((url, i) => ({ url, order: i })) },
+    prices: {
+      create: d.prices.map((p, i) => ({ roomType: p.roomType, price: p.price, currency: d.currency, order: i })),
     },
-  });
-
-  revalidatePath("/admin/tours");
-  revalidatePath("/turlar");
-  revalidatePath("/");
-  return { ok: true, message: "Tur oluşturuldu." };
+    dayPrograms: {
+      create: d.dayPrograms.map((p) => ({ dayNumber: p.dayNumber, title: p.title, description: p.description })),
+    },
+    faqs: { create: d.faqs.map((f, i) => ({ question: f.question, answer: f.answer, order: i })) },
+  };
 }
 
-export async function updateTour(id: string, input: unknown): Promise<ActionResult> {
-  await assertAdmin();
-  const parsed = adminTourSchema.safeParse(input);
-  if (!parsed.success) {
-    return { ok: false, message: parsed.error.issues[0]?.message ?? "Geçersiz veri." };
-  }
-  const data = parsed.data;
-  const slug = await uniqueSlug("tour", data.slug || data.title, id);
-  const images = (data.images || "")
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean);
+async function assertCategory(categoryId: string) {
+  return prisma.tourCategory.findUnique({ where: { id: categoryId }, select: { id: true } });
+}
 
-  await prisma.$transaction([
-    prisma.tourImage.deleteMany({ where: { tourId: id } }),
-    prisma.tourPrice.deleteMany({ where: { tourId: id } }),
-    prisma.tourDayProgram.deleteMany({ where: { tourId: id } }),
-    prisma.fAQ.deleteMany({ where: { tourId: id } }),
-    prisma.tour.update({
-      where: { id },
-      data: {
-        ...scalarData(data),
-        slug,
-        images: { create: images.map((url, i) => ({ url, order: i })) },
-        prices: {
-          create: (data.prices ?? []).map((p, i) => ({
-            roomType: p.roomType,
-            price: p.price,
-            currency: data.currency || "USD",
-            order: i,
-          })),
-        },
-        dayPrograms: {
-          create: (data.dayPrograms ?? []).map((p) => ({
-            dayNumber: p.dayNumber,
-            title: p.title,
-            description: p.description,
-          })),
-        },
-        faqs: {
-          create: (data.faqs ?? []).map((f, i) => ({
-            question: f.question,
-            answer: f.answer,
-            order: i,
-          })),
-        },
-      },
-    }),
-  ]);
+export async function createTour(input: unknown): Promise<ActionResult<{ id: string }>> {
+  return adminAction(async () => {
+    const parsed = adminTourSchema.safeParse(input);
+    if (!parsed.success) return invalid(parsed.error);
+    const d = parsed.data;
+    if (!(await assertCategory(d.categoryId))) return { ok: false, message: "Seçilen kategori bulunamadı." };
 
-  revalidatePath("/admin/tours");
-  revalidatePath(`/turlar/${slug}`);
-  revalidatePath("/turlar");
-  revalidatePath("/");
-  return { ok: true, message: "Tur güncellendi." };
+    const slug = await uniqueSlug("tour", d.slug || d.title);
+    const tour = await prisma.tour.create({ data: { ...scalarData(d), slug, ...relationData(d) } });
+    revalidateSite();
+    return { ok: true, message: "Tur oluşturuldu.", data: { id: tour.id } };
+  });
+}
+
+export async function updateTour(id: string, input: unknown): Promise<ActionResult<{ id: string }>> {
+  return adminAction(async () => {
+    const parsed = adminTourSchema.safeParse(input);
+    if (!parsed.success) return invalid(parsed.error);
+    const d = parsed.data;
+    if (!(await assertCategory(d.categoryId))) return { ok: false, message: "Seçilen kategori bulunamadı." };
+
+    const slug = await uniqueSlug("tour", d.slug || d.title, id);
+    await prisma.$transaction([
+      prisma.tourImage.deleteMany({ where: { tourId: id } }),
+      prisma.tourPrice.deleteMany({ where: { tourId: id } }),
+      prisma.tourDayProgram.deleteMany({ where: { tourId: id } }),
+      prisma.fAQ.deleteMany({ where: { tourId: id } }),
+      prisma.tour.update({ where: { id }, data: { ...scalarData(d), slug, ...relationData(d) } }),
+    ]);
+    revalidateSite();
+    return { ok: true, message: "Tur güncellendi.", data: { id } };
+  });
 }
 
 export async function deleteTour(id: string): Promise<ActionResult> {
-  await assertAdmin();
-  await prisma.tour.delete({ where: { id } });
-  revalidatePath("/admin/tours");
-  revalidatePath("/turlar");
-  return { ok: true, message: "Tur silindi." };
+  return adminAction(async () => {
+    // Başvurular silinmez; tur bağlantısı kaldırılıp tur adı başvuruda saklanır
+    const tour = await prisma.tour.findUnique({ where: { id }, select: { title: true } });
+    if (!tour) return { ok: false, message: "Tur bulunamadı." };
+    await prisma.$transaction([
+      prisma.lead.updateMany({ where: { tourId: id, tourTitle: null }, data: { tourTitle: tour.title } }),
+      prisma.lead.updateMany({ where: { tourId: id }, data: { tourId: null } }),
+      prisma.tour.delete({ where: { id } }),
+    ]);
+    revalidateSite();
+    return { ok: true, message: "Tur silindi. İlgili başvurular korunuyor." };
+  });
 }
 
 /** Yayın / öne çıkarma durumunu değiştirir */
-export async function toggleTourFlag(
-  id: string,
-  field: "isPublished" | "isFeatured",
-): Promise<ActionResult> {
-  await assertAdmin();
-  const tour = await prisma.tour.findUnique({
-    where: { id },
-    select: { isPublished: true, isFeatured: true },
+export async function toggleTourFlag(id: string, field: "isPublished" | "isFeatured"): Promise<ActionResult> {
+  return adminAction(async () => {
+    if (field !== "isPublished" && field !== "isFeatured") return { ok: false, message: "Geçersiz alan." };
+    const tour = await prisma.tour.findUnique({ where: { id }, select: { isPublished: true, isFeatured: true } });
+    if (!tour) return { ok: false, message: "Tur bulunamadı." };
+    const next = !tour[field];
+    await prisma.tour.update({ where: { id }, data: { [field]: next } });
+    revalidateSite();
+    const label = field === "isPublished" ? (next ? "yayına alındı" : "yayından kaldırıldı") : next ? "öne çıkarıldı" : "öne çıkanlardan kaldırıldı";
+    return { ok: true, message: `Tur ${label}.` };
   });
-  if (!tour) return { ok: false, message: "Tur bulunamadı." };
-  await prisma.tour.update({
-    where: { id },
-    data: { [field]: !tour[field] },
+}
+
+/** Turu tüm detaylarıyla kopyalar (taslak olarak) — yeni sezon turları için */
+export async function duplicateTour(id: string): Promise<ActionResult<{ id: string }>> {
+  return adminAction(async () => {
+    const src = await prisma.tour.findUnique({
+      where: { id },
+      include: { images: true, prices: true, dayPrograms: true, faqs: true },
+    });
+    if (!src) return { ok: false, message: "Tur bulunamadı." };
+
+    const title = `${src.title} (Kopya)`;
+    const slug = await uniqueSlug("tour", title);
+    const {
+      id: _id,
+      createdAt: _c,
+      updatedAt: _u,
+      images,
+      prices,
+      dayPrograms,
+      faqs,
+      ...rest
+    } = src;
+    void _id;
+    void _c;
+    void _u;
+
+    const copy = await prisma.tour.create({
+      data: {
+        ...rest,
+        title,
+        slug,
+        isPublished: false,
+        isFeatured: false,
+        images: { create: images.map(({ url, alt, order }) => ({ url, alt, order })) },
+        prices: { create: prices.map(({ roomType, price, currency, order }) => ({ roomType, price, currency, order })) },
+        dayPrograms: {
+          create: dayPrograms.map(({ dayNumber, title, description }) => ({ dayNumber, title, description })),
+        },
+        faqs: { create: faqs.map(({ question, answer, order }) => ({ question, answer, order })) },
+      },
+    });
+    revalidateSite();
+    return { ok: true, message: "Tur kopyalandı (taslak olarak). Tarihleri güncelleyip yayınlayabilirsiniz.", data: { id: copy.id } };
   });
-  revalidatePath("/admin/tours");
-  revalidatePath("/turlar");
-  revalidatePath("/");
-  return { ok: true, message: "Güncellendi." };
 }

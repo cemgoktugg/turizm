@@ -1,45 +1,27 @@
-import type { Metadata } from "next";
 import { PageHero } from "@/components/site/page-hero";
 import { MenasikContent } from "@/components/site/menasik-content";
 import { CtaBand } from "@/components/site/cta-band";
-import { HAC_MENASIK } from "@/lib/constants";
+import { getContent, pageMetadata } from "@/lib/content";
 
-export const metadata: Metadata = {
-  title: "Hac Dua ve Vazifeler",
-  description:
-    "Haccın farzları, vacipleri, sünnetleri ve menasiki. İhram, Arafat vakfesi, şeytan taşlama ve okunacak dualar.",
-  alternates: { canonical: "/hac/dua-ve-vazifeler" },
-};
+export const generateMetadata = () => pageMetadata("page.hac-dua");
 
-const VAZIFELER = [
-  {
-    title: "Farzlar",
-    items: ["İhrama girmek (şart)", "Arafat'ta vakfe yapmak", "Ziyaret (ifada) tavafı"],
-  },
-  {
-    title: "Vacipler",
-    items: ["Müzdelife vakfesi", "Şeytan taşlama (cemre)", "Sa'y", "Tıraş / kısaltma", "Veda tavafı"],
-  },
-  {
-    title: "Sünnetler",
-    items: ["Kudüm tavafı", "Hutbeler", "Mina'da gecelemek", "Telbiye, tekbir ve dualar"],
-  },
-];
-
-export default function HacDuaPage() {
+export default async function HacDuaPage() {
+  const c = await getContent("page.hac-dua");
   return (
     <>
       <PageHero
-        title="Hac Dua ve Vazifeler"
-        description="Haccın menasikini adım adım öğrenin; farz, vacip ve sünnetleri ile okunacak duaları keşfedin."
-        image="/images/kategori-hac.svg"
+        title={c.title}
+        description={c.description}
+        image={c.image}
         crumbs={[{ label: "Hac", href: "/hac" }, { label: "Dua ve Vazifeler" }]}
       />
       <MenasikContent
-        steps={HAC_MENASIK}
-        stepsTitle="Hac Menasiki — Adım Adım"
-        stepsEyebrow="Menasik"
-        vazifeler={VAZIFELER}
+        steps={c.steps}
+        stepsTitle={c.stepsTitle}
+        stepsEyebrow={c.stepsEyebrow}
+        vazifeler={c.vazifeler}
+        vazifelerTitle={c.vazifelerTitle}
+        vazifelerEyebrow={c.vazifelerEyebrow}
       />
       <CtaBand />
     </>

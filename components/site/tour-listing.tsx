@@ -1,59 +1,34 @@
-import { prisma } from "@/lib/prisma";
 import { PageHero, type Crumb } from "./page-hero";
 import { TourGrid } from "./tour-grid";
 import { CtaBand } from "./cta-band";
 import { SectionHeading } from "@/components/ui/section-heading";
-import type { Prisma } from "@prisma/client";
+import { getTours } from "@/lib/queries";
+import { getContent } from "@/lib/content";
 
+type ListingKey = "page.hac-programlari" | "page.umre" | "page.umre-kesin" | "page.umre-luks" | "page.umre-ramazan";
+
+/** Kategori bazlı tur listeleme sayfası — metinler "Sayfa İçerikleri"nden gelir */
 export async function TourListing({
-  title,
-  description,
-  image,
+  contentKey,
   crumbs,
   categorySlugs,
   requireDate = false,
-  sectionTitle,
-  sectionDescription,
-  intro,
 }: {
-  title: string;
-  description?: string;
-  image?: string;
+  contentKey: ListingKey;
   crumbs?: Crumb[];
   categorySlugs?: string[];
   requireDate?: boolean;
-  sectionTitle?: string;
-  sectionDescription?: string;
-  intro?: React.ReactNode;
 }) {
-  const where: Prisma.TourWhereInput = { isPublished: true };
-  if (categorySlugs?.length) {
-    where.category = { slug: { in: categorySlugs } };
-  }
-  if (requireDate) {
-    where.departureDate = { not: null };
-  }
-
-  const tours = await prisma.tour.findMany({
-    where,
-    include: { category: true },
-    orderBy: [{ isFeatured: "desc" }, { departureDate: "asc" }],
-  });
+  const [content, tours] = await Promise.all([getContent(contentKey), getTours(categorySlugs, requireDate)]);
 
   return (
     <>
-      <PageHero title={title} description={description} image={image} crumbs={crumbs} />
+      <PageHero title={content.title} description={content.description} image={content.image} crumbs={crumbs} />
 
       <section className="py-16 lg:py-20">
         <div className="container-tr">
-          {intro}
-          {sectionTitle && (
-            <SectionHeading
-              className="mb-10"
-              align="left"
-              title={sectionTitle}
-              description={sectionDescription}
-            />
+          {content.sectionTitle && (
+            <SectionHeading className="mb-10" align="left" title={content.sectionTitle} description={content.sectionDescription} />
           )}
           <TourGrid tours={tours} />
         </div>

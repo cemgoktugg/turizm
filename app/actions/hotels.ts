@@ -1,18 +1,12 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
 import { uniqueSlug } from "@/lib/slug";
-import { hotelSchema } from "@/lib/validations";
-import type { ActionResult } from "./leads";
+import { hotelSchema, type HotelInput } from "@/lib/validations";
+import { adminAction, invalid, type ActionResult } from "@/lib/action";
+import { revalidateSite } from "@/lib/revalidate";
 
-async function assertAdmin() {
-  const user = await getCurrentUser();
-  if (!user) throw new Error("Yetkisiz erişim.");
-}
-
-function data(d: ReturnType<typeof hotelSchema.parse>) {
+function data(d: HotelInput) {
   return {
     name: d.name,
     city: d.city,
@@ -20,39 +14,49 @@ function data(d: ReturnType<typeof hotelSchema.parse>) {
     distance: d.distance || null,
     stars: d.stars ?? null,
     description: d.description || null,
-    images: d.images || null,
-    isPublished: Boolean(d.isPublished),
+    // Görseller veritabanında satır satır saklanır
+    images: d.images.filter(Boolean).join("\n") || null,
+    isPublished: d.isPublished,
   };
 }
 
 export async function createHotel(input: unknown): Promise<ActionResult> {
-  await assertAdmin();
-  const parsed = hotelSchema.safeParse(input);
-  if (!parsed.success)
-    return { ok: false, message: parsed.error.issues[0]?.message ?? "Geçersiz veri." };
-  const slug = await uniqueSlug("hotel", parsed.data.slug || parsed.data.name);
-  await prisma.hotel.create({ data: { ...data(parsed.data), slug } });
-  revalidatePath("/admin/hotels");
-  revalidatePath("/oteller");
-  return { ok: true, message: "Otel oluşturuldu." };
+  return adminAction(async () => {
+    const parsed = hotelSchema.safeParse(input);
+    if (!parsed.success) return invalid(parsed.error);
+    const slug = await uniqueSlug("hotel", parsed.data.slug || parsed.data.name);
+    await prisma.hotel.create({ data: { ...data(parsed.data), slug } });
+    revalidateSite();
+    return { ok: true, message: "Otel eklendi." };
+  });
 }
 
 export async function updateHotel(id: string, input: unknown): Promise<ActionResult> {
-  await assertAdmin();
-  const parsed = hotelSchema.safeParse(input);
-  if (!parsed.success)
-    return { ok: false, message: parsed.error.issues[0]?.message ?? "Geçersiz veri." };
-  const slug = await uniqueSlug("hotel", parsed.data.slug || parsed.data.name, id);
-  await prisma.hotel.update({ where: { id }, data: { ...data(parsed.data), slug } });
-  revalidatePath("/admin/hotels");
-  revalidatePath("/oteller");
-  return { ok: true, message: "Otel güncellendi." };
+  return adminAction(async () => {
+    const parsed = hotelSchema.safeParse(input);
+    if (!parsed.success) return invalid(parsed.error);
+    const slug = await uniqueSlug("hotel", parsed.data.slug || parsed.data.name, id);
+    await prisma.hotel.update({ where: { id }, data: { ...data(parsed.data), slug } });
+    revalidateSite();
+    return { ok: true, message: "Otel güncellendi." };
+  });
 }
 
 export async function deleteHotel(id: string): Promise<ActionResult> {
-  await assertAdmin();
-  await prisma.hotel.delete({ where: { id } });
-  revalidatePath("/admin/hotels");
-  revalidatePath("/oteller");
-  return { ok: true, message: "Otel silindi." };
+  return adminAction(async () => {
+    await prisma.hotel.delete({ where: { id } });
+    revalidateSite();
+    return { ok: true, message: "Otel silindi." };
+  });
+}
+
+export async function toggleHotelFlag(id: string, field: "isPublished" | "isFeatured"): Promise<ActionResult> {
+  return adminAction(async () => {
+    if (field !== "isPublished") return { ok: false, message: "Geçersiz alan." };
+    const hotel = await prisma.hotel.findUnique({ where: { id }, select: { isPublished: true } });
+    if (!hotel) return { ok: false, message: "Otel bulunamadı." };
+    await prisma.hotel.update({ where: { id }, data: { isPublished: !hotel.isPublished } });
+    revalidateSite();
+    return { ok: true, message: hotel.isPublished ? "Otel yayından kaldırıldı." : "Otel yayına alındı." };
+  });
 }

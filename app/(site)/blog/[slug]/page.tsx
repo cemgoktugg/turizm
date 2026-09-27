@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Clock, CalendarDays, ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getBlogPostBySlug } from "@/lib/queries";
+import { getSettings } from "@/lib/settings";
 import { PageHero } from "@/components/site/page-hero";
 import { Prose } from "@/components/site/prose";
 import { BlogCard } from "@/components/site/blog-card";
@@ -51,11 +52,14 @@ export default async function BlogDetailPage({
   const post = await getBlogPostBySlug(slug);
   if (!post) notFound();
 
-  const related = await prisma.blogPost.findMany({
-    where: { isPublished: true, slug: { not: slug } },
-    orderBy: { createdAt: "desc" },
-    take: 3,
-  });
+  const [related, settings] = await Promise.all([
+    prisma.blogPost.findMany({
+      where: { isPublished: true, slug: { not: slug } },
+      orderBy: { createdAt: "desc" },
+      take: 3,
+    }),
+    getSettings(),
+  ]);
 
   return (
     <>
@@ -65,6 +69,8 @@ export default async function BlogDetailPage({
         image={post.coverImage}
         slug={post.slug}
         datePublished={post.createdAt}
+        dateModified={post.updatedAt}
+        publisher={settings.siteName}
       />
       <BreadcrumbJsonLd
         items={[

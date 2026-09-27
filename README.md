@@ -1,33 +1,13 @@
 # Rotamız Huzura — Hac & Umre Turizm Sitesi
 
-Premium, görsel ağırlıklı, SEO uyumlu ve tam yönetilebilir bir hac/umre turizm
-platformu. **Next.js App Router + TypeScript + Tailwind CSS v4 + Prisma + SQLite**
-ile geliştirilmiştir.
-
-## Özellikler
-
-- 🕌 **Genel Site**: Ana sayfa (hero slider, öne çıkan turlar, kategoriler,
-  neden biz, oteller, bilgilendirme, belgeler), Hac & Umre landing sayfaları,
-  tur listeleme + filtreleme, tur detay (galeri, gün gün program, oda fiyatları,
-  SSS, rezervasyon formu), oteller, blog, gerekli bilgiler, hakkımızda, iletişim,
-  rezervasyon.
-- 🔐 **Admin Panel** (`/admin`): JWT oturumlu giriş, dashboard, turlar/oteller/blog
-  için tam CRUD, başvuru (lead) yönetimi + durum takibi, belge yönetimi ve site
-  ayarları.
-- 🗄️ **SQLite + Prisma**: Migration ve seed sistemi, form başvurularının
-  veritabanına kaydı.
-- 🎨 **Premium Tasarım**: Koyu yeşil / altın / krem / lacivert paleti, serif +
-  sans tipografi, Framer Motion animasyonları, mobil-first, sticky navbar, yüzen
-  WhatsApp butonu, mobil alt iletişim çubuğu.
-- 🔎 **SEO**: Dinamik metadata, OpenGraph, JSON-LD (TravelAgency, TouristTrip,
-  FAQPage, Breadcrumb, Article), `sitemap.xml`, `robots.txt`, Türkçe slug.
-- 🛡️ **Güvenlik**: bcrypt şifre hash, JWT oturum çerezi, proxy (middleware) ile
-  korunan admin rotaları, Zod form doğrulama, honeypot ile spam koruması.
+Hac ve umre turizmi için hazırlanmış, SEO uyumlu, **tüm içeriği yönetim panelinden düzenlenebilen**
+bir site. Next.js 16 (App Router), TypeScript, Tailwind CSS v4, Prisma ve SQLite ile geliştirildi.
 
 ## Kurulum
 
 ```bash
 npm install
+cp .env.example .env        # ardından JWT_SECRET üretin (aşağıya bakın)
 npx prisma migrate dev      # veritabanını oluşturur
 npx prisma db seed          # örnek verileri yükler
 npm run dev                 # http://localhost:3000
@@ -37,53 +17,88 @@ npm run dev                 # http://localhost:3000
 
 ```env
 DATABASE_URL="file:./dev.db"
-JWT_SECRET="change-this-secret-key"
+JWT_SECRET="<en az 32 karakter, rastgele>"
 NEXT_PUBLIC_SITE_URL="http://localhost:3000"
 ```
 
-## Admin Girişi
+JWT anahtarı üretmek için:
 
-| Alan  | Değer               |
-| ----- | ------------------- |
-| URL   | `/admin/login`      |
-| Email | `admin@turizm.com`  |
-| Şifre | `admin123`          |
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
+```
 
-> Üretimde `JWT_SECRET` değerini mutlaka değiştirin ve admin şifresini güncelleyin.
+> Production'da `JWT_SECRET` tanımsız, 32 karakterden kısa ya da örnek değerde bırakılmışsa
+> uygulama bilerek hata verir.
+
+## Yönetim Paneli (`/admin`)
+
+İlk giriş bilgileri `admin@turizm.com` / `admin123`. Varsayılan şifre değiştirilene kadar panelde
+uyarı gösterilir.
+
+| Bölüm | Neyi yönetir |
+| --- | --- |
+| **Kontrol Paneli** | Özet, yaklaşan kalkışlar, son başvurular ve dikkat gerektirenler (tarihi geçen öne çıkan tur, kapaksız tur, örnek WhatsApp numarası vb.) |
+| **Başvurular** | Tüm formlardan gelen talepler. Arama, durum filtresi, kaynak sayfa, WhatsApp'tan yazma, iç not, Excel (CSV) dışa aktarma |
+| **Turlar** | Tam CRUD, galeri, gün gün program, oda fiyatları, SSS, SEO. Filtreler (sitede / tarihi geçen / taslak), **kopyala** (yeni sezon için) |
+| **Kategoriler** | Ana sayfa kategori kartları ve `/turlar` filtreleri: ad, açıklama, ikon, görsel, sıralama. Sayfalara bağlı sistem kategorileri kilitlidir |
+| **Oteller** | Mekke ve Medine otelleri. Tur formunda otel önerisi olarak çıkar ve mesafeyi otomatik doldurur |
+| **Sayfa İçerikleri** | Sitedeki tüm metin, başlık ve görseller: hero slaytları, istatistikler, "Neden Biz", hakkımızda, gerekli bilgiler, menasik adımları, dualar, footer, sayfa başlıkları ve SEO |
+| **Blog** | Markdown yazılar, canlı önizleme, otomatik okuma süresi |
+| **Belgeler** | TÜRSAB, Diyanet ve IATA gibi belgeler |
+| **Medya** | Görsel yükleme (sürükle-bırak), kullanıldığı yerleri gösterme, kullanımdaki görselin silinmesini engelleme |
+| **Site Ayarları** | Logo, iletişim, sosyal medya, Google Harita (iframe kodu doğrudan yapıştırılabilir), genel SEO ve paylaşım görseli |
+| **Kullanıcılar / Hesabım** | Yönetici ekleme ve silme, profil, şifre değiştirme |
+
+### Panel ile site nasıl senkron kalıyor?
+
+- Paneldeki her kayıt `revalidateSite()` ile tüm genel sayfaları ve `sitemap.xml`'i anında yeniler.
+  Genel sayfalar statik üretilir, saatte bir de kendiliğinden yenilenir.
+- Gidiş tarihi geçen turlar listelerden, ana sayfadan, rezervasyon formundan ve sitemap'ten otomatik
+  kalkar. Detay sayfası "tarihi geçti" uyarısı ve benzer yaklaşan turlarla açık kalır.
+- Sayfa içerikleri `lib/content/registry.ts` içinde tanımlıdır. Her bloğun admin formu ve sunucu
+  doğrulaması aynı alan tanımından üretilir. Veritabanında kayıt yoksa sitede varsayılan içerik görünür.
+
+## Güvenlik
+
+- Şifreler bcrypt ile saklanır. Oturum imzalı JWT ile httpOnly çerezde tutulur. Şifre değişince veya
+  kullanıcı silinince diğer cihazlardaki oturumlar düşer (`tokenVersion`).
+- Giriş denemeleri IP ve hesap başına hız sınırlıdır. Başvuru formunda honeypot ve IP başına sınır var.
+- Yüklemelerde dosya türü içeriğinden (magic bytes) doğrulanır. SVG kabul edilmez. Görseller WEBP'ye
+  çevrilip küçültülür.
+- Tüm admin işlemleri sunucu tarafında oturum ve Zod doğrulamasından geçer.
+
+## Canlıya Çıkış Notları
+
+- **Veritabanı:** SQLite tek sunuculu (VPS / Docker) kurulum için uygundur. Vercel gibi sunucusuz
+  platformlarda dosya sistemi kalıcı olmadığından PostgreSQL gerekir (`provider = "postgresql"`).
+- **Yüklenen görseller** `storage/uploads/` klasöründe tutulur ve `/uploads/...` adresinden sunulur.
+  Bu klasörün kalıcı bir diskte olması ve yedeklenmesi gerekir.
+- Hız sınırlayıcı bellek içidir, tek sunucu için yeterlidir.
+- Ramazan ve Hac tarihleri hicri takvime göre yaklaşıktır. Diyanet ilanına göre panelden güncelleyin.
 
 ## Faydalı Komutlar
 
-| Komut                         | Açıklama                                    |
-| ----------------------------- | ------------------------------------------- |
-| `npm run dev`                 | Geliştirme sunucusu                         |
-| `npm run build`               | Production build                            |
-| `npm run start`               | Production sunucusu                         |
-| `npm run db:studio`           | Prisma Studio (görsel veritabanı yönetimi)  |
-| `npm run db:seed`             | Seed verilerini yeniden yükler              |
-| `npm run db:reset`            | Veritabanını sıfırlar ve yeniden seed eder  |
-| `node scripts/gen-images.mjs` | Placeholder görselleri yeniden üretir       |
+| Komut | Açıklama |
+| --- | --- |
+| `npm run dev` | Geliştirme sunucusu |
+| `npm run build` / `npm run start` | Production build / sunucu |
+| `npm run db:studio` | Prisma Studio (görsel veritabanı yönetimi) |
+| `npm run db:seed` | Örnek verileri yeniden yükler (**mevcut veriyi siler**) |
+| `node scripts/gen-images.mjs` | Placeholder görselleri yeniden üretir |
 
 ## Proje Yapısı
 
 ```
 app/
-  (site)/         → genel site (navbar + footer chrome)
-  admin/          → yönetim paneli (login + (panel) auth-korumalı)
-  actions/        → server actions (leads, auth, tours, hotels, blog, settings, certificates)
-  sitemap.ts, robots.ts
+  (site)/            → genel site
+  admin/             → yönetim paneli (login + (panel) oturum korumalı)
+  actions/           → server actions (tours, categories, hotels, blog, content, media, leads, account, settings)
+  api/admin/         → görsel yükleme ve CSV dışa aktarma
+  uploads/[...path]/ → yüklenen görsellerin sunumu
 components/
-  site/           → Navbar, Footer, HeroSlider, TourCard, BookingForm, ...
-  admin/          → AdminShell, TourForm, HotelForm, BlogForm, ...
-  ui/             → Button, Badge, Input, Icon, Reveal, SmartImage, ...
-  seo/            → JSON-LD bileşenleri
-lib/              → prisma, auth, settings, validations, queries, constants, utils
-prisma/           → schema.prisma, seed.ts, migrations
-public/images/    → marka renkli SVG placeholder görselleri
+  site/  admin/  ui/  seo/
+lib/
+  content/           → içerik blokları (registry), alan tanımları, okuma katmanı
+  auth, session, rate-limit, media, queries, validations, settings, revalidate
+prisma/              → schema, migrations, seed
 ```
-
-## Notlar
-
-- Görseller marka renkli SVG placeholder'lardır; admin panelinden gerçek fotoğraf
-  yollarıyla değiştirilebilir.
-- Prisma 6 (SQLite) kullanılmıştır; `provider = "sqlite"`.
-- Bir demo/başlangıç projesidir.

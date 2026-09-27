@@ -1,30 +1,21 @@
-import type { Metadata } from "next";
 import { PageHero } from "@/components/site/page-hero";
 import { MenasikContent } from "@/components/site/menasik-content";
 import { CtaBand } from "@/components/site/cta-band";
-import { UMRE_MENASIK } from "@/lib/constants";
+import { getContent, pageMetadata } from "@/lib/content";
 
-export const metadata: Metadata = {
-  title: "Umre Dua ve Vazifeler",
-  description:
-    "Umrenin nasıl yapıldığı, menasiki ve okunacak dualar. İhram, tavaf, sa'y ve tıraş adımları.",
-  alternates: { canonical: "/umre/dua-ve-vazifeler" },
-};
+export const generateMetadata = () => pageMetadata("page.umre-dua");
 
-export default function UmreDuaPage() {
+export default async function UmreDuaPage() {
+  const c = await getContent("page.umre-dua");
   return (
     <>
       <PageHero
-        title="Umre Dua ve Vazifeler"
-        description="Umrenin adımlarını ve okunacak duaları öğrenerek ibadetinize hazırlanın."
-        image="/images/kategori-umre.svg"
+        title={c.title}
+        description={c.description}
+        image={c.image}
         crumbs={[{ label: "Umre", href: "/umre" }, { label: "Dua ve Vazifeler" }]}
       />
-      <MenasikContent
-        steps={UMRE_MENASIK}
-        stepsTitle="Umre Menasiki — Adım Adım"
-        stepsEyebrow="Menasik"
-      />
+      <MenasikContent steps={c.steps} stepsTitle={c.stepsTitle} stepsEyebrow={c.stepsEyebrow} />
       <CtaBand />
     </>
   );

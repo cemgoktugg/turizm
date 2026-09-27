@@ -1,31 +1,35 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
+import { getSettings } from "@/lib/settings";
 import { LoginForm } from "@/components/admin/login-form";
 import { SmartImage } from "@/components/ui/smart-image";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
-  title: "Admin Giriş",
+  title: "Yönetim Paneli Girişi",
   robots: { index: false, follow: false },
 };
 
-export default function AdminLoginPage() {
+export default async function AdminLoginPage() {
+  // Oturum tamamen geçerliyse (imza + kullanıcı + şifre sürümü) doğrudan panele
+  if (await getCurrentUser()) redirect("/admin");
+  const settings = await getSettings();
+
   return (
     <div className="relative grid min-h-dvh place-items-center overflow-hidden bg-brand-950 p-4">
-      <SmartImage
-        src="/images/cta-bg.svg"
-        alt=""
-        className="absolute inset-0 size-full opacity-30"
-      />
+      <SmartImage src="/images/cta-bg.svg" alt="" className="absolute inset-0 size-full opacity-30" />
       <div className="absolute inset-0 bg-gradient-to-t from-brand-950 to-brand-900/60" />
 
       <div className="relative w-full max-w-md">
         <div className="mb-6 text-center">
           <span className="mx-auto grid size-16 place-items-center overflow-hidden rounded-2xl bg-white/10 backdrop-blur">
-            <SmartImage src="/images/logo-mark.svg" alt="Logo" className="size-full" />
+            <SmartImage src={settings.logo} alt="Logo" className="size-full" />
           </span>
-          <h1 className="mt-4 font-serif text-2xl font-bold text-white">
-            Rotamız Huzura
-          </h1>
+          <h1 className="mt-4 font-serif text-2xl font-bold text-white">{settings.siteName}</h1>
           <p className="mt-1 text-sm text-cream-200/70">Yönetim Paneli Girişi</p>
         </div>
 
@@ -36,7 +40,9 @@ export default function AdminLoginPage() {
         </div>
 
         <p className="mt-6 text-center text-xs text-cream-200/50">
-          Demo giriş: admin@turizm.com / admin123
+          <Link href="/" className="hover:text-gold-300">
+            ← Siteye dön
+          </Link>
         </p>
       </div>
     </div>

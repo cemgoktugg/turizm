@@ -3,16 +3,13 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { BlogForm } from "@/components/admin/blog-form";
+import { getBlogCategories } from "@/lib/admin-data";
 
 export const metadata = { title: "Yazı Düzenle" };
 
-export default async function EditBlogPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function EditBlogPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const post = await prisma.blogPost.findUnique({ where: { id } });
+  const [post, categories] = await Promise.all([prisma.blogPost.findUnique({ where: { id } }), getBlogCategories()]);
   if (!post) notFound();
 
   return (
@@ -25,6 +22,8 @@ export default async function EditBlogPage({
       </h2>
       <BlogForm
         postId={post.id}
+        slug={post.slug}
+        categories={categories}
         defaultValues={{
           title: post.title,
           slug: post.slug,
@@ -32,7 +31,7 @@ export default async function EditBlogPage({
           content: post.content,
           coverImage: post.coverImage ?? "",
           category: post.category ?? "",
-          readTime: post.readTime ?? undefined,
+          readTime: post.readTime == null ? "" : String(post.readTime),
           seoTitle: post.seoTitle ?? "",
           seoDescription: post.seoDescription ?? "",
           isPublished: post.isPublished,

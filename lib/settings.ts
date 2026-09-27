@@ -1,42 +1,41 @@
 import { cache } from "react";
 import { prisma } from "./prisma";
-import { splitLines } from "./utils";
+import type { SettingsInput } from "./validations";
 
-export type SiteSettings = {
-  siteName: string;
-  tagline: string;
-  phone: string;
-  whatsapp: string;
-  email: string;
-  address: string;
-  workingHours: string;
-  facebook: string;
-  instagram: string;
-  youtube: string;
-  twitter: string;
-  logo: string;
-  mapEmbed: string;
-  footerNote: string;
-  heroSlides: string[];
-  raw: Record<string, string>;
-};
+export type SiteSettings = SettingsInput & { raw: Record<string, string> };
 
-const DEFAULTS: Omit<SiteSettings, "raw" | "heroSlides"> = {
+/** Veritabanında değer yoksa kullanılan varsayılanlar */
+export const SETTING_DEFAULTS: SettingsInput = {
   siteName: "Rotamız Huzura",
   tagline: "Hac & Umre Turizm",
+  logo: "/images/logo-mark.svg",
+  footerNote: "Yetkili acenta güvencesiyle hac, umre ve kültür turları düzenliyoruz.",
   phone: "+90 850 000 00 00",
   whatsapp: "905000000000",
   email: "info@rotamizhuzura.com",
-  address: "Merkez Mah. Huzur Cad. No:1 Fatih / İstanbul",
   workingHours: "Hafta içi 09:00 - 18:00",
+  address: "Merkez Mah. Huzur Cad. No:1 Fatih / İstanbul",
   facebook: "",
   instagram: "",
   youtube: "",
   twitter: "",
-  logo: "/images/logo-mark.svg",
   mapEmbed: "",
-  footerNote: "",
+  seoTitle: "Rotamız Huzura | Hac & Umre Turizm",
+  seoDescription:
+    "Yetkili acenta güvencesiyle premium hac ve umre programları, lüks umre, Ramazan umresi ve kültür turları. Merkezi oteller, tecrübeli rehberlik ve şeffaf fiyat.",
+  seoKeywords:
+    "umre, hac, umre turları, lüks umre, ramazan umresi, hac programları, mekke otelleri, medine otelleri, kültür turları",
+  ogImage: "/images/og-image.svg",
 };
+
+/** Boş bırakıldığında varsayılana dönmemesi gereken (isteğe bağlı) alanlar */
+const OPTIONAL_KEYS = new Set<keyof SettingsInput>([
+  "facebook",
+  "instagram",
+  "youtube",
+  "twitter",
+  "mapEmbed",
+]);
 
 /** Site ayarlarını DB'den yükler (istek başına önbelleklenir) */
 export const getSettings = cache(async (): Promise<SiteSettings> => {
@@ -48,26 +47,14 @@ export const getSettings = cache(async (): Promise<SiteSettings> => {
     raw = {};
   }
 
-  return {
-    siteName: raw.siteName || DEFAULTS.siteName,
-    tagline: raw.tagline || DEFAULTS.tagline,
-    phone: raw.phone || DEFAULTS.phone,
-    whatsapp: raw.whatsapp || DEFAULTS.whatsapp,
-    email: raw.email || DEFAULTS.email,
-    address: raw.address || DEFAULTS.address,
-    workingHours: raw.workingHours || DEFAULTS.workingHours,
-    facebook: raw.facebook || DEFAULTS.facebook,
-    instagram: raw.instagram || DEFAULTS.instagram,
-    youtube: raw.youtube || DEFAULTS.youtube,
-    twitter: raw.twitter || DEFAULTS.twitter,
-    logo: raw.logo || DEFAULTS.logo,
-    mapEmbed: raw.mapEmbed || DEFAULTS.mapEmbed,
-    footerNote: raw.footerNote || DEFAULTS.footerNote,
-    heroSlides: splitLines(raw.heroSlides).length
-      ? splitLines(raw.heroSlides)
-      : ["/images/hero-1.svg", "/images/hero-2.svg", "/images/hero-3.svg"],
-    raw,
-  };
+  const out = { ...SETTING_DEFAULTS } as SettingsInput;
+  for (const key of Object.keys(SETTING_DEFAULTS) as (keyof SettingsInput)[]) {
+    const value = raw[key];
+    if (value === undefined) continue;
+    if (value.trim() === "" && !OPTIONAL_KEYS.has(key)) continue;
+    out[key] = value;
+  }
+  return { ...out, raw };
 });
 
 /** WhatsApp linki üretir */

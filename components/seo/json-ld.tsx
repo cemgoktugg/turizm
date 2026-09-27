@@ -2,12 +2,18 @@ import type { SiteSettings } from "@/lib/settings";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
+/** Site içi yolları mutlak URL'ye çevirir */
+function abs(url?: string | null): string | undefined {
+  if (!url) return undefined;
+  return /^https?:\/\//i.test(url) ? url : `${SITE_URL}${url}`;
+}
+
 function JsonLd({ data }: { data: Record<string, unknown> }) {
   return (
     <script
       type="application/ld+json"
-      // JSON-LD güvenli biçimde serialize edilir
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      // "<" kaçışlanır; içerikteki "</script>" betiği sonlandıramaz
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, "\\u003c") }}
     />
   );
 }
@@ -19,11 +25,10 @@ export function TravelAgencyJsonLd({ settings }: { settings: SiteSettings }) {
         "@context": "https://schema.org",
         "@type": "TravelAgency",
         name: settings.siteName,
-        description:
-          "Yetkili acenta güvencesiyle hac, umre ve kültür turları düzenleyen premium seyahat acentası.",
+        description: settings.seoDescription,
         url: SITE_URL,
-        logo: `${SITE_URL}${settings.logo}`,
-        image: `${SITE_URL}/images/og-image.svg`,
+        logo: abs(settings.logo),
+        image: abs(settings.ogImage),
         telephone: settings.phone,
         email: settings.email,
         address: {
@@ -64,7 +69,7 @@ export function TourJsonLd({
         "@type": "TouristTrip",
         name: title,
         description: description ?? undefined,
-        image: image ? `${SITE_URL}${image}` : undefined,
+        image: abs(image),
         url: `${SITE_URL}/turlar/${slug}`,
         ...(price != null && {
           offers: {
@@ -127,12 +132,16 @@ export function ArticleJsonLd({
   image,
   slug,
   datePublished,
+  dateModified,
+  publisher,
 }: {
   title: string;
   description?: string | null;
   image?: string | null;
   slug: string;
   datePublished?: Date | string | null;
+  dateModified?: Date | string | null;
+  publisher: string;
 }) {
   return (
     <JsonLd
@@ -141,12 +150,12 @@ export function ArticleJsonLd({
         "@type": "Article",
         headline: title,
         description: description ?? undefined,
-        image: image ? `${SITE_URL}${image}` : undefined,
+        image: abs(image),
         url: `${SITE_URL}/blog/${slug}`,
-        datePublished: datePublished
-          ? new Date(datePublished).toISOString()
-          : undefined,
-        author: { "@type": "Organization", name: "Rotamız Huzura" },
+        datePublished: datePublished ? new Date(datePublished).toISOString() : undefined,
+        dateModified: dateModified ? new Date(dateModified).toISOString() : undefined,
+        author: { "@type": "Organization", name: publisher },
+        publisher: { "@type": "Organization", name: publisher },
       }}
     />
   );

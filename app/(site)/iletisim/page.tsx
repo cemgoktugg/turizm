@@ -1,23 +1,20 @@
-import type { Metadata } from "next";
 import { Phone, Mail, MapPin, Clock, MessageCircle } from "lucide-react";
 import { getSettings, whatsappLink, telLink } from "@/lib/settings";
 import { getTourOptions } from "@/lib/queries";
+import { getContent, pageMetadata } from "@/lib/content";
 import { PageHero } from "@/components/site/page-hero";
 import { BookingForm } from "@/components/site/booking-form";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Reveal } from "@/components/ui/reveal";
 
-export const metadata: Metadata = {
-  title: "İletişim",
-  description:
-    "Bize ulaşın. Telefon, WhatsApp, e-posta ve adres bilgilerimiz. Hac ve umre programları için danışmanlarımız hazır.",
-  alternates: { canonical: "/iletisim" },
-};
+export const generateMetadata = () => pageMetadata("page.iletisim");
 
 export default async function IletisimPage() {
-  const [settings, tourOptions] = await Promise.all([
+  const [settings, tourOptions, c, booking] = await Promise.all([
     getSettings(),
     getTourOptions(),
+    getContent("page.iletisim"),
+    getContent("shared.booking"),
   ]);
 
   const cards = [
@@ -34,31 +31,31 @@ export default async function IletisimPage() {
 
   return (
     <>
-      <PageHero
-        title="İletişim"
-        description="Sorularınız, önerileriniz ve rezervasyon talepleriniz için bize ulaşın. Size yardımcı olmaktan mutluluk duyarız."
-        image="/images/hero-3.svg"
-        crumbs={[{ label: "İletişim" }]}
-      />
+      <PageHero title={c.title} description={c.description} image={c.image} crumbs={[{ label: "İletişim" }]} />
 
       <section className="py-16 lg:py-20">
         <div className="container-tr">
           {/* İletişim kartları */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {cards.map((c, i) => {
+            {cards.map((card, i) => {
               const inner = (
                 <div className="flex h-full flex-col items-center rounded-3xl border border-border bg-white p-6 text-center shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-card">
                   <span className="grid size-12 place-items-center rounded-2xl bg-brand-50 text-brand-700">
-                    <c.icon className="size-6" />
+                    <card.icon className="size-6" />
                   </span>
-                  <h3 className="mt-4 font-serif text-base font-bold text-brand-900">{c.title}</h3>
-                  <p className="mt-1 text-sm text-muted">{c.value}</p>
+                  <h3 className="mt-4 font-serif text-base font-bold text-brand-900">{card.title}</h3>
+                  <p className="mt-1 text-sm text-muted">{card.value}</p>
                 </div>
               );
               return (
-                <Reveal key={c.title} delay={i}>
-                  {c.href ? (
-                    <a href={c.href} target={c.href.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer" className="block h-full">
+                <Reveal key={card.title} delay={i}>
+                  {card.href ? (
+                    <a
+                      href={card.href}
+                      target={card.href.startsWith("http") ? "_blank" : undefined}
+                      rel="noopener noreferrer"
+                      className="block h-full"
+                    >
                       {inner}
                     </a>
                   ) : (
@@ -72,14 +69,8 @@ export default async function IletisimPage() {
           {/* Form + adres/harita */}
           <div className="mt-12 grid gap-8 lg:grid-cols-2">
             <div>
-              <SectionHeading
-                align="left"
-                className="mb-6"
-                eyebrow="Bize Yazın"
-                title="Mesaj Gönderin"
-                description="Formu doldurun, en kısa sürede size dönüş yapalım."
-              />
-              <BookingForm tourOptions={tourOptions} />
+              <SectionHeading align="left" className="mb-6" eyebrow={c.formEyebrow} title={c.formTitle} description={c.formDescription} />
+              <BookingForm tourOptions={tourOptions} source="iletisim" texts={booking} />
             </div>
 
             <div>
@@ -101,9 +92,16 @@ export default async function IletisimPage() {
                     allowFullScreen
                   />
                 ) : (
-                  <div className="grid h-[360px] place-items-center bg-cream-100 text-sm text-muted">
-                    Harita bilgisi henüz eklenmemiş.
-                  </div>
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.address)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="grid h-[360px] place-items-center bg-cream-100 text-sm font-semibold text-brand-700 hover:bg-cream-200"
+                  >
+                    <span className="flex items-center gap-2">
+                      <MapPin className="size-5" /> Adresi Google Haritalar&apos;da aç
+                    </span>
+                  </a>
                 )}
               </div>
             </div>

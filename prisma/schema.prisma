@@ -16,6 +16,10 @@ model User {
   email     String   @unique
   password  String
   role      String   @default("ADMIN")
+  // Şifre değişince artırılır; eski oturumları geçersiz kılar
+  tokenVersion      Int       @default(0)
+  passwordChangedAt DateTime?
+  lastLoginAt       DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -26,6 +30,7 @@ model TourCategory {
   slug        String   @unique
   description String?
   image       String?
+  icon        String?
   order       Int      @default(0)
   tours       Tour[]
   createdAt   DateTime @default(now())
@@ -52,6 +57,7 @@ model Tour {
   madinahDistance  String?
   startingPrice    Float?
   currency         String   @default("USD")
+  priceNote        String?
   coverImage       String?
   includedServices String?
   excludedServices String?
@@ -140,6 +146,8 @@ model Lead {
   tourTitle   String?
   message     String?
   status      String   @default("Yeni")
+  source      String?
+  note        String?
   tourId      String?
   tour        Tour?    @relation(fields: [tourId], references: [id])
   createdAt   DateTime @default(now())
@@ -173,4 +181,25 @@ model FAQ {
   tourId    String?
   tour      Tour?    @relation(fields: [tourId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+}
+
+/// Admin panelinden yüklenen görseller
+model Media {
+  id           String   @id @default(cuid())
+  url          String   @unique
+  fileName     String
+  originalName String
+  mimeType     String
+  size         Int
+  width        Int?
+  height       Int?
+  alt          String?
+  createdAt    DateTime @default(now())
+}
+
+/// Sayfa içerikleri (JSON). Anahtarlar lib/content/registry.ts içinde tanımlıdır.
+model ContentBlock {
+  key       String   @id
+  data      String
+  updatedAt DateTime @updatedAt
 }

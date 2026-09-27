@@ -1,7 +1,11 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
+import { activeTourWhere } from "@/lib/queries";
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
+// Yeni turlar/yazılar admin kaydında anında (revalidateSite), aksi halde saatlik güncellenir
+export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes = [
@@ -36,7 +40,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const [tours, posts] = await Promise.all([
       prisma.tour.findMany({
-        where: { isPublished: true },
+        where: activeTourWhere(),
         select: { slug: true, updatedAt: true },
       }),
       prisma.blogPost.findMany({

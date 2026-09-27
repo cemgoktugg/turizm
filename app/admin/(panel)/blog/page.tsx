@@ -1,32 +1,61 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { AdminPageHeader, AdminCard, EmptyState } from "@/components/admin/ui";
-import { EditLink, DeleteButton } from "@/components/admin/row-actions";
+import { ListToolbar } from "@/components/admin/list-toolbar";
+import { EditLink, DeleteButton, FlagToggle, ViewLink } from "@/components/admin/row-actions";
 import { SmartImage } from "@/components/ui/smart-image";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
-import { deleteBlogPost } from "@/app/actions/blog";
+import { deleteBlogPost, toggleBlogFlag } from "@/app/actions/blog";
 
 export const metadata = { title: "Blog" };
-export const dynamic = "force-dynamic";
 
-export default async function AdminBlogPage() {
-  const posts = await prisma.blogPost.findMany({ orderBy: { createdAt: "desc" } });
+export default async function AdminBlogPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ filtre?: string; q?: string }>;
+}) {
+  const { filtre = "", q = "" } = await searchParams;
+  const filter = filtre === "yayinda" || filtre === "taslak" ? filtre : "";
+  const term = q.trim();
+  const where: Prisma.BlogPostWhereInput = {
+    ...(filter ? { isPublished: filter === "yayinda" } : {}),
+    ...(term ? { OR: [{ title: { contains: term } }, { category: { contains: term } }] } : {}),
+  };
+
+  const [posts, all, published] = await Promise.all([
+    prisma.blogPost.findMany({ where, orderBy: { createdAt: "desc" } }),
+    prisma.blogPost.count(),
+    prisma.blogPost.count({ where: { isPublished: true } }),
+  ]);
 
   return (
     <div>
       <AdminPageHeader
         title="Blog Yazıları"
-        description={`Toplam ${posts.length} yazı`}
+        description="Yayındaki yazılar blog sayfasında, ana sayfada (son 3 yazı) ve ilgili yazılar bölümünde görünür."
         actionLabel="Yeni Yazı"
         actionHref="/admin/blog/new"
       />
 
+      <ListToolbar
+        basePath="/admin/blog"
+        tabs={[
+          { value: "", label: "Tümü", count: all },
+          { value: "yayinda", label: "Yayında", count: published },
+          { value: "taslak", label: "Taslak", count: all - published },
+        ]}
+        activeTab={filter}
+        query={term}
+        searchPlaceholder="Başlık veya kategori ara..."
+      />
+
       {posts.length === 0 ? (
-        <EmptyState title="Henüz yazı eklenmemiş" actionLabel="Yeni Yazı" actionHref="/admin/blog/new" />
+        <EmptyState title="Yazı bulunamadı" actionLabel="Yeni Yazı" actionHref="/admin/blog/new" />
       ) : (
         <AdminCard className="overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-sm">
+            <table className="w-full min-w-[720px] text-sm">
               <thead>
                 <tr className="border-b border-border bg-cream-50 text-left text-xs uppercase tracking-wide text-muted">
                   <th className="px-4 py-3 font-semibold">Yazı</th>
@@ -44,20 +73,20 @@ export default async function AdminBlogPage() {
                         <span className="h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-brand-950">
                           <SmartImage src={p.coverImage} alt={p.title} className="size-full" />
                         </span>
-                        <p className="font-semibold text-brand-900">{p.title}</p>
+                        <div className="min-w-0">
+                          <p className="max-w-[320px] truncate font-semibold text-brand-900">{p.title}</p>
+                          <p className="text-xs text-muted">{p.readTime ? `${p.readTime} dk okuma` : ""}</p>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3">
-                      {p.category ? <Badge variant="cream" size="sm">{p.category}</Badge> : "—"}
-                    </td>
+                    <td className="px-4 py-3">{p.category ? <Badge variant="cream" size="sm">{p.category}</Badge> : "—"}</td>
                     <td className="px-4 py-3 text-muted">{formatDate(p.createdAt)}</td>
                     <td className="px-4 py-3">
-                      <Badge variant={p.isPublished ? "green" : "slate"} size="sm">
-                        {p.isPublished ? "Yayında" : "Taslak"}
-                      </Badge>
+                      <FlagToggle action={toggleBlogFlag} id={p.id} field="isPublished" value={p.isPublished} />
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-2">
+                        <ViewLink href={`/blog/${p.slug}`} disabled={!p.isPublished} />
                         <EditLink href={`/admin/blog/${p.id}/edit`} />
                         <DeleteButton action={deleteBlogPost} id={p.id} label="Bu yazıyı silmek istediğinize emin misiniz?" />
                       </div>

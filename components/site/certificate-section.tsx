@@ -2,29 +2,18 @@ import { ShieldCheck } from "lucide-react";
 import { SmartImage } from "@/components/ui/smart-image";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Reveal } from "@/components/ui/reveal";
+import { getCertificates } from "@/lib/queries";
+import { getContent } from "@/lib/content";
 
-export type CertificateData = {
-  id: string;
-  title: string;
-  image: string;
-  description?: string | null;
-};
-
-export function CertificateSection({
-  certificates,
-}: {
-  certificates: CertificateData[];
-}) {
+/** Yayındaki belgeler — başlık "Ortak Bölümler › Belgeler ve Yetki Bölümü"nden gelir */
+export async function CertificateSection({ className = "bg-cream-100" }: { className?: string }) {
+  const [certificates, heading] = await Promise.all([getCertificates(), getContent("shared.certificates")]);
   if (!certificates.length) return null;
 
   return (
-    <section className="bg-cream-100 py-20">
+    <section className={`${className} py-20`}>
       <div className="container-tr">
-        <SectionHeading
-          eyebrow="Güven ve Yetki"
-          title="Belgelerimiz ve Yetkilerimiz"
-          description="Resmî kurumlar tarafından onaylanmış belgelerimizle, güvenle emin ellerde olduğunuzu bilin."
-        />
+        <SectionHeading eyebrow={heading.eyebrow} title={heading.title} description={heading.description} />
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {certificates.map((c, i) => (
             <Reveal key={c.id} delay={i}>
@@ -41,9 +30,7 @@ export function CertificateSection({
                     <ShieldCheck className="mt-0.5 size-5 shrink-0 text-gold-500" />
                     <div>
                       <h3 className="font-semibold text-brand-900">{c.title}</h3>
-                      {c.description && (
-                        <p className="mt-1 text-sm text-muted">{c.description}</p>
-                      )}
+                      {c.description && <p className="mt-1 text-sm text-muted">{c.description}</p>}
                     </div>
                   </div>
                 </figcaption>

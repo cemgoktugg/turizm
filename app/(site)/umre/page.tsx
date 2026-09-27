@@ -1,23 +1,9 @@
-import type { Metadata } from "next";
 import { TourListing } from "@/components/site/tour-listing";
+import { pageMetadata } from "@/lib/content";
+import { UMRE_CATEGORY_SLUGS } from "@/lib/categories";
 
-export const metadata: Metadata = {
-  title: "Umre Turları",
-  description:
-    "Ekonomik, standart ve lüks umre programları. Merkezi oteller, tecrübeli rehberlik ve şeffaf fiyatlarla kesin kayıtlı umre turları.",
-  alternates: { canonical: "/umre" },
-};
+export const generateMetadata = () => pageMetadata("page.umre");
 
 export default function UmrePage() {
-  return (
-    <TourListing
-      title="Umre Turları"
-      description="Bütçenize ve tercihinize uygun, yıl boyunca farklı tarihlerde düzenlenen umre programlarımızı keşfedin."
-      image="/images/kategori-umre.svg"
-      crumbs={[{ label: "Umre" }]}
-      categorySlugs={["umre", "luks-umre", "ramazan-umresi"]}
-      sectionTitle="Tüm Umre Programları"
-      sectionDescription="Aşağıdaki programlardan size en uygun olanı seçin veya danışmanlarımızdan destek alın."
-    />
-  );
+  return <TourListing contentKey="page.umre" crumbs={[{ label: "Umre" }]} categorySlugs={UMRE_CATEGORY_SLUGS} />;
 }
