@@ -19,7 +19,7 @@ export default async function HakkimizdaPage() {
 
   return (
     <>
-      <PageHero title={c.title} description={c.description} image={c.image} crumbs={[{ label: "Hakkımızda" }]} />
+      <PageHero title={c.title} description={c.description} image={c.image} crumbs={[{ label: c.crumb }]} />
 
       {/* Hikaye */}
       <section className="py-16 lg:py-20">

@@ -5,6 +5,8 @@ import { Clock, CalendarDays, ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getBlogPostBySlug } from "@/lib/queries";
 import { getSettings } from "@/lib/settings";
+import { getContent } from "@/lib/content";
+import { fill } from "@/lib/content/template";
 import { PageHero } from "@/components/site/page-hero";
 import { Prose } from "@/components/site/prose";
 import { BlogCard } from "@/components/site/blog-card";
@@ -52,13 +54,16 @@ export default async function BlogDetailPage({
   const post = await getBlogPostBySlug(slug);
   if (!post) notFound();
 
-  const [related, settings] = await Promise.all([
+  const [related, settings, ui, blogPage, general] = await Promise.all([
     prisma.blogPost.findMany({
       where: { isPublished: true, slug: { not: slug } },
       orderBy: { createdAt: "desc" },
       take: 3,
     }),
     getSettings(),
+    getContent("ui.blog"),
+    getContent("page.blog"),
+    getContent("ui.general"),
   ]);
 
   return (
@@ -74,8 +79,8 @@ export default async function BlogDetailPage({
       />
       <BreadcrumbJsonLd
         items={[
-          { name: "Ana Sayfa", url: "/" },
-          { name: "Blog", url: "/blog" },
+          { name: general.breadcrumbHome, url: "/" },
+          { name: blogPage.crumb, url: "/blog" },
           { name: post.title, url: `/blog/${post.slug}` },
         ]}
       />
@@ -83,7 +88,7 @@ export default async function BlogDetailPage({
       <PageHero
         title={post.title}
         image={post.coverImage || "/images/blog-ilk-umre.svg"}
-        crumbs={[{ label: "Blog", href: "/blog" }, { label: post.category || "Yazı" }]}
+        crumbs={[{ label: blogPage.crumb, href: "/blog" }, { label: post.category || ui.defaultCategory }]}
         size="sm"
       />
 
@@ -97,7 +102,7 @@ export default async function BlogDetailPage({
               </span>
               {post.readTime ? (
                 <span className="flex items-center gap-1.5">
-                  <Clock className="size-4" /> {post.readTime} dk okuma
+                  <Clock className="size-4" /> {fill(ui.readTimeFormat, { dk: post.readTime })}
                 </span>
               ) : null}
             </div>
@@ -126,7 +131,7 @@ export default async function BlogDetailPage({
                 href="/blog"
                 className="inline-flex items-center gap-2 text-sm font-semibold text-brand-700 hover:text-gold-600"
               >
-                <ArrowLeft className="size-4" /> Tüm Yazılara Dön
+                <ArrowLeft className="size-4" /> {ui.backLink}
               </Link>
             </div>
           </div>
@@ -137,7 +142,7 @@ export default async function BlogDetailPage({
         <section className="bg-cream-50 py-16 lg:py-20">
           <div className="container-tr">
             <h2 className="mb-8 font-serif text-2xl font-bold text-brand-900">
-              İlgili Yazılar
+              {ui.relatedTitle}
             </h2>
             <div className="grid gap-6 md:grid-cols-3">
               {related.map((p) => (

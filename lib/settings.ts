@@ -19,6 +19,9 @@ export const SETTING_DEFAULTS: SettingsInput = {
   instagram: "",
   youtube: "",
   twitter: "",
+  tiktok: "",
+  linkedin: "",
+  telegram: "",
   mapEmbed: "",
   seoTitle: "Rotamız Huzura | Hac & Umre Turizm",
   seoDescription:
@@ -26,6 +29,7 @@ export const SETTING_DEFAULTS: SettingsInput = {
   seoKeywords:
     "umre, hac, umre turları, lüks umre, ramazan umresi, hac programları, mekke otelleri, medine otelleri, kültür turları",
   ogImage: "/images/og-image.svg",
+  favicon: "/favicon.ico",
 };
 
 /** Boş bırakıldığında varsayılana dönmemesi gereken (isteğe bağlı) alanlar */
@@ -34,6 +38,9 @@ const OPTIONAL_KEYS = new Set<keyof SettingsInput>([
   "instagram",
   "youtube",
   "twitter",
+  "tiktok",
+  "linkedin",
+  "telegram",
   "mapEmbed",
 ]);
 

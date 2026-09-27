@@ -29,7 +29,7 @@ export async function generateMetadata(): Promise<Metadata> {
       .split(",")
       .map((k) => k.trim())
       .filter(Boolean),
-    icons: s.logo ? { icon: s.logo } : undefined,
+    icons: { icon: s.favicon || "/favicon.ico" },
     openGraph: {
       type: "website",
       locale: "tr_TR",

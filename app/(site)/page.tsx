@@ -81,7 +81,7 @@ export default async function HomePage() {
                 className="mx-0"
               />
               <Link href="/turlar" className={cn(buttonVariants({ variant: "outline" }), "hidden shrink-0 sm:inline-flex")}>
-                Tüm Turlar <MoveRight className="size-4" />
+                {sections.featured.buttonLabel} <MoveRight className="size-4" />
               </Link>
             </div>
 
@@ -95,7 +95,7 @@ export default async function HomePage() {
 
             <div className="mt-8 text-center sm:hidden">
               <Link href="/turlar" className={buttonVariants({ variant: "outline" })}>
-                Tüm Turlar <MoveRight className="size-4" />
+                {sections.featured.buttonLabel} <MoveRight className="size-4" />
               </Link>
             </div>
           </div>
@@ -142,7 +142,7 @@ export default async function HomePage() {
       {/* Neden biz */}
       {features.items.length > 0 && (
         <section className="relative overflow-hidden bg-brand-900 py-20 text-white">
-          <SmartImage src="/images/cta-bg.svg" alt="" className="absolute inset-0 size-full opacity-20" />
+          <SmartImage src={features.image} alt="" className="absolute inset-0 size-full opacity-20" fallback="/images/cta-bg.svg" />
           <div className="container-tr relative">
             <SectionHeading light eyebrow={features.eyebrow} title={features.title} description={features.description} />
             <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -176,10 +176,10 @@ export default async function HomePage() {
               />
               <div className="hidden shrink-0 gap-2 sm:flex">
                 <Link href="/oteller/mekke" className={buttonVariants({ variant: "outline", size: "sm" })}>
-                  Mekke Otelleri
+                  {sections.hotels.mekkeButton}
                 </Link>
                 <Link href="/oteller/medine" className={buttonVariants({ variant: "outline", size: "sm" })}>
-                  Medine Otelleri
+                  {sections.hotels.medineButton}
                 </Link>
               </div>
             </div>
@@ -252,7 +252,7 @@ export default async function HomePage() {
                 className="mx-0"
               />
               <Link href="/blog" className={cn(buttonVariants({ variant: "outline" }), "hidden shrink-0 sm:inline-flex")}>
-                Tüm Yazılar <MoveRight className="size-4" />
+                {sections.blog.buttonLabel} <MoveRight className="size-4" />
               </Link>
             </div>
             <div className="mt-10 grid gap-6 md:grid-cols-3">

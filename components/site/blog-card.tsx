@@ -3,6 +3,8 @@ import { Clock, ArrowRight } from "lucide-react";
 import { SmartImage } from "@/components/ui/smart-image";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, cn } from "@/lib/utils";
+import { getContent } from "@/lib/content";
+import { fill } from "@/lib/content/template";
 
 export type BlogCardData = {
   slug: string;
@@ -14,13 +16,14 @@ export type BlogCardData = {
   createdAt?: Date | string | null;
 };
 
-export function BlogCard({
+export async function BlogCard({
   post,
   className,
 }: {
   post: BlogCardData;
   className?: string;
 }) {
+  const ui = await getContent("ui.blog");
   return (
     <article
       className={cn(
@@ -47,7 +50,7 @@ export function BlogCard({
           {post.createdAt && <span>{formatDate(post.createdAt)}</span>}
           {post.readTime ? (
             <span className="flex items-center gap-1">
-              <Clock className="size-3.5" /> {post.readTime} dk okuma
+              <Clock className="size-3.5" /> {fill(ui.readTimeFormat, { dk: post.readTime })}
             </span>
           ) : null}
         </div>
@@ -63,7 +66,7 @@ export function BlogCard({
           href={`/blog/${post.slug}`}
           className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700 transition-colors hover:text-gold-600"
         >
-          Devamını Oku <ArrowRight className="size-4" />
+          {ui.readMore} <ArrowRight className="size-4" />
         </Link>
       </div>
     </article>

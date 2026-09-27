@@ -20,13 +20,13 @@ export default async function OtellerPage() {
   ]);
 
   const groups = [
-    { city: "Mekke", href: "/oteller/mekke", hotels: mekke, desc: c.mekkeDescription },
-    { city: "Medine", href: "/oteller/medine", hotels: medine, desc: c.medineDescription },
+    { city: "Mekke", href: "/oteller/mekke", hotels: mekke, eyebrow: c.mekkeEyebrow, title: c.mekkeTitle, desc: c.mekkeDescription },
+    { city: "Medine", href: "/oteller/medine", hotels: medine, eyebrow: c.medineEyebrow, title: c.medineTitle, desc: c.medineDescription },
   ].filter((g) => g.hotels.length > 0);
 
   return (
     <>
-      <PageHero title={c.title} description={c.description} image={c.image} crumbs={[{ label: "Oteller" }]} />
+      <PageHero title={c.title} description={c.description} image={c.image} crumbs={[{ label: c.crumb }]} />
 
       {groups.map((g, gi) => (
         <section key={g.city} className={cn("py-16 lg:py-20", gi % 2 === 1 && "bg-cream-50")}>
@@ -35,12 +35,12 @@ export default async function OtellerPage() {
               <SectionHeading
                 align="left"
                 className="mx-0"
-                eyebrow={`${g.city} Konaklama`}
-                title={`${g.city} Otelleri`}
+                eyebrow={g.eyebrow}
+                title={g.title}
                 description={g.desc}
               />
               <Link href={g.href} className={cn(buttonVariants({ variant: "outline" }), "hidden shrink-0 sm:inline-flex")}>
-                Tümünü Gör <MoveRight className="size-4" />
+                {c.allButton} <MoveRight className="size-4" />
               </Link>
             </div>
             <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

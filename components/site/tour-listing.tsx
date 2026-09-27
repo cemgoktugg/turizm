@@ -10,16 +10,26 @@ type ListingKey = "page.hac-programlari" | "page.umre" | "page.umre-kesin" | "pa
 /** Kategori bazlı tur listeleme sayfası — metinler "Sayfa İçerikleri"nden gelir */
 export async function TourListing({
   contentKey,
-  crumbs,
+  parent,
   categorySlugs,
   requireDate = false,
 }: {
   contentKey: ListingKey;
-  crumbs?: Crumb[];
+  /** Sayfa yolundaki üst sayfa (adı o sayfanın içerik bloğundan okunur) */
+  parent?: { key: "page.hac" | "page.umre"; href: string };
   categorySlugs?: string[];
   requireDate?: boolean;
 }) {
-  const [content, tours] = await Promise.all([getContent(contentKey), getTours(categorySlugs, requireDate)]);
+  const [content, tours, parentContent] = await Promise.all([
+    getContent(contentKey),
+    getTours(categorySlugs, requireDate),
+    parent ? getContent(parent.key) : Promise.resolve(null),
+  ]);
+
+  const crumbs: Crumb[] = [
+    ...(parent && parentContent ? [{ label: parentContent.crumb, href: parent.href }] : []),
+    { label: content.crumb },
+  ];
 
   return (
     <>

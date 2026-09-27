@@ -6,14 +6,14 @@ import { getContent, pageMetadata } from "@/lib/content";
 export const generateMetadata = () => pageMetadata("page.umre-yetki");
 
 export default async function UmreYetkiPage() {
-  const c = await getContent("page.umre-yetki");
+  const [c, parent] = await Promise.all([getContent("page.umre-yetki"), getContent("page.umre")]);
   return (
     <>
       <PageHero
         title={c.title}
         description={c.description}
         image={c.image}
-        crumbs={[{ label: "Umre", href: "/umre" }, { label: "Yetki Belgeleri" }]}
+        crumbs={[{ label: parent.crumb, href: "/umre" }, { label: c.crumb }]}
       />
       <YetkiContent intro={c.intro} />
       <CtaBand />

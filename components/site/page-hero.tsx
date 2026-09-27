@@ -2,10 +2,11 @@ import Link from "next/link";
 import { ChevronRight, Home } from "lucide-react";
 import { SmartImage } from "@/components/ui/smart-image";
 import { cn } from "@/lib/utils";
+import { getContent } from "@/lib/content";
 
 export type Crumb = { label: string; href?: string };
 
-export function PageHero({
+export async function PageHero({
   title,
   description,
   image = "/images/cta-bg.svg",
@@ -20,6 +21,7 @@ export function PageHero({
   align?: "center" | "left";
   size?: "sm" | "md";
 }) {
+  const ui = await getContent("ui.general");
   return (
     <section
       className={cn(
@@ -44,7 +46,7 @@ export function PageHero({
           )}
         >
           <Link href="/" className="inline-flex items-center gap-1 hover:text-gold-300">
-            <Home className="size-3.5" /> Ana Sayfa
+            <Home className="size-3.5" /> {ui.breadcrumbHome}
           </Link>
           {crumbs.map((c, i) => (
             <span key={i} className="inline-flex items-center gap-1.5">

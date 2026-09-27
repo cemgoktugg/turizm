@@ -6,14 +6,14 @@ import { getContent, pageMetadata } from "@/lib/content";
 export const generateMetadata = () => pageMetadata("page.hac-yetki");
 
 export default async function HacYetkiPage() {
-  const c = await getContent("page.hac-yetki");
+  const [c, parent] = await Promise.all([getContent("page.hac-yetki"), getContent("page.hac")]);
   return (
     <>
       <PageHero
         title={c.title}
         description={c.description}
         image={c.image}
-        crumbs={[{ label: "Hac", href: "/hac" }, { label: "Yetki Belgeleri" }]}
+        crumbs={[{ label: parent.crumb, href: "/hac" }, { label: c.crumb }]}
       />
       <YetkiContent intro={c.intro} />
       <CtaBand />

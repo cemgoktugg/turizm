@@ -12,7 +12,7 @@ export default async function GerekliBilgilerPage() {
 
   return (
     <>
-      <PageHero title={c.title} description={c.description} image={c.image} crumbs={[{ label: "Gerekli Bilgiler" }]} />
+      <PageHero title={c.title} description={c.description} image={c.image} crumbs={[{ label: c.crumb }]} />
 
       <section className="py-16 lg:py-20">
         <div className="container-tr">

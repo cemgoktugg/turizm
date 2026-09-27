@@ -42,11 +42,11 @@ uyarı gösterilir.
 | **Turlar** | Tam CRUD, galeri, gün gün program, oda fiyatları, SSS, SEO. Filtreler (sitede / tarihi geçen / taslak), **kopyala** (yeni sezon için) |
 | **Kategoriler** | Ana sayfa kategori kartları ve `/turlar` filtreleri: ad, açıklama, ikon, görsel, sıralama. Sayfalara bağlı sistem kategorileri kilitlidir |
 | **Oteller** | Mekke ve Medine otelleri. Tur formunda otel önerisi olarak çıkar ve mesafeyi otomatik doldurur |
-| **Sayfa İçerikleri** | Sitedeki tüm metin, başlık ve görseller: hero slaytları, istatistikler, "Neden Biz", hakkımızda, gerekli bilgiler, menasik adımları, dualar, footer, sayfa başlıkları ve SEO |
+| **Sayfa İçerikleri** | Sitede görünen her metin ve görsel: üst menü ve alt menüler, footer bağlantı sütunları, hero slaytları, istatistikler, "Neden Biz", hakkımızda, gerekli bilgiler, menasik adımları, dualar, sayfa başlıkları, sayfa yolu adları ve SEO, buton/etiket/form metinleri, boş durum mesajları, WhatsApp hazır mesajları, 404 sayfası |
 | **Blog** | Markdown yazılar, canlı önizleme, otomatik okuma süresi |
 | **Belgeler** | TÜRSAB, Diyanet ve IATA gibi belgeler |
 | **Medya** | Görsel yükleme (sürükle-bırak), kullanıldığı yerleri gösterme, kullanımdaki görselin silinmesini engelleme |
-| **Site Ayarları** | Logo, iletişim, sosyal medya, Google Harita (iframe kodu doğrudan yapıştırılabilir), genel SEO ve paylaşım görseli |
+| **Site Ayarları** | Logo, favicon, iletişim, sosyal medya (Facebook, Instagram, YouTube, X, TikTok, LinkedIn, Telegram), Google Harita (iframe kodu doğrudan yapıştırılabilir), genel SEO ve paylaşım görseli |
 | **Kullanıcılar / Hesabım** | Yönetici ekleme ve silme, profil, şifre değiştirme |
 
 ### Panel ile site nasıl senkron kalıyor?
@@ -55,6 +55,8 @@ uyarı gösterilir.
   Genel sayfalar statik üretilir, saatte bir de kendiliğinden yenilenir.
 - Gidiş tarihi geçen turlar listelerden, ana sayfadan, rezervasyon formundan ve sitemap'ten otomatik
   kalkar. Detay sayfası "tarihi geçti" uyarısı ve benzer yaklaşan turlarla açık kalır.
+- Sitede koda gömülü görünür metin yoktur (sosyal medya ikonlarının marka adları hariç). Renk paleti ve yazı tipleri
+  tasarım kararı olarak koddadır (`app/globals.css`, `app/layout.tsx`).
 - Sayfa içerikleri `lib/content/registry.ts` içinde tanımlıdır. Her bloğun admin formu ve sunucu
   doğrulaması aynı alan tanımından üretilir. Veritabanında kayıt yoksa sitede varsayılan içerik görünür.
 

@@ -16,7 +16,7 @@ export default async function HacPage() {
 
   return (
     <>
-      <PageHero title={c.title} description={c.description} image={c.image} crumbs={[{ label: "Hac" }]} />
+      <PageHero title={c.title} description={c.description} image={c.image} crumbs={[{ label: c.crumb }]} />
 
       {/* Giriş */}
       <section className="py-16 lg:py-20">
@@ -35,10 +35,10 @@ export default async function HacPage() {
             ))}
             <div className="mt-7 flex flex-wrap gap-3">
               <Link href="/hac/programlari" className={buttonVariants({ variant: "primary" })}>
-                Hac Programları <MoveRight className="size-4" />
+                {c.primaryButton} <MoveRight className="size-4" />
               </Link>
               <Link href="/hac/dua-ve-vazifeler" className={buttonVariants({ variant: "outline" })}>
-                Dua ve Vazifeler
+                {c.secondaryButton}
               </Link>
             </div>
           </Reveal>

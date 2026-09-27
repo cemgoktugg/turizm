@@ -12,8 +12,9 @@ export const generateMetadata = () => pageMetadata("page.turlar");
 export default async function TurlarPage({ searchParams }: { searchParams: Promise<{ kategori?: string }> }) {
   const { kategori } = await searchParams;
 
-  const [c, categories, tours] = await Promise.all([
+  const [c, ui, categories, tours] = await Promise.all([
     getContent("page.turlar"),
+    getContent("ui.general"),
     prisma.tourCategory.findMany({
       orderBy: [{ order: "asc" }, { name: "asc" }],
       include: { _count: { select: { tours: { where: activeTourWhere() } } } },
@@ -34,11 +35,11 @@ export default async function TurlarPage({ searchParams }: { searchParams: Promi
     <>
       <BreadcrumbJsonLd
         items={[
-          { name: "Ana Sayfa", url: "/" },
-          { name: c.title, url: "/turlar" },
+          { name: ui.breadcrumbHome, url: "/" },
+          { name: c.crumb, url: "/turlar" },
         ]}
       />
-      <PageHero title={c.title} description={c.description} image={c.image} crumbs={[{ label: "Turlar" }]} />
+      <PageHero title={c.title} description={c.description} image={c.image} crumbs={[{ label: c.crumb }]} />
 
       <section className="py-16 lg:py-20">
         <div className="container-tr">

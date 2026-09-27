@@ -7,7 +7,7 @@ export default function RamazanUmresiPage() {
   return (
     <TourListing
       contentKey="page.umre-ramazan"
-      crumbs={[{ label: "Umre", href: "/umre" }, { label: "Ramazan Umresi" }]}
+      parent={{ key: "page.umre", href: "/umre" }}
       categorySlugs={["ramazan-umresi"]}
     />
   );

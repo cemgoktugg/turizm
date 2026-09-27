@@ -5,5 +5,5 @@ import { UMRE_CATEGORY_SLUGS } from "@/lib/categories";
 export const generateMetadata = () => pageMetadata("page.umre");
 
 export default function UmrePage() {
-  return <TourListing contentKey="page.umre" crumbs={[{ label: "Umre" }]} categorySlugs={UMRE_CATEGORY_SLUGS} />;
+  return <TourListing contentKey="page.umre" categorySlugs={UMRE_CATEGORY_SLUGS} />;
 }

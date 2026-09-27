@@ -6,7 +6,7 @@ import { MessageCircle, Phone, CalendarCheck } from "lucide-react";
 import { whatsappLink, telLink } from "@/lib/settings";
 
 /** Sağ altta yüzen WhatsApp butonu (masaüstü + mobil) */
-export function WhatsAppButton({ whatsapp }: { whatsapp: string }) {
+export function WhatsAppButton({ whatsapp, message }: { whatsapp: string; message: string }) {
   const [show, setShow] = useState(false);
   useEffect(() => {
     const onScroll = () => setShow(window.scrollY > 300);
@@ -16,7 +16,7 @@ export function WhatsAppButton({ whatsapp }: { whatsapp: string }) {
 
   return (
     <a
-      href={whatsappLink(whatsapp, "Merhaba, hac/umre programları hakkında bilgi almak istiyorum.")}
+      href={whatsappLink(whatsapp, message)}
       target="_blank"
       rel="noopener noreferrer"
       aria-label="WhatsApp'tan yazın"
@@ -34,31 +34,29 @@ export function WhatsAppButton({ whatsapp }: { whatsapp: string }) {
 export function MobileBottomBar({
   phone,
   whatsapp,
+  message,
+  labels,
 }: {
   phone: string;
   whatsapp: string;
+  message: string;
+  labels: { call: string; whatsapp: string; reservation: string };
 }) {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 border-t border-border bg-white/95 backdrop-blur-md md:hidden">
-      <a
-        href={telLink(phone)}
-        className="flex flex-col items-center gap-1 py-2.5 text-[11px] font-semibold text-brand-800"
-      >
-        <Phone className="size-5" /> Ara
+      <a href={telLink(phone)} className="flex flex-col items-center gap-1 py-2.5 text-[11px] font-semibold text-brand-800">
+        <Phone className="size-5" /> {labels.call}
       </a>
       <a
-        href={whatsappLink(whatsapp, "Merhaba, bilgi almak istiyorum.")}
+        href={whatsappLink(whatsapp, message)}
         target="_blank"
         rel="noopener noreferrer"
         className="flex flex-col items-center gap-1 border-x border-border py-2.5 text-[11px] font-semibold text-[#1eb955]"
       >
-        <MessageCircle className="size-5" /> WhatsApp
+        <MessageCircle className="size-5" /> {labels.whatsapp}
       </a>
-      <Link
-        href="/rezervasyon"
-        className="flex flex-col items-center gap-1 py-2.5 text-[11px] font-semibold text-gold-700"
-      >
-        <CalendarCheck className="size-5" /> Rezervasyon
+      <Link href="/rezervasyon" className="flex flex-col items-center gap-1 py-2.5 text-[11px] font-semibold text-gold-700">
+        <CalendarCheck className="size-5" /> {labels.reservation}
       </Link>
     </nav>
   );

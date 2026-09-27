@@ -6,11 +6,12 @@ import { prisma } from "@/lib/prisma";
 import { activeTourWhere, getTourBySlug, isPastTour } from "@/lib/queries";
 import { getSettings, whatsappLink } from "@/lib/settings";
 import { getContent } from "@/lib/content";
+import { fill } from "@/lib/content/template";
 import { PageHero } from "@/components/site/page-hero";
 import { TourGallery } from "@/components/site/tour-gallery";
 import { TourDetailTabs } from "@/components/site/tour-detail-tabs";
 import { BookingForm } from "@/components/site/booking-form";
-import { TourCard } from "@/components/site/tour-card";
+import { TourCard, formatDuration } from "@/components/site/tour-card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { formatPrice, formatDateRange, splitLines } from "@/lib/utils";
@@ -46,9 +47,13 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
   if (!tour) notFound();
 
   const past = isPastTour(tour.departureDate);
-  const [settings, booking, similar] = await Promise.all([
+  const [settings, booking, ui, turlarPage, general, wa, similar] = await Promise.all([
     getSettings(),
     getContent("shared.booking"),
+    getContent("ui.tours"),
+    getContent("page.turlar"),
+    getContent("ui.general"),
+    getContent("ui.whatsapp"),
     past
       ? prisma.tour.findMany({
           where: activeTourWhere({ categoryId: tour.categoryId, id: { not: tour.id } }),
@@ -68,25 +73,17 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
   const documents = splitLines(tour.requiredDocuments);
   const dateRange = formatDateRange(tour.departureDate, tour.returnDate);
 
+  const t = ui.detail;
   const facts = [
-    { icon: CalendarDays, label: "Tarih", value: dateRange },
-    {
-      icon: Clock,
-      label: "Süre",
-      value:
-        tour.durationDays && tour.durationNights
-          ? `${tour.durationDays} Gün / ${tour.durationNights} Gece`
-          : tour.durationDays
-            ? `${tour.durationDays} Gün`
-            : null,
-    },
-    { icon: MapPin, label: "Kalkış", value: tour.departureCity },
-    { icon: Plane, label: "Havayolu", value: tour.airline },
-    { icon: Building2, label: "Mekke Oteli", value: tour.makkahHotel },
-    { icon: Building2, label: "Medine Oteli", value: tour.madinahHotel },
+    { icon: CalendarDays, label: t.factDate, value: dateRange },
+    { icon: Clock, label: t.factDuration, value: formatDuration(tour.durationDays, tour.durationNights, ui.card) },
+    { icon: MapPin, label: t.factDeparture, value: tour.departureCity },
+    { icon: Plane, label: t.factAirline, value: tour.airline },
+    { icon: Building2, label: t.factMakkahHotel, value: tour.makkahHotel },
+    { icon: Building2, label: t.factMadinahHotel, value: tour.madinahHotel },
   ].filter((f) => f.value);
 
-  const waText = `Merhaba, "${tour.title}" programı hakkında bilgi almak istiyorum.`;
+  const waText = fill(wa.tour, { tur: tour.title });
 
   return (
     <>
@@ -103,8 +100,8 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
       <FaqJsonLd faqs={tour.faqs} />
       <BreadcrumbJsonLd
         items={[
-          { name: "Ana Sayfa", url: "/" },
-          { name: "Turlar", url: "/turlar" },
+          { name: general.breadcrumbHome, url: "/" },
+          { name: turlarPage.crumb, url: "/turlar" },
           { name: tour.title, url: `/turlar/${tour.slug}` },
         ]}
       />
@@ -114,8 +111,8 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
         description={tour.shortDescription || undefined}
         image={tour.coverImage || "/images/hero-2.svg"}
         crumbs={[
-          { label: "Turlar", href: "/turlar" },
-          { label: tour.category?.name || "Tur", href: `/turlar?kategori=${tour.category?.slug}` },
+          { label: turlarPage.crumb, href: "/turlar" },
+          { label: tour.category?.name || turlarPage.crumb, href: `/turlar?kategori=${tour.category?.slug}` },
         ]}
       />
 
@@ -156,12 +153,12 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
               <div className="mt-4 flex flex-wrap gap-3">
                 {tour.makkahDistance && (
                   <Badge variant="gold" size="md" className="gap-1.5">
-                    <MapPin className="size-3.5" /> Mekke: {tour.makkahDistance}
+                    <MapPin className="size-3.5" /> {t.makkahPrefix}: {tour.makkahDistance}
                   </Badge>
                 )}
                 {tour.madinahDistance && (
                   <Badge variant="brand" size="md" className="gap-1.5">
-                    <MapPin className="size-3.5" /> Medine: {tour.madinahDistance}
+                    <MapPin className="size-3.5" /> {t.madinahPrefix}: {tour.madinahDistance}
                   </Badge>
                 )}
               </div>
@@ -170,7 +167,7 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
             {/* Açıklama */}
             {tour.description && (
               <div className="mt-10">
-                <h2 className="font-serif text-2xl font-bold text-brand-900">Program Hakkında</h2>
+                <h2 className="font-serif text-2xl font-bold text-brand-900">{t.aboutTitle}</h2>
                 <div className="mt-4 space-y-3 leading-relaxed text-brand-800/90">
                   {splitLines(tour.description).map((p, i) => (
                     <p key={i}>{p}</p>
@@ -183,7 +180,7 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
             {tour.prices.length > 0 && (
               <div className="mt-10">
                 <h2 className="flex items-center gap-2 font-serif text-2xl font-bold text-brand-900">
-                  <Bed className="size-6 text-gold-500" /> Oda Fiyatları
+                  <Bed className="size-6 text-gold-500" /> {t.pricesTitle}
                 </h2>
                 <div className="mt-4 overflow-hidden rounded-2xl border border-border">
                   {tour.prices.map((p, i) => (
@@ -192,7 +189,7 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
                       className={`flex items-center justify-between px-5 py-4 ${i % 2 === 0 ? "bg-white" : "bg-cream-50"}`}
                     >
                       <span className="text-sm font-medium text-brand-800">{p.roomType}</span>
-                      <span className="font-serif text-lg font-bold text-brand-700">{formatPrice(p.price, p.currency)}</span>
+                      <span className="font-serif text-lg font-bold text-brand-700">{formatPrice(p.price, p.currency, ui.card.noPrice)}</span>
                     </div>
                   ))}
                 </div>
@@ -208,6 +205,7 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
                 excluded={excluded}
                 documents={documents}
                 faqs={tour.faqs}
+                labels={t}
               />
             </div>
           </div>
@@ -216,9 +214,9 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
           <aside className="lg:sticky lg:top-28 lg:h-fit">
             <div className="overflow-hidden rounded-3xl border border-border bg-white shadow-card">
               <div className="bg-brand-800 p-6 text-center text-white">
-                <p className="text-sm text-cream-100/80">Başlangıç fiyatı</p>
+                <p className="text-sm text-cream-100/80">{t.priceBoxLabel}</p>
                 <p className="mt-1 font-serif text-4xl font-bold text-white">
-                  {formatPrice(tour.startingPrice, tour.currency ?? "USD")}
+                  {formatPrice(tour.startingPrice, tour.currency ?? "USD", ui.card.noPrice)}
                 </p>
                 {tour.startingPrice != null && (
                   <p className="mt-1 text-xs text-cream-100/70">{tour.priceNote || booking.defaultPriceNote}</p>
@@ -227,10 +225,10 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
               <div className="p-6">
                 {past ? (
                   <>
-                    <h3 className="font-serif text-lg font-bold text-brand-900">Kayıtlar kapandı</h3>
+                    <h3 className="font-serif text-lg font-bold text-brand-900">{t.closedTitle}</h3>
                     <p className="mt-1 text-sm text-muted">{booking.pastTourText}</p>
                     <Link href="/turlar" className={`${buttonVariants({ variant: "primary" })} mt-4 w-full`}>
-                      Güncel Turları İncele
+                      {t.closedButton}
                     </Link>
                   </>
                 ) : (
@@ -248,7 +246,7 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
                   rel="noopener noreferrer"
                   className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-[#25D366] py-2.5 text-sm font-semibold text-[#1eb955] transition hover:bg-[#25D366] hover:text-white"
                 >
-                  <MessageCircle className="size-4" /> WhatsApp&apos;tan Sor
+                  <MessageCircle className="size-4" /> {t.whatsappButton}
                 </a>
               </div>
             </div>
@@ -259,7 +257,7 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
       {similar.length > 0 && (
         <section className="bg-cream-50 py-16">
           <div className="container-tr">
-            <h2 className="mb-8 font-serif text-2xl font-bold text-brand-900">Yaklaşan Benzer Programlar</h2>
+            <h2 className="mb-8 font-serif text-2xl font-bold text-brand-900">{t.similarTitle}</h2>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {similar.map((t) => (
                 <TourCard key={t.id} tour={t} />

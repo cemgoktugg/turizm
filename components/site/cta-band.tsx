@@ -7,7 +7,7 @@ import { getContent } from "@/lib/content";
 
 /** Sayfa altı çağrı bandı — metinler "Ortak Bölümler › Çağrı Bandı"ndan, sayfa özelinde başlık verilebilir */
 export async function CtaBand({ title, description }: { title?: string; description?: string }) {
-  const [settings, cta] = await Promise.all([getSettings(), getContent("shared.cta")]);
+  const [settings, cta, wa] = await Promise.all([getSettings(), getContent("shared.cta"), getContent("ui.whatsapp")]);
   return (
     <section className="py-20">
       <div className="container-tr">
@@ -22,7 +22,7 @@ export async function CtaBand({ title, description }: { title?: string; descript
                 {cta.primaryLabel || "Rezervasyon Yap"} <MoveRight className="size-5" />
               </Link>
               <a
-                href={whatsappLink(settings.whatsapp, "Merhaba, bilgi almak istiyorum.")}
+                href={whatsappLink(settings.whatsapp, wa.general)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={buttonVariants({ variant: "whatsapp", size: "lg" })}

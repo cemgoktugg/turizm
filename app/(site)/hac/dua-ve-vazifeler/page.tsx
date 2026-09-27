@@ -6,14 +6,14 @@ import { getContent, pageMetadata } from "@/lib/content";
 export const generateMetadata = () => pageMetadata("page.hac-dua");
 
 export default async function HacDuaPage() {
-  const c = await getContent("page.hac-dua");
+  const [c, parent] = await Promise.all([getContent("page.hac-dua"), getContent("page.hac")]);
   return (
     <>
       <PageHero
         title={c.title}
         description={c.description}
         image={c.image}
-        crumbs={[{ label: "Hac", href: "/hac" }, { label: "Dua ve Vazifeler" }]}
+        crumbs={[{ label: parent.crumb, href: "/hac" }, { label: c.crumb }]}
       />
       <MenasikContent
         steps={c.steps}

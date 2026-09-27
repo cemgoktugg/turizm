@@ -10,22 +10,15 @@ import { leadSchema, type LeadInput, type LeadSource } from "@/lib/validations";
 import { createLead } from "@/app/actions/leads";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea, Field } from "@/components/ui/form-controls";
+import type { ContentData } from "@/lib/content/registry";
 
 type TourOption = { id: string; title: string };
 
-export type BookingTexts = {
-  submitLabel: string;
-  consentText: string;
-  successTitle: string;
-  successText: string;
-};
-
-const DEFAULT_TEXTS: BookingTexts = {
-  submitLabel: "Başvuruyu Gönder",
-  consentText: "Formu göndererek bilgilerinizin başvurunuz kapsamında işlenmesini kabul edersiniz.",
-  successTitle: "Başvurunuz Alındı",
-  successText: "Talebiniz bize ulaştı. Danışmanlarımız en kısa sürede sizinle iletişime geçecek.",
-};
+/** Form metinleri "Sayfa İçerikleri › Başvuru Formu" bloğundan gelir */
+export type BookingTexts = Pick<
+  ContentData<"shared.booking">,
+  "form" | "submitLabel" | "consentText" | "successTitle" | "successText"
+>;
 
 export function BookingForm({
   tourId,
@@ -33,16 +26,17 @@ export function BookingForm({
   tourOptions,
   variant = "card",
   source,
-  texts = DEFAULT_TEXTS,
+  texts,
 }: {
   tourId?: string;
   tourTitle?: string;
   tourOptions?: TourOption[];
   variant?: "card" | "bare";
   source: LeadSource;
-  texts?: BookingTexts;
+  texts: BookingTexts;
 }) {
   const [done, setDone] = useState(false);
+  const f = texts.form;
 
   const {
     register,
@@ -84,7 +78,7 @@ export function BookingForm({
         <h3 className="mt-4 font-serif text-xl font-bold text-brand-900">{texts.successTitle}</h3>
         <p className="mt-2 text-sm text-muted">{texts.successText}</p>
         <Button variant="outline" className="mt-5" onClick={() => setDone(false)}>
-          Yeni Başvuru
+          {f.newApplication}
         </Button>
       </div>
     );
@@ -103,30 +97,30 @@ export function BookingForm({
       />
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Ad Soyad" required error={errors.fullName?.message}>
-          <Input placeholder="Adınız ve soyadınız" {...register("fullName")} />
+        <Field label={f.fullName} required error={errors.fullName?.message}>
+          <Input placeholder={f.fullNamePlaceholder} autoComplete="name" {...register("fullName")} />
         </Field>
-        <Field label="Telefon" required error={errors.phone?.message}>
-          <Input placeholder="05xx xxx xx xx" inputMode="tel" {...register("phone")} />
+        <Field label={f.phone} required error={errors.phone?.message}>
+          <Input placeholder={f.phonePlaceholder} inputMode="tel" autoComplete="tel" {...register("phone")} />
         </Field>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="E-posta" error={errors.email?.message}>
-          <Input placeholder="ornek@eposta.com" inputMode="email" {...register("email")} />
+        <Field label={f.email} error={errors.email?.message}>
+          <Input placeholder={f.emailPlaceholder} inputMode="email" autoComplete="email" {...register("email")} />
         </Field>
-        <Field label="Kişi Sayısı" error={errors.personCount?.message as string | undefined}>
+        <Field label={f.personCount} error={errors.personCount?.message as string | undefined}>
           <Input type="number" min={1} max={50} {...register("personCount")} />
         </Field>
       </div>
 
       {tourOptions && tourOptions.length > 0 ? (
-        <Field label="İlgilendiğiniz Program" error={errors.tourId?.message}>
+        <Field label={f.program} error={errors.tourId?.message}>
           <select
             className="w-full appearance-none rounded-xl border border-border bg-white px-4 py-2.5 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
             {...register("tourId")}
           >
-            <option value="">Genel bilgi / Kararsızım</option>
+            <option value="">{f.programGeneral}</option>
             {tourOptions.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.title}
@@ -137,23 +131,20 @@ export function BookingForm({
       ) : (
         tourTitle && (
           <div className="rounded-xl border border-gold-200 bg-gold-50 px-4 py-3 text-sm">
-            <span className="text-muted">İlgilendiğiniz program: </span>
+            <span className="text-muted">{f.programSelected} </span>
             <span className="font-semibold text-brand-900">{tourTitle}</span>
           </div>
         )
       )}
 
-      <Field label="Mesajınız" error={errors.message?.message}>
-        <Textarea
-          placeholder="Tarih tercihleriniz, sorularınız veya özel talepleriniz..."
-          {...register("message")}
-        />
+      <Field label={f.message} error={errors.message?.message}>
+        <Textarea placeholder={f.messagePlaceholder} {...register("message")} />
       </Field>
 
       <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
         {isSubmitting ? (
           <>
-            <Loader2 className="size-5 animate-spin" /> Gönderiliyor...
+            <Loader2 className="size-5 animate-spin" /> {f.sending}
           </>
         ) : (
           <>

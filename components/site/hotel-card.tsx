@@ -2,6 +2,8 @@ import { MapPin, Star } from "lucide-react";
 import { SmartImage } from "@/components/ui/smart-image";
 import { Badge } from "@/components/ui/badge";
 import { parseImages, cn } from "@/lib/utils";
+import { getContent } from "@/lib/content";
+import { fill } from "@/lib/content/template";
 
 export type HotelCardData = {
   name: string;
@@ -13,7 +15,7 @@ export type HotelCardData = {
   images?: string | null;
 };
 
-export function HotelCard({
+export async function HotelCard({
   hotel,
   className,
 }: {
@@ -21,6 +23,7 @@ export function HotelCard({
   className?: string;
 }) {
   const img = parseImages(hotel.images)[0];
+  const ui = await getContent("ui.general");
   return (
     <article
       className={cn(
@@ -60,7 +63,7 @@ export function HotelCard({
         )}
         {hotel.region && (
           <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-muted/70">
-            {hotel.region} Bölgesi
+            {fill(ui.hotelRegionFormat, { bolge: hotel.region })}
           </p>
         )}
       </div>

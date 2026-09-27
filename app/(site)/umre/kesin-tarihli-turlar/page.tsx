@@ -8,7 +8,7 @@ export default function KesinTarihliPage() {
   return (
     <TourListing
       contentKey="page.umre-kesin"
-      crumbs={[{ label: "Umre", href: "/umre" }, { label: "Kesin Tarihli Turlar" }]}
+      parent={{ key: "page.umre", href: "/umre" }}
       categorySlugs={UMRE_CATEGORY_SLUGS}
       requireDate
     />

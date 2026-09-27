@@ -132,6 +132,12 @@ export const seoFields: FieldSpec[] = [
 
 export const heroFields: FieldSpec[] = [
   { type: "text", name: "title", label: "Sayfa başlığı" },
+  {
+    type: "text",
+    name: "crumb",
+    label: "Sayfa yolundaki kısa ad",
+    help: "Sayfa başındaki 'Ana Sayfa › …' yolunda ve alt sayfalarda üst sayfa adı olarak görünür.",
+  },
   { type: "textarea", name: "description", label: "Başlık altı açıklama", rows: 2 },
   { type: "image", name: "image", label: "Üst görsel (arka plan)" },
 ];

@@ -7,7 +7,7 @@ export default function HacProgramlariPage() {
   return (
     <TourListing
       contentKey="page.hac-programlari"
-      crumbs={[{ label: "Hac", href: "/hac" }, { label: "Hac Programları" }]}
+      parent={{ key: "page.hac", href: "/hac" }}
       categorySlugs={["hac"]}
     />
   );

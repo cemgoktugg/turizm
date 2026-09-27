@@ -7,9 +7,11 @@ import { Reveal } from "@/components/ui/reveal";
 import { Building2 } from "lucide-react";
 
 export async function HotelsCity({ city }: { city: "Mekke" | "Medine" }) {
-  const [hotels, content] = await Promise.all([
+  const [hotels, content, ui, parent] = await Promise.all([
     getHotelsByCity(city),
     getContent(city === "Mekke" ? "page.oteller-mekke" : "page.oteller-medine"),
+    getContent("ui.general"),
+    getContent("page.oteller"),
   ]);
 
   return (
@@ -18,7 +20,7 @@ export async function HotelsCity({ city }: { city: "Mekke" | "Medine" }) {
         title={content.title}
         description={content.description}
         image={content.image}
-        crumbs={[{ label: "Oteller", href: "/oteller" }, { label: `${city} Otelleri` }]}
+        crumbs={[{ label: parent.crumb, href: "/oteller" }, { label: content.crumb }]}
       />
 
       <section className="py-16 lg:py-20">
@@ -36,7 +38,7 @@ export async function HotelsCity({ city }: { city: "Mekke" | "Medine" }) {
               <div className="mx-auto grid size-14 place-items-center rounded-full bg-brand-50 text-brand-600">
                 <Building2 className="size-7" />
               </div>
-              <p className="mt-4 text-sm text-muted">Bu şehir için otel bilgisi yakında eklenecektir.</p>
+              <p className="mt-4 text-sm text-muted">{ui.hotelsEmpty}</p>
             </div>
           )}
         </div>

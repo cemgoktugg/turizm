@@ -8,24 +8,35 @@ import { FAQAccordion, type FaqItem } from "./faq-accordion";
 
 type DayProgram = { dayNumber: number; title: string; description: string };
 
+export type TourTabLabels = {
+  tabProgram: string;
+  tabServices: string;
+  tabDocs: string;
+  tabFaq: string;
+  includedTitle: string;
+  excludedTitle: string;
+};
+
 export function TourDetailTabs({
   program,
   included,
   excluded,
   documents,
   faqs,
+  labels,
 }: {
   program: DayProgram[];
   included: string[];
   excluded: string[];
   documents: string[];
   faqs: FaqItem[];
+  labels: TourTabLabels;
 }) {
   const tabs = [
-    { id: "program", label: "Gün Gün Program", icon: Route, show: program.length > 0 },
-    { id: "services", label: "Hizmetler", icon: Check, show: included.length > 0 || excluded.length > 0 },
-    { id: "docs", label: "Gerekli Evraklar", icon: FileText, show: documents.length > 0 },
-    { id: "faq", label: "Sık Sorulan Sorular", icon: HelpCircle, show: faqs.length > 0 },
+    { id: "program", label: labels.tabProgram, icon: Route, show: program.length > 0 },
+    { id: "services", label: labels.tabServices, icon: Check, show: included.length > 0 || excluded.length > 0 },
+    { id: "docs", label: labels.tabDocs, icon: FileText, show: documents.length > 0 },
+    { id: "faq", label: labels.tabFaq, icon: HelpCircle, show: faqs.length > 0 },
   ].filter((t) => t.show);
 
   const [active, setActive] = useState(tabs[0]?.id ?? "program");
@@ -72,7 +83,7 @@ export function TourDetailTabs({
           >
             {active === "program" && <ProgramTab program={program} />}
             {active === "services" && (
-              <ServicesTab included={included} excluded={excluded} />
+              <ServicesTab included={included} excluded={excluded} labels={labels} />
             )}
             {active === "docs" && <DocsTab documents={documents} />}
             {active === "faq" && <FAQAccordion items={faqs} />}
@@ -102,9 +113,11 @@ function ProgramTab({ program }: { program: DayProgram[] }) {
 function ServicesTab({
   included,
   excluded,
+  labels,
 }: {
   included: string[];
   excluded: string[];
+  labels: TourTabLabels;
 }) {
   return (
     <div className="grid gap-8 md:grid-cols-2">
@@ -113,7 +126,7 @@ function ServicesTab({
           <span className="grid size-7 place-items-center rounded-full bg-brand-100">
             <Check className="size-4 text-brand-700" />
           </span>
-          Fiyata Dâhil Olanlar
+          {labels.includedTitle}
         </h4>
         <ul className="space-y-2.5">
           {included.map((item, i) => (
@@ -129,7 +142,7 @@ function ServicesTab({
           <span className="grid size-7 place-items-center rounded-full bg-red-100">
             <X className="size-4 text-red-600" />
           </span>
-          Fiyata Dâhil Olmayanlar
+          {labels.excludedTitle}
         </h4>
         <ul className="space-y-2.5">
           {excluded.map((item, i) => (

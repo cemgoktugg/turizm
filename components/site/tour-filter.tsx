@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { getContent } from "@/lib/content";
 
 export type FilterOption = { label: string; slug: string; count?: number };
 
-export function TourFilter({
+export async function TourFilter({
   options,
   active,
   basePath = "/turlar",
@@ -12,7 +13,8 @@ export function TourFilter({
   active?: string;
   basePath?: string;
 }) {
-  const items: FilterOption[] = [{ label: "Tümü", slug: "" }, ...options];
+  const { list } = await getContent("ui.tours");
+  const items: FilterOption[] = [{ label: list.filterAll, slug: "" }, ...options];
 
   return (
     <div className="flex flex-wrap gap-2">

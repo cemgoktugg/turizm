@@ -292,6 +292,9 @@ export const settingsSchema = z.object({
   instagram: optionalUrl,
   youtube: optionalUrl,
   twitter: optionalUrl,
+  tiktok: optionalUrl,
+  linkedin: optionalUrl,
+  telegram: optionalUrl,
   mapEmbed: z
     .string()
     .max(4000)
@@ -303,6 +306,7 @@ export const settingsSchema = z.object({
   seoDescription: z.string().trim().max(320),
   seoKeywords: z.string().trim().max(500),
   ogImage: imagePath,
+  favicon: imagePath,
 });
 export type SettingsInput = z.infer<typeof settingsSchema>;
 export const SETTING_KEYS = Object.keys(settingsSchema.shape) as (keyof SettingsInput)[];

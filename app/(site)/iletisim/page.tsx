@@ -10,28 +10,29 @@ import { Reveal } from "@/components/ui/reveal";
 export const generateMetadata = () => pageMetadata("page.iletisim");
 
 export default async function IletisimPage() {
-  const [settings, tourOptions, c, booking] = await Promise.all([
+  const [settings, tourOptions, c, booking, wa] = await Promise.all([
     getSettings(),
     getTourOptions(),
     getContent("page.iletisim"),
     getContent("shared.booking"),
+    getContent("ui.whatsapp"),
   ]);
 
   const cards = [
-    { icon: Phone, title: "Telefon", value: settings.phone, href: telLink(settings.phone) },
+    { icon: Phone, title: c.phoneTitle, value: settings.phone, href: telLink(settings.phone) },
     {
       icon: MessageCircle,
-      title: "WhatsApp",
-      value: "Hemen yazın",
-      href: whatsappLink(settings.whatsapp, "Merhaba, bilgi almak istiyorum."),
+      title: c.whatsappTitle,
+      value: c.whatsappText,
+      href: whatsappLink(settings.whatsapp, wa.general),
     },
-    { icon: Mail, title: "E-posta", value: settings.email, href: `mailto:${settings.email}` },
-    { icon: Clock, title: "Çalışma Saatleri", value: settings.workingHours },
+    { icon: Mail, title: c.emailTitle, value: settings.email, href: `mailto:${settings.email}` },
+    { icon: Clock, title: c.hoursTitle, value: settings.workingHours },
   ];
 
   return (
     <>
-      <PageHero title={c.title} description={c.description} image={c.image} crumbs={[{ label: "İletişim" }]} />
+      <PageHero title={c.title} description={c.description} image={c.image} crumbs={[{ label: c.crumb }]} />
 
       <section className="py-16 lg:py-20">
         <div className="container-tr">
@@ -48,7 +49,7 @@ export default async function IletisimPage() {
                 </div>
               );
               return (
-                <Reveal key={card.title} delay={i}>
+                <Reveal key={i} delay={i}>
                   {card.href ? (
                     <a
                       href={card.href}
@@ -76,7 +77,7 @@ export default async function IletisimPage() {
             <div>
               <div className="rounded-3xl border border-border bg-white p-6 shadow-soft">
                 <h3 className="flex items-center gap-2 font-serif text-lg font-bold text-brand-900">
-                  <MapPin className="size-5 text-gold-500" /> Adresimiz
+                  <MapPin className="size-5 text-gold-500" /> {c.addressTitle}
                 </h3>
                 <p className="mt-2 text-sm text-muted">{settings.address}</p>
               </div>
@@ -99,7 +100,7 @@ export default async function IletisimPage() {
                     className="grid h-[360px] place-items-center bg-cream-100 text-sm font-semibold text-brand-700 hover:bg-cream-200"
                   >
                     <span className="flex items-center gap-2">
-                      <MapPin className="size-5" /> Adresi Google Haritalar&apos;da aç
+                      <MapPin className="size-5" /> {c.mapLinkText}
                     </span>
                   </a>
                 )}

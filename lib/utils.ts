@@ -14,6 +14,8 @@ export function currencySymbol(currency?: string | null) {
       return "€";
     case "TRY":
       return "₺";
+    case "SAR":
+      return "SAR ";
     default:
       return currency ? `${currency} ` : "";
   }
@@ -23,8 +25,9 @@ export function currencySymbol(currency?: string | null) {
 export function formatPrice(
   price?: number | null,
   currency: string = "USD",
+  emptyText = "Fiyat için arayınız",
 ): string {
-  if (price === null || price === undefined) return "Fiyat için arayınız";
+  if (price === null || price === undefined) return emptyText;
   const formatted = new Intl.NumberFormat("tr-TR", {
     maximumFractionDigits: 0,
   }).format(price);

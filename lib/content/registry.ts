@@ -14,10 +14,12 @@ import {
 
 export const CONTENT_GROUPS = {
   home: "Ana Sayfa",
+  navigation: "Menü ve Alt Bilgi",
   hac: "Hac Sayfaları",
   umre: "Umre Sayfaları",
   catalog: "Tur, Otel ve Blog Sayfaları",
   corporate: "Kurumsal Sayfalar",
+  ui: "Arayüz Metinleri",
   shared: "Ortak Bölümler",
 } as const;
 
@@ -149,16 +151,36 @@ export const CONTENT_BLOCKS = {
     description: "Öne çıkan turlar, kategoriler, oteller ve blog bölümlerinin başlıkları.",
     path: "/",
     fields: [
-      { type: "group", name: "featured", label: "Öne çıkan turlar", fields: headingFields("Öne çıkan turlar") },
+      {
+        type: "group",
+        name: "featured",
+        label: "Öne çıkan turlar",
+        fields: [...headingFields("Öne çıkan turlar"), { type: "text", name: "buttonLabel", label: "'Tüm turlar' butonu" }],
+      },
       { type: "group", name: "categories", label: "Kategoriler", fields: headingFields("Kategoriler") },
-      { type: "group", name: "hotels", label: "Oteller", fields: headingFields("Oteller") },
-      { type: "group", name: "blog", label: "Blog", fields: headingFields("Blog") },
+      {
+        type: "group",
+        name: "hotels",
+        label: "Oteller",
+        fields: [
+          ...headingFields("Oteller"),
+          { type: "text", name: "mekkeButton", label: "Mekke butonu" },
+          { type: "text", name: "medineButton", label: "Medine butonu" },
+        ],
+      },
+      {
+        type: "group",
+        name: "blog",
+        label: "Blog",
+        fields: [...headingFields("Blog"), { type: "text", name: "buttonLabel", label: "'Tüm yazılar' butonu" }],
+      },
     ],
     defaults: {
       featured: {
         eyebrow: "Öne Çıkan Programlar",
         title: "Sizin İçin Seçtiğimiz Turlar",
         description: "En çok tercih edilen hac, umre ve kültür turlarımızı keşfedin.",
+        buttonLabel: "Tüm Turlar",
       },
       categories: {
         eyebrow: "Hizmetlerimiz",
@@ -169,11 +191,14 @@ export const CONTENT_BLOCKS = {
         eyebrow: "Konaklama",
         title: "Mekke & Medine Otellerimiz",
         description: "Harem-i Şerif ve Mescid-i Nebevi'ye yürüme mesafesindeki seçkin otellerimiz.",
+        mekkeButton: "Mekke Otelleri",
+        medineButton: "Medine Otelleri",
       },
       blog: {
         eyebrow: "Blog & Rehber",
         title: "Güncel Yazılar",
         description: "Hac ve umre hakkında merak ettikleriniz.",
+        buttonLabel: "Tüm Yazılar",
       },
     },
   }),
@@ -185,6 +210,7 @@ export const CONTENT_BLOCKS = {
     path: "/",
     fields: [
       ...headingFields(),
+      { type: "image", name: "image", label: "Bölüm arka plan görseli", help: "Koyu yeşil zeminin üzerinde soluk olarak görünür." },
       {
         type: "list",
         name: "items",
@@ -204,6 +230,7 @@ export const CONTENT_BLOCKS = {
       title: "Güvenle Emin Ellerdesiniz",
       description:
         "20 yılı aşkın tecrübemizle, manevi yolculuğunuzu en güzel şekilde tamamlamanız için buradayız.",
+      image: "/images/cta-bg.svg",
       items: [
         { icon: "ShieldCheck", title: "Yetkili Acenta", text: "TÜRSAB ve Diyanet İşleri Başkanlığı yetki belgeli, güvenilir seyahat acentası." },
         { icon: "Users", title: "Tecrübeli Ekip", text: "Alanında uzman din görevlileri ve rehberlerle usulüne uygun ibadet." },
@@ -277,6 +304,8 @@ export const CONTENT_BLOCKS = {
       { type: "text", name: "introEyebrow", label: "Giriş — üst etiket" },
       { type: "text", name: "introTitle", label: "Giriş — başlık" },
       { type: "lines", name: "introParagraphs", label: "Giriş paragrafları", help: "Her satır ayrı bir paragraf olur.", rows: 5 },
+      { type: "text", name: "primaryButton", label: "Giriş — 1. buton (Hac Programları)" },
+      { type: "text", name: "secondaryButton", label: "Giriş — 2. buton (Dua ve Vazifeler)" },
       { type: "text", name: "programsEyebrow", label: "Programlar — üst etiket" },
       { type: "text", name: "programsTitle", label: "Programlar — başlık" },
       { type: "textarea", name: "programsDescription", label: "Programlar — açıklama", rows: 2 },
@@ -287,6 +316,7 @@ export const CONTENT_BLOCKS = {
     ],
     defaults: {
       title: "Hac İbadeti",
+      crumb: "Hac",
       description: "İslam'ın beş şartından biri olan haccı, huzur ve güven içinde eda etmeniz için yanınızdayız.",
       image: "/images/kategori-hac.svg",
       introEyebrow: "Kutsal Vazife",
@@ -295,6 +325,8 @@ export const CONTENT_BLOCKS = {
         "Hac, maddî ve bedenî imkânı olan her Müslümana ömründe bir kez farz olan büyük bir ibadettir. Arafat vakfesinden ziyaret tavafına kadar her menasiki usulüne uygun eda etmeniz için tecrübeli din görevlilerimiz ve rehberlerimiz yanınızda olacak.",
         "Merkezi oteller, müstakil çadır düzeni ve kesintisiz destek ile hac yolculuğunuzu kolaylaştırıyoruz. 2027 sezonu ön kayıtlarımız başlamıştır.",
       ],
+      primaryButton: "Hac Programları",
+      secondaryButton: "Dua ve Vazifeler",
       programsEyebrow: "Programlar",
       programsTitle: "Hac Programlarımız",
       programsDescription: "2027 hac sezonu için hazırlanan paketlerimiz.",
@@ -315,6 +347,7 @@ export const CONTENT_BLOCKS = {
     fields: listingFields,
     defaults: {
       title: "Hac Programları",
+      crumb: "Hac Programları",
       description: "Ömürde bir kez farz olan hac ibadetini huzur içinde eda etmeniz için özenle hazırlanmış programlarımız.",
       image: "/images/kategori-hac.svg",
       sectionTitle: "2027 Hac Programları",
@@ -352,6 +385,7 @@ export const CONTENT_BLOCKS = {
     ],
     defaults: {
       title: "Hac Dua ve Vazifeler",
+      crumb: "Dua ve Vazifeler",
       description: "Haccın menasikini adım adım öğrenin; farz, vacip ve sünnetleri ile okunacak duaları keşfedin.",
       image: "/images/kategori-hac.svg",
       stepsEyebrow: "Menasik",
@@ -385,6 +419,7 @@ export const CONTENT_BLOCKS = {
     fields: [...heroFields, { type: "textarea", name: "intro", label: "Giriş metni", rows: 4 }, ...seoFields],
     defaults: {
       title: "Hac Yetki Belgelerimiz",
+      crumb: "Yetki Belgeleri",
       description: "Hac ibadetinizi resmî yetki belgelerine sahip, güvenilir bir acenta ile gerçekleştirin.",
       image: "/images/belge-diyanet.svg",
       intro:
@@ -403,6 +438,7 @@ export const CONTENT_BLOCKS = {
     fields: listingFields,
     defaults: {
       title: "Umre Turları",
+      crumb: "Umre",
       description: "Bütçenize ve tercihinize uygun, yıl boyunca farklı tarihlerde düzenlenen umre programlarımızı keşfedin.",
       image: "/images/kategori-umre.svg",
       sectionTitle: "Tüm Umre Programları",
@@ -421,6 +457,7 @@ export const CONTENT_BLOCKS = {
     fields: listingFields,
     defaults: {
       title: "Kesin Tarihli Umre Turları",
+      crumb: "Kesin Tarihli Turlar",
       description: "Tarihleri belli, kontenjanı sınırlı ve kayıtları açık umre programlarımız. Planınızı bugünden netleştirin.",
       image: "/images/tur-20-gun-umre.svg",
       sectionTitle: "Tarihi Belli Programlar",
@@ -438,6 +475,7 @@ export const CONTENT_BLOCKS = {
     fields: listingFields,
     defaults: {
       title: "Lüks Umre",
+      crumb: "Lüks Umre",
       description:
         "Konforun zirvesinde bir manevi yolculuk. Harem manzaralı 5 yıldızlı oteller ve VIP hizmet ile ayrıcalıklı umre deneyimi.",
       image: "/images/kategori-luks.svg",
@@ -456,6 +494,7 @@ export const CONTENT_BLOCKS = {
     fields: listingFields,
     defaults: {
       title: "Ramazan Umresi",
+      crumb: "Ramazan Umresi",
       description:
         "Ramazan ayında yapılan umrenin sevabı kat kat artar. Teravih, mukabele ve iftar organizasyonları ile Ramazan'ı kutsal topraklarda idrak edin.",
       image: "/images/kategori-ramazan.svg",
@@ -481,6 +520,7 @@ export const CONTENT_BLOCKS = {
     ],
     defaults: {
       title: "Umre Dua ve Vazifeler",
+      crumb: "Dua ve Vazifeler",
       description: "Umrenin adımlarını ve okunacak duaları öğrenerek ibadetinize hazırlanın.",
       image: "/images/kategori-umre.svg",
       stepsEyebrow: "Menasik",
@@ -504,6 +544,7 @@ export const CONTENT_BLOCKS = {
     fields: [...heroFields, { type: "textarea", name: "intro", label: "Giriş metni", rows: 4 }, ...seoFields],
     defaults: {
       title: "Umre Yetki Belgelerimiz",
+      crumb: "Yetki Belgeleri",
       description: "Umre programlarımızı resmî yetki belgeleri ile düzenliyor, güveninize layık olmak için çalışıyoruz.",
       image: "/images/belge-tursab.svg",
       intro:
@@ -522,6 +563,7 @@ export const CONTENT_BLOCKS = {
     fields: [...heroFields, ...seoFields],
     defaults: {
       title: "Tüm Turlarımız",
+      crumb: "Turlar",
       description: "Hac ve umreden kültür turlarına, tüm programlarımızı tek bir yerde inceleyin.",
       image: "/images/hero-2.svg",
       seoTitle: "Tüm Turlar",
@@ -536,16 +578,27 @@ export const CONTENT_BLOCKS = {
     path: "/oteller",
     fields: [
       ...heroFields,
+      { type: "text", name: "mekkeEyebrow", label: "Mekke bölümü — üst etiket" },
+      { type: "text", name: "mekkeTitle", label: "Mekke bölümü — başlık" },
       { type: "textarea", name: "mekkeDescription", label: "Mekke bölümü açıklaması", rows: 2 },
+      { type: "text", name: "medineEyebrow", label: "Medine bölümü — üst etiket" },
+      { type: "text", name: "medineTitle", label: "Medine bölümü — başlık" },
       { type: "textarea", name: "medineDescription", label: "Medine bölümü açıklaması", rows: 2 },
+      { type: "text", name: "allButton", label: "'Tümünü gör' butonu" },
       ...seoFields,
     ],
     defaults: {
       title: "Otellerimiz",
+      crumb: "Oteller",
       description: "Kutsal mekânlara yakın, konforlu ve güvenli konaklama seçeneklerimizle yolculuğunuz huzurlu geçsin.",
       image: "/images/otel-mekke-3.svg",
+      mekkeEyebrow: "Mekke Konaklama",
+      mekkeTitle: "Mekke Otelleri",
       mekkeDescription: "Harem-i Şerif'e yürüme mesafesindeki otellerimiz.",
+      medineEyebrow: "Medine Konaklama",
+      medineTitle: "Medine Otelleri",
       medineDescription: "Mescid-i Nebevi'ye yakın konforlu otellerimiz.",
+      allButton: "Tümünü Gör",
       seoTitle: "Oteller",
       seoDescription: "Mekke ve Medine'de Harem'e yakın, konforlu otel seçeneklerimiz. Otel mesafeleri ve galeri görünümü.",
     },
@@ -559,6 +612,7 @@ export const CONTENT_BLOCKS = {
     fields: [...heroFields, ...seoFields],
     defaults: {
       title: "Mekke Otelleri",
+      crumb: "Mekke Otelleri",
       description: "Mescid-i Haram'a yürüme mesafesinde, konforlu ve merkezi Mekke otelleri.",
       image: "/images/otel-mekke-3.svg",
       seoTitle: "Mekke Otelleri",
@@ -574,6 +628,7 @@ export const CONTENT_BLOCKS = {
     fields: [...heroFields, ...seoFields],
     defaults: {
       title: "Medine Otelleri",
+      crumb: "Medine Otelleri",
       description: "Mescid-i Nebevi ve Ravza-i Mutahhara'ya yakın, huzurlu Medine otelleri.",
       image: "/images/otel-medine-3.svg",
       seoTitle: "Medine Otelleri",
@@ -589,6 +644,7 @@ export const CONTENT_BLOCKS = {
     fields: [...heroFields, ...seoFields],
     defaults: {
       title: "Blog & Rehber",
+      crumb: "Blog",
       description: "Manevi yolculuğunuza hazırlanırken işinize yarayacak bilgiler ve rehber içerikler.",
       image: "/images/blog-ilk-umre.svg",
       seoTitle: "Blog & Rehber",
@@ -629,6 +685,7 @@ export const CONTENT_BLOCKS = {
     ],
     defaults: {
       title: "Hakkımızda",
+      crumb: "Hakkımızda",
       description: "Manevi yolculuğunuzu bir emanet olarak görüyor, güven ve samimiyetle hizmet veriyoruz.",
       image: "/images/about.svg",
       storyEyebrow: "Biz Kimiz?",
@@ -685,6 +742,7 @@ export const CONTENT_BLOCKS = {
     ],
     defaults: {
       title: "Gerekli Bilgiler",
+      crumb: "Gerekli Bilgiler",
       description: "Kutsal yolculuğunuza sorunsuz bir şekilde hazırlanmanız için bilmeniz gereken her şey.",
       image: "/images/blog-valiz.svg",
       sections: [
@@ -751,6 +809,13 @@ export const CONTENT_BLOCKS = {
     path: "/iletisim",
     fields: [
       ...heroFields,
+      { type: "text", name: "phoneTitle", label: "Kart — Telefon başlığı" },
+      { type: "text", name: "whatsappTitle", label: "Kart — WhatsApp başlığı" },
+      { type: "text", name: "whatsappText", label: "Kart — WhatsApp alt metni" },
+      { type: "text", name: "emailTitle", label: "Kart — E-posta başlığı" },
+      { type: "text", name: "hoursTitle", label: "Kart — Çalışma saatleri başlığı" },
+      { type: "text", name: "addressTitle", label: "Adres kutusu başlığı" },
+      { type: "text", name: "mapLinkText", label: "Harita yoksa gösterilecek bağlantı metni" },
       { type: "text", name: "formEyebrow", label: "Form — üst etiket" },
       { type: "text", name: "formTitle", label: "Form — başlık" },
       { type: "textarea", name: "formDescription", label: "Form — açıklama", rows: 2 },
@@ -758,9 +823,17 @@ export const CONTENT_BLOCKS = {
     ],
     defaults: {
       title: "İletişim",
+      crumb: "İletişim",
       description:
         "Sorularınız, önerileriniz ve rezervasyon talepleriniz için bize ulaşın. Size yardımcı olmaktan mutluluk duyarız.",
       image: "/images/hero-3.svg",
+      phoneTitle: "Telefon",
+      whatsappTitle: "WhatsApp",
+      whatsappText: "Hemen yazın",
+      emailTitle: "E-posta",
+      hoursTitle: "Çalışma Saatleri",
+      addressTitle: "Adresimiz",
+      mapLinkText: "Adresi Google Haritalar'da aç",
       formEyebrow: "Bize Yazın",
       formTitle: "Mesaj Gönderin",
       formDescription: "Formu doldurun, en kısa sürede size dönüş yapalım.",
@@ -781,10 +854,12 @@ export const CONTENT_BLOCKS = {
       { type: "lines", name: "benefits", label: "Avantajlar (her satıra bir madde)", rows: 4 },
       { type: "text", name: "whatsappTitle", label: "WhatsApp kutusu başlığı" },
       { type: "textarea", name: "whatsappText", label: "WhatsApp kutusu metni", rows: 2 },
+      { type: "text", name: "whatsappButton", label: "WhatsApp kutusu buton metni" },
       ...seoFields,
     ],
     defaults: {
       title: "Rezervasyon Talebi",
+      crumb: "Rezervasyon",
       description:
         "Aşağıdaki formu doldurarak rezervasyon talebinizi iletebilirsiniz. Ödeme öncesi danışmanlarımız sizi arayarak tüm detayları paylaşır.",
       image: "/images/hero-1.svg",
@@ -796,6 +871,7 @@ export const CONTENT_BLOCKS = {
       ],
       whatsappTitle: "Hemen bilgi alın",
       whatsappText: "Formu doldurmak istemiyorsanız, WhatsApp üzerinden de bize ulaşabilirsiniz.",
+      whatsappButton: "WhatsApp'tan Yazın",
       seoTitle: "Rezervasyon",
       seoDescription:
         "Hac, umre veya kültür turu rezervasyon talebinizi oluşturun. Danışmanlarımız en kısa sürede sizinle iletişime geçsin.",
@@ -913,6 +989,27 @@ export const CONTENT_BLOCKS = {
     description: "Başvuru formu mesajları ve tur detay sayfasındaki rezervasyon kutusu.",
     path: "/rezervasyon",
     fields: [
+      {
+        type: "group",
+        name: "form",
+        label: "Form alanları",
+        fields: [
+          { type: "text", name: "fullName", label: "Ad soyad — etiket" },
+          { type: "text", name: "fullNamePlaceholder", label: "Ad soyad — örnek metin" },
+          { type: "text", name: "phone", label: "Telefon — etiket" },
+          { type: "text", name: "phonePlaceholder", label: "Telefon — örnek metin" },
+          { type: "text", name: "email", label: "E-posta — etiket" },
+          { type: "text", name: "emailPlaceholder", label: "E-posta — örnek metin" },
+          { type: "text", name: "personCount", label: "Kişi sayısı — etiket" },
+          { type: "text", name: "program", label: "Program seçimi — etiket" },
+          { type: "text", name: "programGeneral", label: "Program seçimi — 'genel bilgi' seçeneği" },
+          { type: "text", name: "programSelected", label: "Seçili program — ön ek" },
+          { type: "text", name: "message", label: "Mesaj — etiket" },
+          { type: "text", name: "messagePlaceholder", label: "Mesaj — örnek metin" },
+          { type: "text", name: "sending", label: "Gönderilirken buton metni" },
+          { type: "text", name: "newApplication", label: "Başarı sonrası 'yeni başvuru' butonu" },
+        ],
+      },
       { type: "text", name: "submitLabel", label: "Gönder butonu metni" },
       { type: "textarea", name: "consentText", label: "Form altı onay metni", rows: 2 },
       { type: "text", name: "successTitle", label: "Başarılı gönderim başlığı" },
@@ -925,6 +1022,22 @@ export const CONTENT_BLOCKS = {
       { type: "textarea", name: "pastTourText", label: "Tarihi geçmiş tur — açıklama", rows: 2 },
     ],
     defaults: {
+      form: {
+        fullName: "Ad Soyad",
+        fullNamePlaceholder: "Adınız ve soyadınız",
+        phone: "Telefon",
+        phonePlaceholder: "05xx xxx xx xx",
+        email: "E-posta",
+        emailPlaceholder: "ornek@eposta.com",
+        personCount: "Kişi Sayısı",
+        program: "İlgilendiğiniz Program",
+        programGeneral: "Genel bilgi / Kararsızım",
+        programSelected: "İlgilendiğiniz program:",
+        message: "Mesajınız",
+        messagePlaceholder: "Tarih tercihleriniz, sorularınız veya özel talepleriniz...",
+        sending: "Gönderiliyor...",
+        newApplication: "Yeni Başvuru",
+      },
       submitLabel: "Başvuruyu Gönder",
       consentText: "Formu göndererek bilgilerinizin başvurunuz kapsamında işlenmesini kabul edersiniz.",
       successTitle: "Başvurunuz Alındı",
@@ -938,22 +1051,358 @@ export const CONTENT_BLOCKS = {
     },
   }),
 
-  "shared.footer": block({
-    group: "shared",
+  /* ============================== MENÜ VE ALT BİLGİ ============================== */
+  "nav.header": block({
+    group: "navigation",
+    title: "Üst Menü",
+    description: "Sitenin üst menüsü, açılır alt menüler, sağdaki buton ve üst bilgi çubuğu.",
+    path: "/",
+    fields: [
+      {
+        type: "list",
+        name: "items",
+        label: "Menü öğeleri",
+        itemLabel: "Menü öğesi",
+        titleField: "label",
+        min: 1,
+        max: 10,
+        help: "Alt menüsü olan öğeler masaüstünde açılır menü, mobilde katlanır liste olarak gösterilir. Tek satıra sığması için kısa adlar kullanın.",
+        fields: [
+          { type: "text", name: "label", label: "Menü adı" },
+          { type: "link", name: "href", label: "Adres" },
+          {
+            type: "list",
+            name: "children",
+            label: "Alt menü (isteğe bağlı)",
+            itemLabel: "Alt öğe",
+            titleField: "label",
+            max: 8,
+            fields: [
+              { type: "text", name: "label", label: "Alt öğe adı" },
+              { type: "link", name: "href", label: "Adres" },
+              { type: "text", name: "desc", label: "Kısa açıklama" },
+            ],
+          },
+        ],
+      },
+      { type: "text", name: "ctaLabel", label: "Sağdaki buton metni" },
+      { type: "link", name: "ctaHref", label: "Sağdaki buton adresi" },
+      { type: "text", name: "topWhatsappLabel", label: "Üst çubuk — WhatsApp bağlantı metni" },
+    ],
+    defaults: {
+      items: [
+        { label: "Ana Sayfa", href: "/", children: [] as { label: string; href: string; desc: string }[] },
+        {
+          label: "Hac",
+          href: "/hac",
+          children: [
+            { label: "Hac Programları", href: "/hac/programlari", desc: "Hac paketleri ve ön kayıt" },
+            { label: "Yetki Belgeleri", href: "/hac/yetki-belgeleri", desc: "Diyanet & TÜRSAB belgeleri" },
+            { label: "Dua ve Vazifeler", href: "/hac/dua-ve-vazifeler", desc: "Hac menasiki ve dualar" },
+          ],
+        },
+        {
+          label: "Umre",
+          href: "/umre",
+          children: [
+            { label: "Tüm Umre Turları", href: "/umre", desc: "Bütün umre programları" },
+            { label: "Kesin Tarihli Turlar", href: "/umre/kesin-tarihli-turlar", desc: "Tarihi belli, kayıt açık turlar" },
+            { label: "Lüks Umre", href: "/umre/luks-umre", desc: "Harem'e sıfır 5★ konaklama" },
+            { label: "Ramazan Umresi", href: "/umre/ramazan-umresi", desc: "Ramazan'da bereketli umre" },
+            { label: "Yetki Belgeleri", href: "/umre/yetki-belgeleri", desc: "Umre yetki belgelerimiz" },
+            { label: "Dua ve Vazifeler", href: "/umre/dua-ve-vazifeler", desc: "Umre menasiki ve dualar" },
+          ],
+        },
+        { label: "Turlar", href: "/turlar", children: [] },
+        {
+          label: "Oteller",
+          href: "/oteller",
+          children: [
+            { label: "Mekke Otelleri", href: "/oteller/mekke", desc: "Harem'e yakın oteller" },
+            { label: "Medine Otelleri", href: "/oteller/medine", desc: "Mescid-i Nebevi'ye yakın oteller" },
+          ],
+        },
+        { label: "Blog", href: "/blog", children: [] },
+        { label: "Gerekli Bilgiler", href: "/gerekli-bilgiler", children: [] },
+        { label: "Hakkımızda", href: "/hakkimizda", children: [] },
+        { label: "İletişim", href: "/iletisim", children: [] },
+      ],
+      ctaLabel: "Rezervasyon",
+      ctaHref: "/rezervasyon",
+      topWhatsappLabel: "WhatsApp Hattı",
+    },
+  }),
+
+  "nav.footer": block({
+    group: "navigation",
     title: "Alt Bilgi (Footer)",
-    description: "Footer üstündeki çağrı şeridi, güven rozetleri ve en alt not.",
+    description: "Footer bağlantı sütunları, çağrı şeridi, güven rozetleri ve telif metni.",
     path: "/",
     fields: [
       { type: "text", name: "ctaTitle", label: "Çağrı şeridi başlığı" },
       { type: "textarea", name: "ctaText", label: "Çağrı şeridi metni", rows: 2 },
+      { type: "text", name: "reservationButton", label: "Çağrı şeridi — rezervasyon butonu" },
+      { type: "text", name: "whatsappButton", label: "Çağrı şeridi — WhatsApp butonu" },
+      {
+        type: "list",
+        name: "columns",
+        label: "Bağlantı sütunları",
+        itemLabel: "Sütun",
+        titleField: "title",
+        max: 4,
+        fields: [
+          { type: "text", name: "title", label: "Sütun başlığı" },
+          {
+            type: "list",
+            name: "links",
+            label: "Bağlantılar",
+            itemLabel: "Bağlantı",
+            titleField: "label",
+            max: 10,
+            fields: [
+              { type: "text", name: "label", label: "Metin" },
+              { type: "link", name: "href", label: "Adres" },
+            ],
+          },
+        ],
+      },
       { type: "lines", name: "trustBadges", label: "Güven rozetleri (her satıra bir rozet)", rows: 4 },
+      { type: "text", name: "copyrightText", label: "Telif metni", help: "Başına otomatik olarak '© yıl site adı.' eklenir." },
       { type: "text", name: "bottomNote", label: "En alt sağ not", help: "Boş bırakılırsa gösterilmez." },
     ],
     defaults: {
       ctaTitle: "Kutsal yolculuğunuz için hazır mısınız?",
       ctaText: "Uzman danışmanlarımız size en uygun programı bulmak için hazır.",
+      reservationButton: "Rezervasyon Yap",
+      whatsappButton: "WhatsApp",
+      columns: [
+        {
+          title: "Kurumsal",
+          links: [
+            { label: "Hakkımızda", href: "/hakkimizda" },
+            { label: "İletişim", href: "/iletisim" },
+            { label: "Gerekli Bilgiler", href: "/gerekli-bilgiler" },
+            { label: "Blog", href: "/blog" },
+            { label: "Rezervasyon", href: "/rezervasyon" },
+          ],
+        },
+        {
+          title: "Hac & Umre",
+          links: [
+            { label: "Hac Programları", href: "/hac/programlari" },
+            { label: "Tüm Umre Turları", href: "/umre" },
+            { label: "Lüks Umre", href: "/umre/luks-umre" },
+            { label: "Ramazan Umresi", href: "/umre/ramazan-umresi" },
+            { label: "Kesin Tarihli Turlar", href: "/umre/kesin-tarihli-turlar" },
+          ],
+        },
+        {
+          title: "Turlar & Oteller",
+          links: [
+            { label: "Tüm Turlar", href: "/turlar" },
+            { label: "Kültür Turları", href: "/turlar?kategori=kultur-turlari" },
+            { label: "Mekke Otelleri", href: "/oteller/mekke" },
+            { label: "Medine Otelleri", href: "/oteller/medine" },
+            { label: "Dua ve Vazifeler", href: "/umre/dua-ve-vazifeler" },
+          ],
+        },
+      ],
       trustBadges: ["TÜRSAB A Grubu Belge", "Diyanet Yetki Belgeli", "IATA Üyesi", "Güvenli Ödeme"],
+      copyrightText: "Tüm hakları saklıdır.",
       bottomNote: "",
+    },
+  }),
+
+  /* ============================== ARAYÜZ METİNLERİ ============================== */
+  "ui.tours": block({
+    group: "ui",
+    title: "Tur Kartları ve Tur Detayı",
+    description: "Tur kartlarındaki etiketler, tur listeleri ve tur detay sayfasındaki başlıklar, sekmeler.",
+    path: "/turlar",
+    fields: [
+      {
+        type: "group",
+        name: "card",
+        label: "Tur kartı",
+        fields: [
+          { type: "text", name: "featuredBadge", label: "'Öne çıkan' rozeti" },
+          { type: "text", name: "priceFrom", label: "Fiyat üstündeki küçük etiket" },
+          { type: "text", name: "detailsButton", label: "Detay butonu" },
+          { type: "text", name: "bookButton", label: "Rezervasyon butonu" },
+          { type: "text", name: "durationFormat", label: "Süre biçimi", help: "{gun} ve {gece} otomatik doldurulur." },
+          { type: "text", name: "daysOnlyFormat", label: "Süre biçimi (yalnız gün)", help: "{gun} otomatik doldurulur." },
+          { type: "text", name: "noPrice", label: "Fiyat girilmemişse gösterilecek metin" },
+        ],
+      },
+      {
+        type: "group",
+        name: "list",
+        label: "Tur listeleri",
+        fields: [
+          { type: "text", name: "filterAll", label: "Filtre — 'Tümü' seçeneği" },
+          { type: "textarea", name: "emptyText", label: "Listede tur yoksa gösterilecek metin", rows: 2 },
+          { type: "text", name: "emptyButton", label: "Boş liste butonu" },
+        ],
+      },
+      {
+        type: "group",
+        name: "detail",
+        label: "Tur detay sayfası",
+        fields: [
+          { type: "text", name: "factDate", label: "Bilgi kutusu — Tarih" },
+          { type: "text", name: "factDuration", label: "Bilgi kutusu — Süre" },
+          { type: "text", name: "factDeparture", label: "Bilgi kutusu — Kalkış" },
+          { type: "text", name: "factAirline", label: "Bilgi kutusu — Havayolu" },
+          { type: "text", name: "factMakkahHotel", label: "Bilgi kutusu — Mekke oteli" },
+          { type: "text", name: "factMadinahHotel", label: "Bilgi kutusu — Medine oteli" },
+          { type: "text", name: "makkahPrefix", label: "Mesafe rozeti — Mekke" },
+          { type: "text", name: "madinahPrefix", label: "Mesafe rozeti — Medine" },
+          { type: "text", name: "aboutTitle", label: "Açıklama başlığı" },
+          { type: "text", name: "pricesTitle", label: "Oda fiyatları başlığı" },
+          { type: "text", name: "tabProgram", label: "Sekme — Program" },
+          { type: "text", name: "tabServices", label: "Sekme — Hizmetler" },
+          { type: "text", name: "tabDocs", label: "Sekme — Evraklar" },
+          { type: "text", name: "tabFaq", label: "Sekme — Sık sorulan sorular" },
+          { type: "text", name: "includedTitle", label: "Dahil olanlar başlığı" },
+          { type: "text", name: "excludedTitle", label: "Dahil olmayanlar başlığı" },
+          { type: "text", name: "priceBoxLabel", label: "Fiyat kutusu etiketi" },
+          { type: "text", name: "whatsappButton", label: "WhatsApp butonu" },
+          { type: "text", name: "closedTitle", label: "Kayıt kapalı — başlık" },
+          { type: "text", name: "closedButton", label: "Kayıt kapalı — buton" },
+          { type: "text", name: "similarTitle", label: "Benzer programlar başlığı" },
+        ],
+      },
+    ],
+    defaults: {
+      card: {
+        featuredBadge: "Öne Çıkan",
+        priceFrom: "başlangıç",
+        detailsButton: "Detayları Gör",
+        bookButton: "Rezervasyon",
+        durationFormat: "{gun} Gün / {gece} Gece",
+        daysOnlyFormat: "{gun} Gün",
+        noPrice: "Fiyat için arayınız",
+      },
+      list: {
+        filterAll: "Tümü",
+        emptyText:
+          "Bu kategoride şu anda aktif tur bulunmuyor. Lütfen daha sonra tekrar kontrol edin veya bizimle iletişime geçin.",
+        emptyButton: "Tüm Turlara Göz At",
+      },
+      detail: {
+        factDate: "Tarih",
+        factDuration: "Süre",
+        factDeparture: "Kalkış",
+        factAirline: "Havayolu",
+        factMakkahHotel: "Mekke Oteli",
+        factMadinahHotel: "Medine Oteli",
+        makkahPrefix: "Mekke",
+        madinahPrefix: "Medine",
+        aboutTitle: "Program Hakkında",
+        pricesTitle: "Oda Fiyatları",
+        tabProgram: "Gün Gün Program",
+        tabServices: "Hizmetler",
+        tabDocs: "Gerekli Evraklar",
+        tabFaq: "Sık Sorulan Sorular",
+        includedTitle: "Fiyata Dâhil Olanlar",
+        excludedTitle: "Fiyata Dâhil Olmayanlar",
+        priceBoxLabel: "Başlangıç fiyatı",
+        whatsappButton: "WhatsApp'tan Sor",
+        closedTitle: "Kayıtlar kapandı",
+        closedButton: "Güncel Turları İncele",
+        similarTitle: "Yaklaşan Benzer Programlar",
+      },
+    },
+  }),
+
+  "ui.blog": block({
+    group: "ui",
+    title: "Blog Metinleri",
+    description: "Blog kartları, öne çıkan yazı ve yazı detay sayfasındaki metinler.",
+    path: "/blog",
+    fields: [
+      { type: "text", name: "featuredLabel", label: "Öne çıkan yazı etiketi" },
+      { type: "text", name: "featuredButton", label: "Öne çıkan yazı butonu" },
+      { type: "text", name: "readMore", label: "Kart — 'devamını oku'" },
+      { type: "text", name: "readTimeFormat", label: "Okuma süresi biçimi", help: "{dk} otomatik doldurulur." },
+      { type: "text", name: "relatedTitle", label: "İlgili yazılar başlığı" },
+      { type: "text", name: "backLink", label: "Yazılara dön bağlantısı" },
+      { type: "text", name: "defaultCategory", label: "Kategorisi olmayan yazının sayfa yolu etiketi" },
+      { type: "text", name: "emptyText", label: "Hiç yazı yoksa gösterilecek metin" },
+    ],
+    defaults: {
+      featuredLabel: "Öne Çıkan Yazı",
+      featuredButton: "Yazıyı Oku",
+      readMore: "Devamını Oku",
+      readTimeFormat: "{dk} dk okuma",
+      relatedTitle: "İlgili Yazılar",
+      backLink: "Tüm Yazılara Dön",
+      defaultCategory: "Yazı",
+      emptyText: "Henüz yazı eklenmemiş.",
+    },
+  }),
+
+  "ui.general": block({
+    group: "ui",
+    title: "Genel Arayüz Metinleri",
+    description: "Sayfa yolu (breadcrumb), mobil alt çubuk, otel kartları ve boş durum mesajları.",
+    path: "/oteller",
+    fields: [
+      { type: "text", name: "breadcrumbHome", label: "Sayfa yolu — ana sayfa" },
+      { type: "text", name: "mobileCall", label: "Mobil alt çubuk / menü — Ara" },
+      { type: "text", name: "mobileWhatsapp", label: "Mobil alt çubuk / menü — WhatsApp" },
+      { type: "text", name: "mobileReservation", label: "Mobil alt çubuk — Rezervasyon" },
+      { type: "text", name: "hotelRegionFormat", label: "Otel kartı — bölge biçimi", help: "{bolge} otomatik doldurulur." },
+      { type: "textarea", name: "hotelsEmpty", label: "Şehirde otel yoksa gösterilecek metin", rows: 2 },
+    ],
+    defaults: {
+      breadcrumbHome: "Ana Sayfa",
+      mobileCall: "Ara",
+      mobileWhatsapp: "WhatsApp",
+      mobileReservation: "Rezervasyon",
+      hotelRegionFormat: "{bolge} Bölgesi",
+      hotelsEmpty: "Bu şehir için otel bilgisi yakında eklenecektir.",
+    },
+  }),
+
+  "ui.whatsapp": block({
+    group: "ui",
+    title: "WhatsApp Hazır Mesajları",
+    description: "Ziyaretçi WhatsApp butonlarına tıkladığında mesaj kutusuna otomatik yazılan metinler.",
+    path: "/iletisim",
+    fields: [
+      { type: "textarea", name: "general", label: "Genel mesaj (üst çubuk, footer, iletişim, mobil)", rows: 2 },
+      { type: "textarea", name: "floating", label: "Sağ alttaki yüzen buton", rows: 2 },
+      { type: "textarea", name: "reservation", label: "Rezervasyon sayfası", rows: 2 },
+      { type: "textarea", name: "tour", label: "Tur detay sayfası", rows: 2, help: "{tur} yerine turun adı yazılır." },
+    ],
+    defaults: {
+      general: "Merhaba, bilgi almak istiyorum.",
+      floating: "Merhaba, hac/umre programları hakkında bilgi almak istiyorum.",
+      reservation: "Merhaba, rezervasyon için bilgi almak istiyorum.",
+      tour: 'Merhaba, "{tur}" programı hakkında bilgi almak istiyorum.',
+    },
+  }),
+
+  "page.404": block({
+    group: "ui",
+    title: "Sayfa Bulunamadı (404)",
+    description: "Olmayan bir adrese gidildiğinde gösterilen sayfa.",
+    path: "/bu-sayfa-yok",
+    fields: [
+      { type: "text", name: "title", label: "Başlık" },
+      { type: "textarea", name: "description", label: "Açıklama", rows: 2 },
+      { type: "text", name: "homeButton", label: "Ana sayfa butonu" },
+      { type: "text", name: "toursButton", label: "Turlar butonu" },
+      { type: "image", name: "image", label: "Arka plan görseli" },
+    ],
+    defaults: {
+      title: "Sayfa Bulunamadı",
+      description:
+        "Aradığınız sayfa taşınmış veya kaldırılmış olabilir. Ana sayfaya dönerek yolculuğunuza devam edebilirsiniz.",
+      homeButton: "Ana Sayfa",
+      toursButton: "Turları İncele",
+      image: "/images/cta-bg.svg",
     },
   }),
 } satisfies Record<string, BlockDef<Record<string, unknown>>>;

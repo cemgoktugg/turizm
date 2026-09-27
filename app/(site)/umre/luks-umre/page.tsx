@@ -7,7 +7,7 @@ export default function LuksUmrePage() {
   return (
     <TourListing
       contentKey="page.umre-luks"
-      crumbs={[{ label: "Umre", href: "/umre" }, { label: "Lüks Umre" }]}
+      parent={{ key: "page.umre", href: "/umre" }}
       categorySlugs={["luks-umre"]}
     />
   );

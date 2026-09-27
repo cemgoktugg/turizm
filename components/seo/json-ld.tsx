@@ -41,6 +41,9 @@ export function TravelAgencyJsonLd({ settings }: { settings: SiteSettings }) {
           settings.instagram,
           settings.youtube,
           settings.twitter,
+          settings.tiktok,
+          settings.linkedin,
+          settings.telegram,
         ].filter(Boolean),
       }}
     />

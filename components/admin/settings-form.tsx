@@ -61,13 +61,23 @@ export function SettingsForm({ values }: { values: SettingsInput }) {
               <Textarea rows={3} className="min-h-0" {...register("footerNote")} />
             </Field>
           </div>
-          <Field label="Logo" error={errors.logo?.message}>
-            <Controller
-              control={control}
-              name="logo"
-              render={({ field }) => <ImagePicker value={field.value} onChange={field.onChange} aspect="square" />}
-            />
-          </Field>
+          <div className="space-y-4">
+            <Field label="Logo" error={errors.logo?.message}>
+              <Controller
+                control={control}
+                name="logo"
+                render={({ field }) => <ImagePicker value={field.value} onChange={field.onChange} aspect="square" />}
+              />
+            </Field>
+            <Field label="Favicon (tarayıcı sekme ikonu)" error={errors.favicon?.message}>
+              <Controller
+                control={control}
+                name="favicon"
+                render={({ field }) => <ImagePicker value={field.value} onChange={field.onChange} aspect="square" />}
+              />
+              <p className="mt-1 text-xs text-muted">Kare bir görsel seçin (en az 64×64 px).</p>
+            </Field>
+          </div>
         </div>
       </FormSection>
 
@@ -104,6 +114,15 @@ export function SettingsForm({ values }: { values: SettingsInput }) {
           </Field>
           <Field label="X (Twitter)" error={errors.twitter?.message}>
             <Input placeholder="https://x.com/..." {...register("twitter")} />
+          </Field>
+          <Field label="TikTok" error={errors.tiktok?.message}>
+            <Input placeholder="https://tiktok.com/@..." {...register("tiktok")} />
+          </Field>
+          <Field label="LinkedIn" error={errors.linkedin?.message}>
+            <Input placeholder="https://linkedin.com/company/..." {...register("linkedin")} />
+          </Field>
+          <Field label="Telegram" error={errors.telegram?.message}>
+            <Input placeholder="https://t.me/..." {...register("telegram")} />
           </Field>
         </div>
       </FormSection>

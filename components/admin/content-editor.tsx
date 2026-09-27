@@ -311,7 +311,7 @@ function ListField({
         })}
         {fields.length === 0 && (
           <p className="rounded-2xl border border-dashed border-border py-6 text-center text-sm text-muted">
-            Henüz öğe yok. &quot;{f.itemLabel} Ekle&quot; ile başlayın.
+            {"Henüz öğe yok. “" + f.itemLabel + " Ekle” ile başlayın."}
           </p>
         )}
       </div>

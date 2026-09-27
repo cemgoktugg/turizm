@@ -4,6 +4,8 @@ import { SmartImage } from "@/components/ui/smart-image";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { formatPrice, formatDateRange, cn } from "@/lib/utils";
+import { getContent } from "@/lib/content";
+import { fill } from "@/lib/content/template";
 
 export type TourCardData = {
   slug: string;
@@ -22,20 +24,27 @@ export type TourCardData = {
   category?: { name: string; slug: string } | null;
 };
 
-export function TourCard({
+/** Süre metni: panelde tanımlı biçime göre ("{gun} Gün / {gece} Gece") */
+export function formatDuration(
+  days: number | null | undefined,
+  nights: number | null | undefined,
+  labels: { durationFormat: string; daysOnlyFormat: string },
+): string | null {
+  if (days && nights) return fill(labels.durationFormat, { gun: days, gece: nights });
+  if (days) return fill(labels.daysOnlyFormat, { gun: days });
+  return null;
+}
+
+export async function TourCard({
   tour,
   className,
 }: {
   tour: TourCardData;
   className?: string;
 }) {
+  const { card } = await getContent("ui.tours");
   const dateRange = formatDateRange(tour.departureDate, undefined);
-  const duration =
-    tour.durationDays && tour.durationNights
-      ? `${tour.durationDays} Gün / ${tour.durationNights} Gece`
-      : tour.durationDays
-        ? `${tour.durationDays} Gün`
-        : null;
+  const duration = formatDuration(tour.durationDays, tour.durationNights, card);
 
   return (
     <article
@@ -61,17 +70,17 @@ export function TourCard({
           )}
           {tour.isFeatured && (
             <Badge variant="brand" className="bg-brand-900/85 text-cream-100 backdrop-blur">
-              Öne Çıkan
+              {card.featuredBadge}
             </Badge>
           )}
         </div>
         {tour.startingPrice != null && (
           <div className="absolute bottom-3 right-3 rounded-xl bg-white/95 px-3 py-1.5 text-right shadow-soft backdrop-blur">
             <span className="block text-[10px] font-medium uppercase tracking-wide text-muted">
-              başlangıç
+              {card.priceFrom}
             </span>
             <span className="block font-serif text-lg font-bold leading-none text-brand-800">
-              {formatPrice(tour.startingPrice, tour.currency ?? "USD")}
+              {formatPrice(tour.startingPrice, tour.currency ?? "USD", card.noPrice)}
             </span>
           </div>
         )}
@@ -118,13 +127,13 @@ export function TourCard({
             href={`/turlar/${tour.slug}`}
             className={cn(buttonVariants({ variant: "primary", size: "sm" }), "flex-1")}
           >
-            Detayları Gör <ArrowRight className="size-4" />
+            {card.detailsButton} <ArrowRight className="size-4" />
           </Link>
           <Link
             href={`/rezervasyon?tur=${tour.slug}`}
             className={buttonVariants({ variant: "outline", size: "sm" })}
           >
-            Rezervasyon
+            {card.bookButton}
           </Link>
         </div>
       </div>

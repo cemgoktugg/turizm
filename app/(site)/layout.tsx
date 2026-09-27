@@ -9,7 +9,13 @@ import { getContent } from "@/lib/content";
 export const revalidate = 3600;
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
-  const [settings, footer] = await Promise.all([getSettings(), getContent("shared.footer")]);
+  const [settings, header, footer, ui, wa] = await Promise.all([
+    getSettings(),
+    getContent("nav.header"),
+    getContent("nav.footer"),
+    getContent("ui.general"),
+    getContent("ui.whatsapp"),
+  ]);
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -21,11 +27,19 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         whatsapp={settings.whatsapp}
         email={settings.email}
         workingHours={settings.workingHours}
+        menu={header}
+        whatsappMessage={wa.general}
+        labels={{ call: ui.mobileCall, whatsapp: ui.mobileWhatsapp }}
       />
       <main className="flex-1 pb-14 md:pb-0">{children}</main>
-      <Footer settings={settings} content={footer} />
-      <WhatsAppButton whatsapp={settings.whatsapp} />
-      <MobileBottomBar phone={settings.phone} whatsapp={settings.whatsapp} />
+      <Footer settings={settings} content={footer} whatsappMessage={wa.general} />
+      <WhatsAppButton whatsapp={settings.whatsapp} message={wa.floating} />
+      <MobileBottomBar
+        phone={settings.phone}
+        whatsapp={settings.whatsapp}
+        message={wa.general}
+        labels={{ call: ui.mobileCall, whatsapp: ui.mobileWhatsapp, reservation: ui.mobileReservation }}
+      />
     </div>
   );
 }
