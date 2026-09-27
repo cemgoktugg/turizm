@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200" viewBox="0 0 900 1200" role="img">
+  <defs>
+    <linearGradient id="g85" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5f3a1e"/>
+      <stop offset="0.55" stop-color="#a97121"/>
+      <stop offset="1" stop-color="#d4a53d"/>
+    </linearGradient>
+    <radialGradient id="g85g" cx="0.5" cy="0.1" r="0.9">
+      <stop offset="0" stop-color="#d4a53d" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#d4a53d" stop-opacity="0"/>
+    </radialGradient>
+    
+  <pattern id="g85p" width="60" height="60" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+    <path d="M30 0 L60 30 L30 60 L0 30 Z" fill="none" stroke="#d4a53d" stroke-width="1" opacity="0.35"/>
+    <circle cx="30" cy="30" r="6" fill="none" stroke="#d4a53d" stroke-width="1" opacity="0.25"/>
+  </pattern>
+  </defs>
+  <rect width="900" height="1200" fill="url(#g85)"/>
+  <rect width="900" height="1200" fill="url(#g85p)"/>
+  <rect width="900" height="1200" fill="url(#g85g)"/>
+  <circle cx="432" cy="166" r="1.63" fill="#f5ebcd" opacity="0.36"/><circle cx="298" cy="398" r="1.15" fill="#f5ebcd" opacity="0.50"/><circle cx="828" cy="54" r="1.95" fill="#f5ebcd" opacity="0.37"/><circle cx="1055" cy="368" r="1.53" fill="#f5ebcd" opacity="0.47"/><circle cx="486" cy="1" r="0.68" fill="#f5ebcd" opacity="0.25"/><circle cx="1056" cy="484" r="1.22" fill="#f5ebcd" opacity="0.25"/><circle cx="552" cy="496" r="1.55" fill="#f5ebcd" opacity="0.56"/><circle cx="1504" cy="475" r="1.21" fill="#f5ebcd" opacity="0.59"/><circle cx="335" cy="63" r="1.86" fill="#f5ebcd" opacity="0.66"/><circle cx="1590" cy="384" r="1.15" fill="#f5ebcd" opacity="0.46"/><circle cx="1218" cy="153" r="0.62" fill="#f5ebcd" opacity="0.35"/><circle cx="1333" cy="124" r="1.72" fill="#f5ebcd" opacity="0.43"/><circle cx="435" cy="364" r="1.41" fill="#f5ebcd" opacity="0.51"/><circle cx="695" cy="368" r="1.57" fill="#f5ebcd" opacity="0.38"/><circle cx="316" cy="499" r="1.88" fill="#f5ebcd" opacity="0.42"/><circle cx="1354" cy="270" r="1.79" fill="#f5ebcd" opacity="0.55"/><circle cx="1002" cy="453" r="1.92" fill="#f5ebcd" opacity="0.50"/><circle cx="1552" cy="22" r="1.80" fill="#f5ebcd" opacity="0.44"/><circle cx="614" cy="435" r="1.75" fill="#f5ebcd" opacity="0.39"/><circle cx="5" cy="241" r="1.15" fill="#f5ebcd" opacity="0.54"/><circle cx="1305" cy="27" r="0.95" fill="#f5ebcd" opacity="0.33"/><circle cx="881" cy="193" r="0.76" fill="#f5ebcd" opacity="0.39"/><circle cx="371" cy="67" r="1.93" fill="#f5ebcd" opacity="0.35"/><circle cx="644" cy="347" r="2.00" fill="#f5ebcd" opacity="0.42"/><circle cx="22" cy="377" r="1.49" fill="#f5ebcd" opacity="0.37"/><circle cx="1566" cy="263" r="0.50" fill="#f5ebcd" opacity="0.25"/>
+  <ellipse cx="702" cy="264" rx="70" ry="70" fill="#f5ebcd" opacity="0.9"/>
+  <ellipse cx="720" cy="240" rx="70" ry="70" fill="url(#g85)" opacity="0.55"/>
+  
+  
+  
+  <text x="450" y="552" text-anchor="middle" font-family="Georgia, serif" font-size="45" fill="#faf6ee" font-weight="700" letter-spacing="1">IATA</text>
+  <text x="450" y="660" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#ecd79b" letter-spacing="4" text-transform="uppercase">ÜYELİK</text>
+</svg>

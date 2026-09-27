@@ -1,0 +1,197 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   Rotamız Huzura — Premium Hac & Umre Turizm Tasarım Sistemi
+   Palet: Koyu Yeşil · Altın · Krem · Lacivert · Beyaz
+   ========================================================================== */
+
+@theme {
+  /* Marka — Koyu Yeşil (emerald / spiritual green) */
+  --color-brand-50: #edf7f2;
+  --color-brand-100: #d3ecdf;
+  --color-brand-200: #a9d8bf;
+  --color-brand-300: #74bd97;
+  --color-brand-400: #459a6f;
+  --color-brand-500: #2b7d55;
+  --color-brand-600: #1f6444;
+  --color-brand-700: #1a5038;
+  --color-brand-800: #163f2d;
+  --color-brand-900: #113222;
+  --color-brand-950: #0a2016;
+
+  /* Altın — Gold accent */
+  --color-gold-50: #fbf7ec;
+  --color-gold-100: #f5ebcd;
+  --color-gold-200: #ecd79b;
+  --color-gold-300: #e0bd63;
+  --color-gold-400: #d4a53d;
+  --color-gold-500: #c68f2a;
+  --color-gold-600: #a97121;
+  --color-gold-700: #86541e;
+  --color-gold-800: #6f441f;
+  --color-gold-900: #5f3a1e;
+
+  /* Lacivert — Navy */
+  --color-navy-50: #eef3f8;
+  --color-navy-100: #d5e0ee;
+  --color-navy-200: #aec3dd;
+  --color-navy-300: #7d9dc5;
+  --color-navy-400: #5379ab;
+  --color-navy-500: #3b5d90;
+  --color-navy-600: #2e4974;
+  --color-navy-700: #273c5e;
+  --color-navy-800: #1e2d46;
+  --color-navy-900: #131d2e;
+
+  /* Krem / Kum — Cream & sand neutrals */
+  --color-cream-50: #fdfcf9;
+  --color-cream-100: #faf6ee;
+  --color-cream-200: #f4ecdc;
+  --color-cream-300: #ebddc4;
+  --color-cream-400: #dcc7a4;
+
+  /* Semantic */
+  --color-background: #ffffff;
+  --color-foreground: #1a2b23;
+  --color-muted: #6b7d73;
+  --color-border: #e7e2d6;
+
+  /* Tipografi */
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-playfair), ui-serif, Georgia, serif;
+
+  /* Yarıçap */
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
+
+  /* Soft gölgeler */
+  --shadow-soft: 0 4px 24px -8px rgb(16 50 34 / 0.12);
+  --shadow-card: 0 10px 40px -12px rgb(16 50 34 / 0.18);
+  --shadow-gold: 0 8px 30px -8px rgb(198 143 42 / 0.35);
+
+  /* Animasyonlar */
+  --animate-fade-up: fade-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-shimmer: shimmer 2.5s linear infinite;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-serif {
+    font-family: var(--font-serif);
+  }
+
+  ::selection {
+    background: var(--color-gold-200);
+    color: var(--color-brand-900);
+  }
+}
+
+@layer components {
+  .container-tr {
+    width: 100%;
+    max-width: 80rem;
+    margin-inline: auto;
+    padding-inline: 1.25rem;
+  }
+
+  @media (min-width: 1024px) {
+    .container-tr {
+      padding-inline: 2rem;
+    }
+  }
+
+  /* Bölüm etiketi — küçük altın başlık */
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-gold-600);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* İnce arka plan dokusu */
+  .bg-cream-radial {
+    background:
+      radial-gradient(
+        ellipse 80% 60% at 50% -10%,
+        rgb(198 143 42 / 0.06),
+        transparent
+      ),
+      var(--color-cream-100);
+  }
+}
+
+/* İnce kaydırma çubuğu */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-cream-100);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-brand-200);
+  border-radius: 9999px;
+  border: 2px solid var(--color-cream-100);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-brand-300);
+}

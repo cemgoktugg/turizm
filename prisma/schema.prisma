@@ -1,0 +1,176 @@
+// Rotamız Huzura — Hac & Umre Turizm veritabanı şeması
+// Veritabanı: SQLite (yerel dosya)
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("ADMIN")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TourCategory {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  image       String?
+  order       Int      @default(0)
+  tours       Tour[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Tour {
+  id               String   @id @default(cuid())
+  title            String
+  slug             String   @unique
+  shortDescription String?
+  description      String?
+  categoryId       String
+  category         TourCategory @relation(fields: [categoryId], references: [id])
+  departureDate    DateTime?
+  returnDate       DateTime?
+  durationDays     Int?
+  durationNights   Int?
+  departureCity    String?
+  airline          String?
+  makkahHotel      String?
+  madinahHotel     String?
+  makkahDistance   String?
+  madinahDistance  String?
+  startingPrice    Float?
+  currency         String   @default("USD")
+  coverImage       String?
+  includedServices String?
+  excludedServices String?
+  requiredDocuments String?
+  isFeatured       Boolean  @default(false)
+  isPublished      Boolean  @default(true)
+  seoTitle         String?
+  seoDescription   String?
+  images           TourImage[]
+  prices           TourPrice[]
+  dayPrograms      TourDayProgram[]
+  faqs             FAQ[]
+  leads            Lead[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model TourImage {
+  id        String   @id @default(cuid())
+  url       String
+  alt       String?
+  order     Int      @default(0)
+  tourId    String
+  tour      Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model TourPrice {
+  id        String   @id @default(cuid())
+  roomType  String
+  price     Float
+  currency  String   @default("USD")
+  order     Int      @default(0)
+  tourId    String
+  tour      Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model TourDayProgram {
+  id          String   @id @default(cuid())
+  dayNumber   Int
+  title       String
+  description String
+  tourId      String
+  tour        Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+}
+
+model Hotel {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  city        String
+  region      String?
+  distance    String?
+  stars       Int?
+  description String?
+  images      String?
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model BlogPost {
+  id             String   @id @default(cuid())
+  title          String
+  slug           String   @unique
+  excerpt        String?
+  content        String
+  coverImage     String?
+  category       String?
+  readTime       Int?
+  seoTitle       String?
+  seoDescription String?
+  isPublished    Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Lead {
+  id          String   @id @default(cuid())
+  fullName    String
+  phone       String
+  email       String?
+  personCount Int?
+  tourTitle   String?
+  message     String?
+  status      String   @default("Yeni")
+  tourId      String?
+  tour        Tour?    @relation(fields: [tourId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SiteSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DocumentCertificate {
+  id          String   @id @default(cuid())
+  title       String
+  image       String
+  description String?
+  order       Int      @default(0)
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model FAQ {
+  id        String   @id @default(cuid())
+  question  String
+  answer    String
+  order     Int      @default(0)
+  tourId    String?
+  tour      Tour?    @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
