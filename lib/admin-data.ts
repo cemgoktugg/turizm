@@ -5,9 +5,15 @@ import { prisma } from "./prisma";
 export async function getTourFormOptions() {
   const [categories, hotels] = await Promise.all([
     prisma.tourCategory.findMany({ orderBy: { order: "asc" }, select: { id: true, name: true } }),
-    prisma.hotel.findMany({ orderBy: { name: "asc" }, select: { name: true, city: true, distance: true } }),
+    prisma.hotel.findMany({
+      orderBy: [{ city: "asc" }, { name: "asc" }],
+      select: { id: true, name: true, city: true, distance: true, stars: true, images: true },
+    }),
   ]);
-  return { categories, hotels };
+  return {
+    categories,
+    hotels: hotels.map(({ images, ...h }) => ({ ...h, image: images?.split("\n").map((s) => s.trim()).find(Boolean) ?? null })),
+  };
 }
 
 /** Blog formu için mevcut kategori adları */

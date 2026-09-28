@@ -31,7 +31,7 @@ export type FieldSpec =
 
 const text = (max = 2000) => z.string().trim().max(max, `En fazla ${max} karakter`);
 
-function fieldSchema(f: FieldSpec): z.ZodType {
+export function fieldSchema(f: FieldSpec): z.ZodType {
   switch (f.type) {
     case "text":
       return text(f.max ?? 300);

@@ -18,6 +18,7 @@ async function main() {
 
   // Temizlik (bağımlılık sırasına göre)
   await prisma.lead.deleteMany();
+  await prisma.review.deleteMany();
   await prisma.fAQ.deleteMany();
   await prisma.tourDayProgram.deleteMany();
   await prisma.tourPrice.deleteMany();
@@ -151,8 +152,45 @@ async function main() {
   // ---- Tur oluşturucu yardımcı ----
   type RoomPrice = [string, number];
   type Day = [number, string, string];
+  type HotelCard = {
+    city: string;
+    name: string;
+    nights?: number;
+    stars?: number;
+    distance?: string;
+    image?: string;
+    link?: string;
+  };
+  type Leg = {
+    type: "flight" | "bus";
+    title: string;
+    carrier?: string;
+    fromCode: string;
+    fromCity: string;
+    toCode: string;
+    toCity: string;
+    /** Gidiş tarihine eklenecek gün */
+    dayOffset: number;
+    time?: string;
+  };
+
+  /** Umre çocuk / bebek fiyat satırları (yetişkin 2'li oda fiyatına göre) */
+  const kidPrices = (base: number): RoomPrice[] => [
+    ["0-2 yaş bebek", 500],
+    ["2-6 yaş çocuk", Math.round((base * 0.6) / 50) * 50],
+    ["6-11 yaş çocuk", Math.round((base * 0.75) / 50) * 50],
+  ];
+
+  /** Standart umre ulaşımı: İstanbul → Cidde, Mekke → Medine otobüs, Medine → İstanbul */
+  const umreLegs = (makkahNights: number, totalNights: number, depTime = "13:20", retTime?: string): Leg[] => [
+    { type: "flight", title: "Gidiş", fromCode: "IST", fromCity: "İstanbul", toCode: "JED", toCity: "Cidde", dayOffset: 0, time: depTime },
+    { type: "bus", title: "Otobüs Transfer", carrier: "Lüks otobüs", fromCode: "MEK", fromCity: "Mekke", toCode: "MED", toCity: "Medine", dayOffset: makkahNights, time: "14:00" },
+    { type: "flight", title: "Dönüş", fromCode: "MED", fromCity: "Medine", toCode: "IST", toCity: "İstanbul", dayOffset: totalNights, time: retTime },
+  ];
 
   async function createTour(data: {
+    code: string;
+    badge?: string;
     title: string;
     slug: string;
     categorySlug: string;
@@ -163,10 +201,9 @@ async function main() {
     nights: number;
     depCity: string;
     airline: string;
-    makkahHotel: string;
-    madinahHotel: string;
-    makkahDistance: string;
-    madinahDistance: string;
+    hotels?: HotelCard[];
+    legs?: Leg[];
+    seatsLeft?: number;
     startingPrice: number;
     currency?: string;
     cover: string;
@@ -181,6 +218,8 @@ async function main() {
   }) {
     return prisma.tour.create({
       data: {
+        code: data.code,
+        badge: data.badge ?? null,
         title: data.title,
         slug: data.slug,
         categoryId: cat(data.categorySlug),
@@ -192,10 +231,7 @@ async function main() {
         durationNights: data.nights,
         departureCity: data.depCity,
         airline: data.airline,
-        makkahHotel: data.makkahHotel,
-        madinahHotel: data.madinahHotel,
-        makkahDistance: data.makkahDistance,
-        madinahDistance: data.madinahDistance,
+        seatsLeft: data.seatsLeft ?? null,
         startingPrice: data.startingPrice,
         currency: data.currency ?? "USD",
         coverImage: data.cover,
@@ -218,6 +254,16 @@ async function main() {
             roomType,
             price,
             currency: data.currency ?? "USD",
+            order: i,
+          })),
+        },
+        hotels: {
+          create: (data.hotels ?? []).map((h, i) => ({ ...h, order: i })),
+        },
+        legs: {
+          create: (data.legs ?? []).map(({ dayOffset, ...l }, i) => ({
+            ...l,
+            date: day(data.departure, dayOffset),
             order: i,
           })),
         },
@@ -246,38 +292,117 @@ async function main() {
     [8, "Veda ve Dönüş", "Veda ziyareti sonrası havalimanına transfer ve İstanbul'a dönüş."],
   ];
 
+  const ekonomikDescription = [
+    "## Uygun bütçeyle huzurlu bir umre",
+    "Ekonomik umre programımız; uygun fiyat avantajını konforlu konaklama ve tecrübeli rehberlik ile birleştirir. Mekke ve Medine'de Harem'e yürüme mesafesindeki otellerde konaklarsınız. Tüm transfer, yemek ve ziyaretler fiyata dâhildir.",
+    "## Konaklama",
+    "- **Mekke:** Al Massa Hotel veya muadili, Harem-i Şerif'e yaklaşık 10 dakikalık yürüme mesafesinde.",
+    "- **Medine:** Dar Al Eiman Al Manar veya muadili, Mescid-i Nebevi'ye 400 m.",
+    "- Odalarda klima, özel banyo, ücretsiz banyo malzemeleri ve Wi-Fi bulunur.",
+    "## Umre nedir, ne zaman yapılır?",
+    "Sözlükte \"ziyaret\" anlamına gelen umre; ihrama girerek Kâbe'yi tavaf etmek, Safa ile Merve arasında sa'y yapmak ve tıraş olarak ihramdan çıkmaktan ibarettir. Hacdan farklı olarak belirli bir zamana bağlı değildir; arefe ve bayram günleri dışında yılın her döneminde yapılabilir.",
+    "Programımız boyunca din görevlilerimiz tavaf, sa'y ve ziyaretlerde sizlere eşlik eder; ibadetlerinizi usulüne uygun ve huzur içinde eda etmeniz için rehberlik eder.",
+    "## Neden bu program?",
+    "- Harem'e yürüme mesafesinde merkezi oteller",
+    "- Tabldot kahvaltı ve akşam yemeği",
+    "- Mekke ve Medine çevre ziyaretleri dâhil",
+    "- Küçük gruplar ve deneyimli rehber kadro",
+  ].join("\n");
+
+  const ekonomikHotels = (makkahNights: number, madinahNights: number): HotelCard[] => [
+    { city: "Mekke", name: "Al Massa Hotel", nights: makkahNights, stars: 3, distance: "Mescid-i Haram'a 700 m", image: "/images/otel-mekke-1.svg" },
+    { city: "Medine", name: "Dar Al Eiman Al Manar", nights: madinahNights, stars: 3, distance: "Mescid-i Nebevi'ye 400 m", image: "/images/otel-medine-1.svg" },
+  ];
+
+  const ekonomikPrices = (p2: number): RoomPrice[] => [
+    ["2 kişilik odada", p2],
+    ["3 kişilik odada", p2 - 150],
+    ["4 kişilik odada", p2 - 250],
+    ["Tek kişilik oda", p2 + 700],
+    ...kidPrices(p2),
+  ];
+
   // 1) 13 Günlük Ekonomik Umre
   const t1 = await createTour({
+    code: "11541",
     title: "13 Günlük Ekonomik Umre Programı",
     slug: "13-gunluk-ekonomik-umre",
     categorySlug: "umre",
     short: "Uygun bütçeyle, merkezi otellerde konforlu 13 günlük umre programı.",
-    description:
-      "Ekonomik umre programımız; uygun fiyat avantajını konforlu konaklama ve tecrübeli rehberlik ile birleştirir. Mekke ve Medine'de Harem'e yürüme mesafesindeki otellerde konaklarsınız. Tüm transfer, yemek ve ziyaretler fiyata dâhildir.",
+    description: ekonomikDescription,
     departure: "2026-10-15",
     days: 13,
     nights: 12,
     depCity: "İstanbul",
     airline: "Türk Hava Yolları",
-    makkahHotel: "Al Massa Hotel (veya muadili)",
-    madinahHotel: "Dar Al Eiman (veya muadili)",
-    makkahDistance: "Harem'e 700 m",
-    madinahDistance: "Mescid-i Nebevi'ye 400 m",
-    startingPrice: 1250,
+    hotels: ekonomikHotels(8, 4),
+    legs: umreLegs(8, 12),
+    seatsLeft: 4,
+    startingPrice: 1500,
     cover: "/images/tur-ekonomik-umre.svg",
     featured: true,
-    prices: [
-      ["4 Kişilik Oda (Kişi Başı)", 1250],
-      ["3 Kişilik Oda (Kişi Başı)", 1450],
-      ["2 Kişilik Oda (Kişi Başı)", 1750],
-      ["Tek Kişilik Oda", 2450],
+    prices: ekonomikPrices(1500),
+    program: umreProgram,
+    images: [
+      "/images/tur-ekonomik-umre.svg",
+      "/images/otel-mekke-1.svg",
+      "/images/otel-medine-1.svg",
+      "/images/kategori-umre.svg",
+      "/images/otel-mekke-2.svg",
+      "/images/otel-medine-2.svg",
+      "/images/hero-2.svg",
+      "/images/otel-mekke-3.svg",
     ],
+  });
+
+  // Aynı programın diğer tarihleri ("Tarihler ve Fiyatlar" tablosunda listelenir)
+  const t1b = await createTour({
+    code: "11542",
+    badge: "Kampanya",
+    title: "13 Günlük Ekonomik Umre Programı — Kasım",
+    slug: "13-gunluk-ekonomik-umre-kasim",
+    categorySlug: "umre",
+    short: "Kasım dönemi, merkezi otellerde konforlu 13 günlük ekonomik umre programı.",
+    description: ekonomikDescription,
+    departure: "2026-11-12",
+    days: 13,
+    nights: 12,
+    depCity: "İstanbul",
+    airline: "Saudia",
+    hotels: ekonomikHotels(8, 4),
+    legs: umreLegs(8, 12, "09:40", "17:00"),
+    startingPrice: 1450,
+    cover: "/images/tur-ekonomik-umre.svg",
+    prices: ekonomikPrices(1450),
     program: umreProgram,
     images: ["/images/tur-ekonomik-umre.svg", "/images/otel-mekke-1.svg", "/images/otel-medine-1.svg", "/images/kategori-umre.svg"],
   });
 
+  const t1c = await createTour({
+    code: "11543",
+    title: "10 Günlük Ekonomik Umre Programı",
+    slug: "10-gunluk-ekonomik-umre",
+    categorySlug: "umre",
+    short: "Kısa sürede umre ibadetini eda etmek isteyenler için 10 günlük ekonomik program.",
+    description: ekonomikDescription,
+    departure: "2026-12-03",
+    days: 10,
+    nights: 9,
+    depCity: "İstanbul",
+    airline: "Türk Hava Yolları",
+    hotels: ekonomikHotels(6, 3),
+    legs: umreLegs(6, 9),
+    seatsLeft: 9,
+    startingPrice: 1300,
+    cover: "/images/tur-ekonomik-umre.svg",
+    prices: ekonomikPrices(1300),
+    program: umreProgram,
+    images: ["/images/tur-ekonomik-umre.svg", "/images/otel-mekke-1.svg", "/images/otel-medine-1.svg"],
+  });
+
   // 2) 20 Günlük Umre Programı
   const t2 = await createTour({
+    code: "11560",
     title: "20 Günlük Umre Programı",
     slug: "20-gunluk-umre-programi",
     categorySlug: "umre",
@@ -289,18 +414,20 @@ async function main() {
     nights: 19,
     depCity: "İstanbul",
     airline: "Saudia",
-    makkahHotel: "Rua Al Hijra (veya muadili)",
-    madinahHotel: "Golden Al Massa (veya muadili)",
-    makkahDistance: "Harem'e 500 m",
-    madinahDistance: "Mescid-i Nebevi'ye 300 m",
+    hotels: [
+      { city: "Mekke", name: "Rua Al Hijra Hotel", nights: 12, stars: 4, distance: "Mescid-i Haram'a 500 m", image: "/images/otel-mekke-2.svg" },
+      { city: "Medine", name: "Golden Al Massa", nights: 7, stars: 4, distance: "Mescid-i Nebevi'ye 300 m", image: "/images/otel-medine-2.svg" },
+    ],
+    legs: umreLegs(12, 19, "09:40", "17:00"),
     startingPrice: 1650,
     cover: "/images/tur-20-gun-umre.svg",
     featured: true,
     prices: [
-      ["4 Kişilik Oda (Kişi Başı)", 1650],
-      ["3 Kişilik Oda (Kişi Başı)", 1850],
-      ["2 Kişilik Oda (Kişi Başı)", 2200],
-      ["Tek Kişilik Oda", 3100],
+      ["2 kişilik odada", 2200],
+      ["3 kişilik odada", 1850],
+      ["4 kişilik odada", 1650],
+      ["Tek kişilik oda", 3100],
+      ...kidPrices(2200),
     ],
     program: umreProgram,
     images: ["/images/tur-20-gun-umre.svg", "/images/otel-mekke-2.svg", "/images/otel-medine-2.svg", "/images/kategori-umre.svg"],
@@ -308,6 +435,8 @@ async function main() {
 
   // 3) Lüks Umre Programı
   const t3 = await createTour({
+    code: "11580",
+    badge: "Harem'e Sıfır",
     title: "Lüks Umre Programı — Harem'e Sıfır",
     slug: "luks-umre-programi",
     categorySlug: "luks-umre",
@@ -319,18 +448,21 @@ async function main() {
     nights: 11,
     depCity: "İstanbul",
     airline: "Türk Hava Yolları (Business opsiyonlu)",
-    makkahHotel: "Swissôtel Al Maqam / Fairmont Clock Tower",
-    madinahHotel: "The Oberoi Madina / Anwar Al Madinah Mövenpick",
-    makkahDistance: "Harem'e sıfır (0 m)",
-    madinahDistance: "Mescid-i Nebevi'ye sıfır (0 m)",
+    hotels: [
+      { city: "Mekke", name: "Swissôtel Al Maqam Makkah", nights: 7, stars: 5, distance: "Mescid-i Haram'a sıfır (0 m)", image: "/images/otel-mekke-3.svg" },
+      { city: "Medine", name: "The Oberoi Madina", nights: 4, stars: 5, distance: "Mescid-i Nebevi'ye sıfır (0 m)", image: "/images/otel-medine-3.svg" },
+    ],
+    legs: umreLegs(7, 11, "13:20", "12:10"),
+    seatsLeft: 2,
     startingPrice: 3200,
     cover: "/images/tur-luks-umre.svg",
     featured: true,
     prices: [
-      ["2 Kişilik Oda (Kişi Başı)", 3200],
-      ["Harem Manzaralı Oda (Kişi Başı)", 3900],
-      ["Tek Kişilik Oda", 5400],
-      ["Suit Oda (Kişi Başı)", 6200],
+      ["2 kişilik odada", 3200],
+      ["Harem manzaralı oda (2 kişilik)", 3900],
+      ["Tek kişilik oda", 5400],
+      ["Suit oda (2 kişilik)", 6200],
+      ...kidPrices(3200),
     ],
     program: umreProgram,
     images: ["/images/tur-luks-umre.svg", "/images/otel-mekke-3.svg", "/images/otel-medine-3.svg", "/images/kategori-luks.svg"],
@@ -338,6 +470,8 @@ async function main() {
 
   // 4) Ramazan Umresi
   const t4 = await createTour({
+    code: "11600",
+    badge: "Ramazan Özel",
     title: "Ramazan Umresi Programı",
     slug: "ramazan-umresi-2027",
     categorySlug: "ramazan-umresi",
@@ -349,18 +483,20 @@ async function main() {
     nights: 14,
     depCity: "İstanbul",
     airline: "Saudia",
-    makkahHotel: "Elaf Al Mashaer (veya muadili)",
-    madinahHotel: "Dallah Taibah (veya muadili)",
-    makkahDistance: "Harem'e 350 m",
-    madinahDistance: "Mescid-i Nebevi'ye 250 m",
+    hotels: [
+      { city: "Mekke", name: "Elaf Al Mashaer", nights: 9, stars: 4, distance: "Mescid-i Haram'a 350 m", image: "/images/otel-mekke-1.svg" },
+      { city: "Medine", name: "Dallah Taibah Hotel", nights: 5, stars: 4, distance: "Mescid-i Nebevi'ye 250 m", image: "/images/otel-medine-2.svg" },
+    ],
+    legs: umreLegs(9, 14, "09:40", "17:00"),
     startingPrice: 2100,
     cover: "/images/tur-ramazan-umresi.svg",
     featured: true,
     prices: [
-      ["4 Kişilik Oda (Kişi Başı)", 2100],
-      ["3 Kişilik Oda (Kişi Başı)", 2350],
-      ["2 Kişilik Oda (Kişi Başı)", 2750],
-      ["Tek Kişilik Oda", 3800],
+      ["2 kişilik odada", 2750],
+      ["3 kişilik odada", 2350],
+      ["4 kişilik odada", 2100],
+      ["Tek kişilik oda", 3800],
+      ...kidPrices(2750),
     ],
     program: umreProgram,
     images: ["/images/tur-ramazan-umresi.svg", "/images/otel-mekke-1.svg", "/images/otel-medine-2.svg", "/images/kategori-ramazan.svg"],
@@ -381,6 +517,8 @@ async function main() {
   ];
 
   const t5 = await createTour({
+    code: "11700",
+    badge: "Ön Kayıt",
     title: "2027 Hac Ön Kayıt Programı",
     slug: "2027-hac-on-kayit-programi",
     categorySlug: "hac",
@@ -392,10 +530,15 @@ async function main() {
     nights: 29,
     depCity: "İstanbul",
     airline: "Türk Hava Yolları",
-    makkahHotel: "Merkezi 4-5★ otel (Aziziye / Mahbes)",
-    madinahHotel: "Merkezi otel (Merkeziye bölgesi)",
-    makkahDistance: "Harem'e servisli / yürüme mesafesi",
-    madinahDistance: "Mescid-i Nebevi'ye 400 m",
+    hotels: [
+      { city: "Mekke", name: "Merkezi 4-5★ otel (Aziziye / Mahbes)", nights: 20, stars: 5, distance: "Harem'e servisli / yürüme mesafesi", image: "/images/otel-mekke-2.svg" },
+      { city: "Medine", name: "Merkezi otel (Merkeziye bölgesi)", nights: 9, stars: 4, distance: "Mescid-i Nebevi'ye 400 m", image: "/images/otel-medine-1.svg" },
+    ],
+    legs: [
+      { type: "flight", title: "Gidiş", fromCode: "IST", fromCity: "İstanbul", toCode: "JED", toCity: "Cidde", dayOffset: 0 },
+      { type: "bus", title: "Otobüs Transfer", carrier: "Lüks otobüs", fromCode: "MEK", fromCity: "Mekke", toCode: "MED", toCity: "Medine", dayOffset: 20 },
+      { type: "flight", title: "Dönüş", fromCode: "MED", fromCity: "Medine", toCode: "IST", toCity: "İstanbul", dayOffset: 29 },
+    ],
     startingPrice: 7500,
     currency: "USD",
     cover: "/images/tur-hac-2026.svg",
@@ -432,6 +575,7 @@ async function main() {
 
   // 6) Kudüs Turu
   const t6 = await createTour({
+    code: "11800",
     title: "Kudüs (Mescid-i Aksa) Turu",
     slug: "kudus-turu",
     categorySlug: "kultur-turlari",
@@ -443,10 +587,11 @@ async function main() {
     nights: 4,
     depCity: "İstanbul",
     airline: "Türk Hava Yolları",
-    makkahHotel: "—",
-    madinahHotel: "—",
-    makkahDistance: "",
-    madinahDistance: "",
+    hotels: [{ city: "Kudüs", name: "Eski Şehir'e yakın 4★ otel", nights: 4, stars: 4, distance: "Mescid-i Aksa'ya 900 m", image: "/images/tur-kudus.svg" }],
+    legs: [
+      { type: "flight", title: "Gidiş", fromCode: "IST", fromCity: "İstanbul", toCode: "TLV", toCity: "Tel Aviv", dayOffset: 0, time: "08:15" },
+      { type: "flight", title: "Dönüş", fromCode: "TLV", fromCity: "Tel Aviv", toCode: "IST", toCity: "İstanbul", dayOffset: 4, time: "18:40" },
+    ],
     startingPrice: 850,
     currency: "USD",
     cover: "/images/tur-kudus.svg",
@@ -465,9 +610,9 @@ async function main() {
     ].join("\n"),
     docs: ["En az 6 ay geçerli pasaport", "2 adet biyometrik fotoğraf"].join("\n"),
     prices: [
-      ["2 Kişilik Oda (Kişi Başı)", 850],
-      ["3 Kişilik Oda (Kişi Başı)", 790],
-      ["Tek Kişilik Oda", 1150],
+      ["2 kişilik odada", 850],
+      ["3 kişilik odada", 790],
+      ["Tek kişilik oda", 1150],
     ],
     program: [
       [1, "İstanbul - Tel Aviv - Kudüs", "Hareket, Tel Aviv'e varış ve Kudüs'e transfer, otele yerleşme."],
@@ -491,6 +636,7 @@ async function main() {
 
   // 7) Balkan Turu
   const t7 = await createTour({
+    code: "11810",
     title: "Balkanlar Kültür Turu (5 Ülke)",
     slug: "balkan-turu",
     categorySlug: "kultur-turlari",
@@ -502,10 +648,11 @@ async function main() {
     nights: 6,
     depCity: "İstanbul",
     airline: "Türk Hava Yolları",
-    makkahHotel: "—",
-    madinahHotel: "—",
-    makkahDistance: "",
-    madinahDistance: "",
+    legs: [
+      { type: "flight", title: "Gidiş", fromCode: "IST", fromCity: "İstanbul", toCode: "SJJ", toCity: "Saraybosna", dayOffset: 0, time: "10:25" },
+      { type: "bus", title: "Otobüs Turu", carrier: "Lüks otobüs", fromCode: "SJJ", fromCity: "Saraybosna", toCode: "BEG", toCity: "Belgrad", dayOffset: 1 },
+      { type: "flight", title: "Dönüş", fromCode: "BEG", fromCity: "Belgrad", toCode: "IST", toCity: "İstanbul", dayOffset: 6, time: "20:05" },
+    ],
     startingPrice: 699,
     currency: "EUR",
     cover: "/images/tur-balkan.svg",
@@ -524,9 +671,9 @@ async function main() {
     ].join("\n"),
     docs: ["En az 6 ay geçerli pasaport"].join("\n"),
     prices: [
-      ["2 Kişilik Oda (Kişi Başı)", 699],
-      ["3 Kişilik Oda (Kişi Başı)", 649],
-      ["Tek Kişilik Oda", 949],
+      ["2 kişilik odada", 699],
+      ["3 kişilik odada", 649],
+      ["Tek kişilik oda", 949],
     ],
     program: [
       [1, "İstanbul - Saraybosna", "Hareket ve Saraybosna'ya varış, şehir turu."],
@@ -546,7 +693,40 @@ async function main() {
     images: ["/images/tur-balkan.svg", "/images/kategori-kultur.svg"],
   });
 
-  console.log(`✓ ${[t1, t2, t3, t4, t5, t6, t7].length} tur oluşturuldu`);
+  console.log(`✓ ${[t1, t1b, t1c, t2, t3, t4, t5, t6, t7].length} tur oluşturuldu`);
+
+  // ---- Örnek değerlendirmeler (ikisi yayında, biri onay bekliyor) ----
+  await prisma.review.createMany({
+    data: [
+      {
+        tourId: t1.id,
+        fullName: "Fatma K.",
+        email: "fatma@example.com",
+        title: "Harem'e yakın, huzurlu bir program",
+        rating: 5,
+        comment: "Otelimiz Harem'e gerçekten yürüme mesafesindeydi. Hocamız tavaf ve sa'y boyunca hep yanımızdaydı, organizasyon çok düzenliydi.",
+        isApproved: true,
+      },
+      {
+        tourId: t1.id,
+        fullName: "Mehmet A.",
+        email: "mehmet@example.com",
+        title: "Fiyatına göre çok iyi",
+        rating: 4,
+        comment: "Ekonomik program olmasına rağmen yemekler ve transferler beklentimizin üzerindeydi. Medine oteli biraz daha yakın olabilirdi.",
+        isApproved: true,
+      },
+      {
+        tourId: t1.id,
+        fullName: "Ayşe D.",
+        email: "ayse@example.com",
+        rating: 5,
+        comment: "Annemle birlikte katıldık, her konuda ilgilendiler. Allah razı olsun.",
+        isApproved: false,
+      },
+    ],
+  });
+  console.log("✓ 3 örnek değerlendirme oluşturuldu");
 
   // ---- Oteller ----
   await Promise.all(

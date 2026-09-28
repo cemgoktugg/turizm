@@ -29,7 +29,7 @@ export default async function AdminToursPage({
   const term = q.trim();
 
   const where: Prisma.TourWhereInput = {
-    AND: [FILTERS[filter].where(), term ? { OR: [{ title: { contains: term } }, { slug: { contains: term } }] } : {}],
+    AND: [FILTERS[filter].where(), term ? { OR: [{ title: { contains: term } }, { slug: { contains: term } }, { code: { contains: term } }] } : {}],
   };
 
   const [tours, counts] = await Promise.all([
@@ -56,7 +56,7 @@ export default async function AdminToursPage({
         tabs={Object.entries(FILTERS).map(([value, f]) => ({ value, label: f.label, count: countMap[value] }))}
         activeTab={filter}
         query={term}
-        searchPlaceholder="Tur adı ara..."
+        searchPlaceholder="Tur adı veya tur no ara..."
       />
 
       {tours.length === 0 ? (
@@ -92,7 +92,10 @@ export default async function AdminToursPage({
                           </span>
                           <div className="min-w-0">
                             <p className="max-w-[280px] truncate font-semibold text-brand-900">{t.title}</p>
-                            <Badge variant="cream" size="sm">{t.category?.name}</Badge>
+                            <div className="flex items-center gap-1.5">
+                              {t.code && <span className="text-xs font-semibold text-muted">#{t.code}</span>}
+                              <Badge variant="cream" size="sm">{t.category?.name}</Badge>
+                            </div>
                           </div>
                         </div>
                       </td>

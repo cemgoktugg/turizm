@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
-import { schemaFromFields } from "./fields";
+import { fieldSchema, type FieldSpec } from "./fields";
 import {
   CONTENT_BLOCKS,
   type ContentData,
@@ -19,24 +19,34 @@ const loadRows = cache(async () => {
   }
 });
 
+type Obj = Record<string, unknown>;
+
+/** Grupları alt alan bazında birleştirir: gruba sonradan eklenen alanlar eski kayıtları bozmaz */
+function mergeFields(fields: FieldSpec[], defaults: Obj, raw: Obj): Obj {
+  const out: Obj = { ...defaults };
+  for (const f of fields) {
+    const value = raw[f.name];
+    if (value === undefined) continue;
+    if (f.type === "group") {
+      if (value && typeof value === "object") {
+        out[f.name] = mergeFields(f.fields, (defaults[f.name] as Obj) ?? {}, value as Obj);
+      }
+      continue;
+    }
+    const parsed = fieldSchema(f).safeParse(value);
+    if (parsed.success) out[f.name] = parsed.data;
+  }
+  return out;
+}
+
 /**
  * Veritabanındaki kaydı varsayılanlarla alan bazında birleştirir.
  * Geçersiz / eksik alanlarda varsayılan değer kullanılır; site asla boş kalmaz.
  */
 export function mergeWithDefaults<K extends ContentKey>(key: K, raw: unknown): ContentData<K> {
   const def = CONTENT_BLOCKS[key];
-  const defaults = def.defaults as Record<string, unknown>;
   if (!raw || typeof raw !== "object") return def.defaults as ContentData<K>;
-
-  const shape = schemaFromFields(def.fields).shape;
-  const out: Record<string, unknown> = { ...defaults };
-  for (const [name, schema] of Object.entries(shape)) {
-    const value = (raw as Record<string, unknown>)[name];
-    if (value === undefined) continue;
-    const parsed = schema.safeParse(value);
-    if (parsed.success) out[name] = parsed.data;
-  }
-  return out as ContentData<K>;
+  return mergeFields(def.fields, def.defaults as Obj, raw as Obj) as ContentData<K>;
 }
 
 export async function getContent<K extends ContentKey>(key: K): Promise<ContentData<K>> {

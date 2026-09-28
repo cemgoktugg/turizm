@@ -20,9 +20,11 @@ export default async function EditTourPage({ params }: { params: Promise<{ id: s
       include: {
         images: { orderBy: { order: "asc" } },
         prices: { orderBy: { order: "asc" } },
+        hotels: { orderBy: { order: "asc" } },
+        legs: { orderBy: { order: "asc" } },
         dayPrograms: { orderBy: { dayNumber: "asc" } },
         faqs: { orderBy: { order: "asc" } },
-        _count: { select: { leads: true } },
+        _count: { select: { leads: true, reviews: true } },
       },
     }),
     getTourFormOptions(),
@@ -39,7 +41,12 @@ export default async function EditTourPage({ params }: { params: Promise<{ id: s
         Tur Düzenle: <span className="text-brand-600">{tour.title}</span>
       </h2>
       <p className="mb-6 mt-1 text-sm text-muted">
-        {tour._count.leads} başvuru · Son güncelleme {tour.updatedAt.toLocaleString("tr-TR")}
+        {tour.code && <>Tur No {tour.code} · </>}
+        {tour._count.leads} başvuru ·{" "}
+        <Link href={`/admin/reviews?tur=${tour.id}`} className="font-semibold text-brand-700 hover:text-gold-600">
+          {tour._count.reviews} değerlendirme
+        </Link>{" "}
+        · Son güncelleme {tour.updatedAt.toLocaleString("tr-TR")}
         {isPastTour(tour.departureDate) && (
           <span className="ml-2 font-semibold text-red-600">· Tarihi geçti, sitede listelenmiyor</span>
         )}
@@ -50,6 +57,8 @@ export default async function EditTourPage({ params }: { params: Promise<{ id: s
         tourId={tour.id}
         slug={tour.slug}
         defaultValues={{
+          code: tour.code ?? "",
+          badge: tour.badge ?? "",
           title: tour.title,
           slug: tour.slug,
           categoryId: tour.categoryId,
@@ -59,17 +68,15 @@ export default async function EditTourPage({ params }: { params: Promise<{ id: s
           returnDate: toDateInput(tour.returnDate),
           durationDays: num(tour.durationDays),
           durationNights: num(tour.durationNights),
+          seatsLeft: num(tour.seatsLeft),
           departureCity: tour.departureCity ?? "",
           airline: tour.airline ?? "",
-          makkahHotel: tour.makkahHotel ?? "",
-          madinahHotel: tour.madinahHotel ?? "",
-          makkahDistance: tour.makkahDistance ?? "",
-          madinahDistance: tour.madinahDistance ?? "",
           startingPrice: num(tour.startingPrice),
           currency: tour.currency as (typeof CURRENCIES)[number],
           priceNote: tour.priceNote ?? "",
           coverImage: tour.coverImage ?? "",
           images: tour.images.map((i) => i.url),
+          videoUrl: tour.videoUrl ?? "",
           includedServices: tour.includedServices ?? "",
           excludedServices: tour.excludedServices ?? "",
           requiredDocuments: tour.requiredDocuments ?? "",
@@ -78,6 +85,28 @@ export default async function EditTourPage({ params }: { params: Promise<{ id: s
           seoTitle: tour.seoTitle ?? "",
           seoDescription: tour.seoDescription ?? "",
           prices: tour.prices.map((p) => ({ roomType: p.roomType, price: String(p.price) })),
+          hotels: tour.hotels.map((h) => ({
+            city: h.city,
+            name: h.name,
+            nights: num(h.nights),
+            stars: num(h.stars),
+            distance: h.distance ?? "",
+            image: h.image ?? "",
+            videoUrl: h.videoUrl ?? "",
+            link: h.link ?? "",
+          })),
+          legs: tour.legs.map((l) => ({
+            type: l.type === "bus" ? "bus" : "flight",
+            title: l.title,
+            carrier: l.carrier ?? "",
+            flightNo: l.flightNo ?? "",
+            fromCode: l.fromCode ?? "",
+            fromCity: l.fromCity ?? "",
+            toCode: l.toCode ?? "",
+            toCity: l.toCity ?? "",
+            date: toDateInput(l.date),
+            time: l.time ?? "",
+          })),
           dayPrograms: tour.dayPrograms.map((d) => ({ dayNumber: String(d.dayNumber), title: d.title, description: d.description })),
           faqs: tour.faqs.map((f) => ({ question: f.question, answer: f.answer })),
         }}

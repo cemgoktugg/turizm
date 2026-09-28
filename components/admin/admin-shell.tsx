@@ -15,6 +15,7 @@ import {
   LayoutTemplate,
   LogOut,
   Menu,
+  MessageSquareQuote,
   Newspaper,
   Plane,
   Settings,
@@ -26,13 +27,16 @@ import { logoutAction } from "@/app/actions/auth";
 import { SmartImage } from "@/components/ui/smart-image";
 import { cn } from "@/lib/utils";
 
-type NavItem = { label: string; href: string; icon: typeof Plane; exact?: boolean; badgeKey?: "leads" };
+type NavItem = { label: string; href: string; icon: typeof Plane; exact?: boolean; badgeKey?: "leads" | "reviews" };
 
 const NAV_GROUPS: { title?: string; items: NavItem[] }[] = [
   { items: [{ label: "Kontrol Paneli", href: "/admin", icon: LayoutDashboard, exact: true }] },
   {
     title: "Müşteri",
-    items: [{ label: "Başvurular", href: "/admin/leads", icon: Inbox, badgeKey: "leads" }],
+    items: [
+      { label: "Başvurular", href: "/admin/leads", icon: Inbox, badgeKey: "leads" },
+      { label: "Değerlendirmeler", href: "/admin/reviews", icon: MessageSquareQuote, badgeKey: "reviews" },
+    ],
   },
   {
     title: "Katalog",
@@ -70,6 +74,7 @@ const TITLES: Record<string, string> = {
   "/admin/content": "Sayfa İçerikleri",
   "/admin/media": "Medya Kütüphanesi",
   "/admin/leads": "Başvurular",
+  "/admin/reviews": "Değerlendirmeler",
   "/admin/certificates": "Belgeler",
   "/admin/settings": "Site Ayarları",
   "/admin/users": "Kullanıcılar",
@@ -80,13 +85,17 @@ export function AdminShell({
   user,
   brand,
   newLeads,
+  pendingReviews,
   children,
 }: {
   user: { name: string; email: string; mustChangePassword: boolean };
   brand: { siteName: string; logo: string };
   newLeads: number;
+  pendingReviews: number;
   children: React.ReactNode;
 }) {
+  const badges = { leads: newLeads, reviews: pendingReviews };
+  const badgeTitles = { leads: "yeni başvuru", reviews: "onay bekleyen değerlendirme" };
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -119,7 +128,7 @@ export function AdminShell({
             <div className="space-y-0.5">
               {group.items.map((item) => {
                 const active = isActive(item.href, item.exact);
-                const badge = item.badgeKey === "leads" && newLeads > 0 ? newLeads : null;
+                const badge = item.badgeKey && badges[item.badgeKey] > 0 ? badges[item.badgeKey] : null;
                 return (
                   <Link
                     key={item.href}
@@ -138,7 +147,7 @@ export function AdminShell({
                           "min-w-6 rounded-full px-1.5 py-0.5 text-center text-[11px] font-bold",
                           active ? "bg-brand-950 text-gold-300" : "bg-red-500 text-white",
                         )}
-                        title={`${badge} yeni başvuru`}
+                        title={`${badge} ${item.badgeKey ? badgeTitles[item.badgeKey] : ""}`}
                       >
                         {badge}
                       </span>

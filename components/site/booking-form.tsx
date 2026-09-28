@@ -27,6 +27,7 @@ export function BookingForm({
   variant = "card",
   source,
   texts,
+  defaultMessage,
 }: {
   tourId?: string;
   tourTitle?: string;
@@ -34,6 +35,8 @@ export function BookingForm({
   variant?: "card" | "bare";
   source: LeadSource;
   texts: BookingTexts;
+  /** Mesaj alanına önceden yazılacak metin (ör. grup teklifi) */
+  defaultMessage?: string;
 }) {
   const [done, setDone] = useState(false);
   const f = texts.form;
@@ -50,6 +53,7 @@ export function BookingForm({
       tourId: tourId ?? "",
       tourTitle: tourTitle ?? "",
       personCount: "1",
+      message: defaultMessage ?? "",
       source,
       website: "",
     },

@@ -155,6 +155,47 @@ export const dayRowSchema = z.object({
   description: z.string().trim().min(1, "Gün açıklaması gerekli").max(3000),
 });
 
+/** Boş bırakılabilen http(s) bağlantısı (video, otel sitesi…) */
+const optionalWebUrl = z
+  .string()
+  .trim()
+  .max(500)
+  .refine((v) => v === "" || /^https?:\/\//i.test(v), "Bağlantı http:// veya https:// ile başlamalı")
+  .optional();
+
+export const HOTEL_CARD_CITIES = ["Mekke", "Medine"] as const;
+
+export const hotelRowSchema = z.object({
+  city: z.string().trim().min(1, "Şehir gerekli").max(60),
+  name: z.string().trim().min(1, "Otel adı gerekli").max(150),
+  nights: optionalNumber({ min: 0, max: 90, int: true }),
+  stars: optionalNumber({ min: 0, max: 5, int: true }),
+  distance: optionalText(100),
+  image: imagePath.optional(),
+  videoUrl: optionalWebUrl,
+  link: optionalWebUrl,
+});
+
+export const LEG_TYPES = { flight: "Uçuş", bus: "Otobüs / Transfer" } as const;
+export type LegType = keyof typeof LEG_TYPES;
+
+export const legRowSchema = z.object({
+  type: z.enum(Object.keys(LEG_TYPES) as [LegType, ...LegType[]]),
+  title: z.string().trim().min(1, "Başlık gerekli (ör. Gidiş)").max(60),
+  carrier: optionalText(100),
+  flightNo: optionalText(30),
+  fromCode: optionalText(10),
+  fromCity: optionalText(60),
+  toCode: optionalText(10),
+  toCity: optionalText(60),
+  date: z
+    .string()
+    .trim()
+    .optional()
+    .refine((v) => !v || !Number.isNaN(new Date(v).getTime()), "Geçerli bir tarih giriniz"),
+  time: optionalText(30),
+});
+
 export const faqRowSchema = z.object({
   question: z.string().trim().min(1, "Soru gerekli").max(300),
   answer: z.string().trim().min(1, "Cevap gerekli").max(3000),
@@ -168,6 +209,13 @@ const isoDate = z
 
 export const adminTourSchema = z
   .object({
+    code: z
+      .string()
+      .trim()
+      .max(20, "En fazla 20 karakter")
+      .optional()
+      .refine((v) => !v || /^[A-Za-z0-9-]+$/.test(v), "Tur no yalnızca harf, rakam ve tire içerebilir"),
+    badge: optionalText(60),
     title: z.string().trim().min(3, "Başlık en az 3 karakter").max(200),
     slug: slugField,
     categoryId: z.string().min(1, "Kategori seçiniz"),
@@ -177,17 +225,15 @@ export const adminTourSchema = z
     returnDate: isoDate,
     durationDays: optionalNumber({ min: 1, max: 365, int: true }),
     durationNights: optionalNumber({ min: 0, max: 365, int: true }),
+    seatsLeft: optionalNumber({ min: 0, max: 999, int: true }),
     departureCity: optionalText(100),
     airline: optionalText(100),
-    makkahHotel: optionalText(150),
-    madinahHotel: optionalText(150),
-    makkahDistance: optionalText(100),
-    madinahDistance: optionalText(100),
     startingPrice: optionalNumber({ min: 0 }),
     currency: z.enum(CURRENCIES),
     priceNote: optionalText(120),
     coverImage: imagePath.optional(),
     images: z.array(imagePath).max(30, "En fazla 30 galeri görseli"),
+    videoUrl: optionalWebUrl,
     includedServices: optionalText(),
     excludedServices: optionalText(),
     requiredDocuments: optionalText(),
@@ -196,6 +242,8 @@ export const adminTourSchema = z
     seoTitle: optionalText(120),
     seoDescription: optionalText(320),
     prices: z.array(priceRowSchema).max(20),
+    hotels: z.array(hotelRowSchema).max(10),
+    legs: z.array(legRowSchema).max(12),
     dayPrograms: z.array(dayRowSchema).max(60),
     faqs: z.array(faqRowSchema).max(40),
   })
@@ -256,6 +304,21 @@ export const certificateSchema = z.object({
   isPublished: z.boolean(),
 });
 export type CertificateInput = z.infer<typeof certificateSchema>;
+
+/** Ziyaretçi değerlendirmesi (honeypot ile spam koruması) */
+export const reviewSchema = z.object({
+  tourId: z.string().min(1).max(40),
+  title: optionalText(120),
+  rating: z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? undefined : Number(v)),
+    z.number({ error: "Lütfen puan verin" }).int().min(1, "Lütfen puan verin").max(5),
+  ),
+  comment: z.string().trim().min(10, "Yorum en az 10 karakter olmalı").max(2000, "Yorum en fazla 2000 karakter olabilir"),
+  fullName: z.string().trim().min(3, "Ad soyad en az 3 karakter olmalı").max(100),
+  email: z.string().trim().email("Geçerli bir e-posta giriniz").max(150),
+  website: z.string().max(0, "Spam tespit edildi").optional().or(z.literal("")),
+});
+export type ReviewInput = z.infer<typeof reviewSchema>;
 
 /* ------------------------------------------------------------------ */
 /* Site ayarları                                                        */

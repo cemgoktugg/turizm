@@ -20,7 +20,7 @@ import { SmartImage } from "@/components/ui/smart-image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form-controls";
 import { cn } from "@/lib/utils";
-import { Modal } from "./modal";
+import { Modal } from "@/components/ui/modal";
 import { ACCEPT_IMAGES, uploadImages } from "./upload";
 
 /* ------------------------------------------------------------------ */

@@ -39,6 +39,10 @@ model TourCategory {
 
 model Tour {
   id               String   @id @default(cuid())
+  /// Müşteriye gösterilen tur numarası (boşsa otomatik verilir)
+  code             String?  @unique
+  /// Başlık üstündeki küçük etiket (ör. "Miraç Kandili Medine")
+  badge            String?
   title            String
   slug             String   @unique
   shortDescription String?
@@ -51,10 +55,6 @@ model Tour {
   durationNights   Int?
   departureCity    String?
   airline          String?
-  makkahHotel      String?
-  madinahHotel     String?
-  makkahDistance   String?
-  madinahDistance  String?
   startingPrice    Float?
   currency         String   @default("USD")
   priceNote        String?
@@ -62,14 +62,21 @@ model Tour {
   includedServices String?
   excludedServices String?
   requiredDocuments String?
+  /// Kalan koltuk (boşsa gösterilmez)
+  seatsLeft        Int?
+  /// Tanıtım videosu (YouTube bağlantısı)
+  videoUrl         String?
   isFeatured       Boolean  @default(false)
   isPublished      Boolean  @default(true)
   seoTitle         String?
   seoDescription   String?
   images           TourImage[]
   prices           TourPrice[]
+  hotels           TourHotel[]
+  legs             TourLeg[]
   dayPrograms      TourDayProgram[]
   faqs             FAQ[]
+  reviews          Review[]
   leads            Lead[]
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -94,6 +101,59 @@ model TourPrice {
   tourId    String
   tour      Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+}
+
+/// Tur detayındaki otel kartları (Mekke, Medine…)
+model TourHotel {
+  id        String   @id @default(cuid())
+  city      String
+  name      String
+  nights    Int?
+  stars     Int?
+  distance  String?
+  image     String?
+  videoUrl  String?
+  link      String?
+  order     Int      @default(0)
+  tourId    String
+  tour      Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+/// Uçuş ve transfer bilgileri (Gidiş, otobüs transferi, Dönüş…)
+model TourLeg {
+  id        String    @id @default(cuid())
+  /// "flight" | "bus"
+  type      String    @default("flight")
+  title     String
+  carrier   String?
+  flightNo  String?
+  fromCode  String?
+  fromCity  String?
+  toCode    String?
+  toCity    String?
+  date      DateTime?
+  time      String?
+  order     Int       @default(0)
+  tourId    String
+  tour      Tour      @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+}
+
+/// Ziyaretçi değerlendirmeleri (panelden onaylananlar yayınlanır)
+model Review {
+  id         String   @id @default(cuid())
+  fullName   String
+  email      String
+  title      String?
+  rating     Int
+  comment    String
+  isApproved Boolean  @default(false)
+  tourId     String
+  tour       Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@index([tourId, isApproved])
 }
 
 model TourDayProgram {

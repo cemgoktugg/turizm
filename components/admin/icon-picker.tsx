@@ -5,7 +5,7 @@ import { ChevronDown, Search } from "lucide-react";
 import { Icon, ICON_OPTIONS } from "@/components/ui/icon";
 import { Input } from "@/components/ui/form-controls";
 import { cn } from "@/lib/utils";
-import { Modal } from "./modal";
+import { Modal } from "@/components/ui/modal";
 
 /** İkon seçici: önizlemeli buton + aranabilir ikon ızgarası */
 export function IconPicker({ value, onChange }: { value?: string; onChange: (name: string) => void }) {

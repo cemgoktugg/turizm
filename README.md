@@ -39,9 +39,10 @@ uyarı gösterilir.
 | --- | --- |
 | **Kontrol Paneli** | Özet, yaklaşan kalkışlar, son başvurular ve dikkat gerektirenler (tarihi geçen öne çıkan tur, kapaksız tur, örnek WhatsApp numarası vb.) |
 | **Başvurular** | Tüm formlardan gelen talepler. Arama, durum filtresi, kaynak sayfa, WhatsApp'tan yazma, iç not, Excel (CSV) dışa aktarma |
-| **Turlar** | Tam CRUD, galeri, gün gün program, oda fiyatları, SSS, SEO. Filtreler (sitede / tarihi geçen / taslak), **kopyala** (yeni sezon için) |
+| **Değerlendirmeler** | Ziyaretçilerin tur sayfasından gönderdiği yorumlar. Onaylanan yorum turun "Değerlendirmeler" bölümünde yayınlanır; onay bekleyenler menüde sayı olarak görünür |
+| **Turlar** | Tam CRUD. Form, tur detay sayfasıyla aynı sıradadır: başlık ve üst etiket, tur no (boşsa otomatik), tarih ve kalan koltuk, galeri ve video, otel kartları (gece, yıldız, mesafe, görsel, video), uçuş ve transfer bacakları, başlangıç fiyatı ve oda ücretleri (2'li / 3'lü / 4'lü / tek / çocuk), genel bakış, dahil / hariç hizmetler, günlük program, SSS, SEO. Filtreler (sitede / tarihi geçen / taslak), **kopyala** (yeni sezon için) |
 | **Kategoriler** | Ana sayfa kategori kartları ve `/turlar` filtreleri: ad, açıklama, ikon, görsel, sıralama. Sayfalara bağlı sistem kategorileri kilitlidir |
-| **Oteller** | Mekke ve Medine otelleri. Tur formunda otel önerisi olarak çıkar ve mesafeyi otomatik doldurur |
+| **Oteller** | Mekke ve Medine otelleri. Tur formundaki otel kartında "Kayıtlı otellerden seç" ile ad, yıldız, mesafe ve görseli otomatik doldurur |
 | **Sayfa İçerikleri** | Sitede görünen her metin ve görsel: üst menü ve alt menüler, footer bağlantı sütunları, hero slaytları, istatistikler, "Neden Biz", hakkımızda, gerekli bilgiler, menasik adımları, dualar, sayfa başlıkları, sayfa yolu adları ve SEO, buton/etiket/form metinleri, boş durum mesajları, WhatsApp hazır mesajları, 404 sayfası |
 | **Blog** | Markdown yazılar, canlı önizleme, otomatik okuma süresi |
 | **Belgeler** | TÜRSAB, Diyanet ve IATA gibi belgeler |
@@ -64,7 +65,8 @@ uyarı gösterilir.
 
 - Şifreler bcrypt ile saklanır. Oturum imzalı JWT ile httpOnly çerezde tutulur. Şifre değişince veya
   kullanıcı silinince diğer cihazlardaki oturumlar düşer (`tokenVersion`).
-- Giriş denemeleri IP ve hesap başına hız sınırlıdır. Başvuru formunda honeypot ve IP başına sınır var.
+- Giriş denemeleri IP ve hesap başına hız sınırlıdır. Başvuru ve değerlendirme formlarında honeypot ve
+  IP başına sınır var. Değerlendirmeler panelden onaylanmadan yayınlanmaz.
 - Yüklemelerde dosya türü içeriğinden (magic bytes) doğrulanır. SVG kabul edilmez. Görseller WEBP'ye
   çevrilip küçültülür.
 - Tüm admin işlemleri sunucu tarafında oturum ve Zod doğrulamasından geçer.
@@ -94,11 +96,12 @@ uyarı gösterilir.
 app/
   (site)/            → genel site
   admin/             → yönetim paneli (login + (panel) oturum korumalı)
-  actions/           → server actions (tours, categories, hotels, blog, content, media, leads, account, settings)
+  actions/           → server actions (tours, reviews, categories, hotels, blog, content, media, leads, account, settings)
   api/admin/         → görsel yükleme ve CSV dışa aktarma
   uploads/[...path]/ → yüklenen görsellerin sunumu
 components/
   site/  admin/  ui/  seo/
+  site/tour-detail/  → tur detay sayfası (galeri, otel ve uçuş kartları, fiyat kutusu, tarih tablosu, program, yorumlar)
 lib/
   content/           → içerik blokları (registry), alan tanımları, okuma katmanı
   auth, session, rate-limit, media, queries, validations, settings, revalidate

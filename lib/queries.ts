@@ -50,9 +50,34 @@ export const getTourBySlug = cache(async (slug: string) => {
       category: true,
       images: { orderBy: { order: "asc" } },
       prices: { orderBy: { order: "asc" } },
+      hotels: { orderBy: { order: "asc" } },
+      legs: { orderBy: { order: "asc" } },
       dayPrograms: { orderBy: { dayNumber: "asc" } },
       faqs: { orderBy: { order: "asc" } },
+      reviews: { where: { isApproved: true }, orderBy: { createdAt: "desc" } },
     },
+  });
+});
+
+/** "Tarihler ve Fiyatlar" tablosu: aynı kategorideki kayıt alınabilen tüm tarihler */
+export const getTourDates = cache(async (categoryId: string) => {
+  return prisma.tour.findMany({
+    where: activeTourWhere({ categoryId }),
+    select: {
+      id: true,
+      slug: true,
+      code: true,
+      badge: true,
+      departureDate: true,
+      returnDate: true,
+      durationDays: true,
+      airline: true,
+      startingPrice: true,
+      currency: true,
+      seatsLeft: true,
+      legs: { orderBy: { order: "asc" }, select: { type: true, fromCity: true, toCity: true, time: true } },
+    },
+    orderBy: [{ durationDays: "asc" }, { departureDate: "asc" }],
   });
 });
 

@@ -21,9 +21,10 @@ export default async function AdminPanelLayout({ children }: { children: React.R
     redirect(hasCookie ? "/admin/login?expired=1" : "/admin/login");
   }
 
-  const [settings, newLeads] = await Promise.all([
+  const [settings, newLeads, pendingReviews] = await Promise.all([
     getSettings(),
     prisma.lead.count({ where: { status: "Yeni" } }),
+    prisma.review.count({ where: { isApproved: false } }),
   ]);
 
   return (
@@ -31,6 +32,7 @@ export default async function AdminPanelLayout({ children }: { children: React.R
       user={{ name: user.name, email: user.email, mustChangePassword: user.mustChangePassword }}
       brand={{ siteName: settings.siteName, logo: settings.logo }}
       newLeads={newLeads}
+      pendingReviews={pendingReviews}
     >
       {children}
     </AdminShell>

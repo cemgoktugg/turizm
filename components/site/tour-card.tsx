@@ -19,7 +19,6 @@ export type TourCardData = {
   durationNights?: number | null;
   departureCity?: string | null;
   airline?: string | null;
-  makkahHotel?: string | null;
   isFeatured?: boolean;
   category?: { name: string; slug: string } | null;
 };
