@@ -49,3 +49,6 @@ next-env.d.ts
 
 # yüklenen medya dosyaları
 /storage/
+
+# Yerel çalışma görselleri (panelden yüklenir, depoya girmez)
+/img/
