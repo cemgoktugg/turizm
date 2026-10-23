@@ -9,6 +9,7 @@ export type MediaItem = {
   id: string;
   url: string;
   originalName: string;
+  mimeType: string;
   alt: string | null;
   width: number | null;
   height: number | null;
@@ -33,6 +34,7 @@ export async function listMedia(): Promise<ActionResult<MediaLibrary>> {
           id: m.id,
           url: m.url,
           originalName: m.originalName,
+          mimeType: m.mimeType,
           alt: m.alt,
           width: m.width,
           height: m.height,
@@ -57,22 +59,22 @@ export async function updateMediaAlt(id: string, alt: string): Promise<ActionRes
   });
 }
 
-/** Görseli siler — sitede kullanılıyorsa silmeyi engeller */
+/** Dosyayı siler — sitede kullanılıyorsa silmeyi engeller */
 export async function deleteMedia(id: string): Promise<ActionResult<MediaUsage[]>> {
   return adminAction(async () => {
     const media = await prisma.media.findUnique({ where: { id } });
-    if (!media) return { ok: false, message: "Görsel bulunamadı." };
+    if (!media) return { ok: false, message: "Dosya bulunamadı." };
     const usage = await findMediaUsage(media.url);
     if (usage.length) {
       return {
         ok: false,
-        message: `Bu görsel ${usage.length} yerde kullanılıyor. Önce oralardan kaldırın.`,
+        message: `Bu dosya ${usage.length} yerde kullanılıyor. Önce oralardan kaldırın.`,
         data: usage,
       };
     }
     await prisma.media.delete({ where: { id } });
     await deleteUploadFile(media.url);
     revalidatePath("/admin/media");
-    return { ok: true, message: "Görsel silindi." };
+    return { ok: true, message: "Dosya silindi." };
   });
 }

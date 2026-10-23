@@ -8,12 +8,13 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT = join(__dirname, "..", "public", "images");
 mkdirSync(OUT, { recursive: true });
 
+// Nemira logo paleti: turkuaz #008499 · lacivert #000f20 · altın #c9934a
 const PALETTES = {
-  emerald: ["#0a2016", "#163f2d", "#1f6444"],
-  night: ["#0a1622", "#131d2e", "#273c5e"],
-  gold: ["#5f3a1e", "#a97121", "#d4a53d"],
-  dawn: ["#113222", "#1a5038", "#86541e"],
-  sand: ["#6f441f", "#a97121", "#ecd79b"],
+  teal: ["#000f20", "#0b4a5c", "#00788c"],
+  night: ["#000a16", "#072236", "#1d2c43"],
+  gold: ["#52381f", "#9c6b2e", "#c9934a"],
+  dawn: ["#072236", "#0b4a5c", "#7f5626"],
+  sand: ["#654423", "#9c6b2e", "#ebd2ae"],
 };
 
 /** Küçük yıldız serpiştirmesi (deterministik) */
@@ -29,13 +30,13 @@ function stars(seed, count = 26) {
     const y = Math.round(rnd() * 500);
     const r = (rnd() * 1.6 + 0.4).toFixed(2);
     const o = (rnd() * 0.5 + 0.2).toFixed(2);
-    out += `<circle cx="${x}" cy="${y}" r="${r}" fill="#f5ebcd" opacity="${o}"/>`;
+    out += `<circle cx="${x}" cy="${y}" r="${r}" fill="#f5e9d7" opacity="${o}"/>`;
   }
   return out;
 }
 
 /** Cami silüeti (kubbe + minareler) */
-function mosque(cx, baseY, scale = 1, fill = "#0a2016", op = 0.9) {
+function mosque(cx, baseY, scale = 1, fill = "#000f20", op = 0.9) {
   const w = 260 * scale;
   const domeR = 70 * scale;
   const bodyH = 90 * scale;
@@ -71,7 +72,7 @@ function xml(text) {
 function svg({
   w = 1600,
   h = 1000,
-  palette = "emerald",
+  palette = "teal",
   label = "",
   sub = "",
   withMosque = true,
@@ -88,28 +89,28 @@ function svg({
       <stop offset="1" stop-color="${c3}"/>
     </linearGradient>
     <radialGradient id="${id}g" cx="0.5" cy="0.1" r="0.9">
-      <stop offset="0" stop-color="#d4a53d" stop-opacity="0.28"/>
-      <stop offset="1" stop-color="#d4a53d" stop-opacity="0"/>
+      <stop offset="0" stop-color="#c9934a" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#c9934a" stop-opacity="0"/>
     </radialGradient>
-    ${pattern(id + "p", "#d4a53d")}
+    ${pattern(id + "p", "#c9934a")}
   </defs>
   <rect width="${w}" height="${h}" fill="url(#${id})"/>
   <rect width="${w}" height="${h}" fill="url(#${id}p)"/>
   <rect width="${w}" height="${h}" fill="url(#${id}g)"/>
   ${withStars ? stars(seed * 31) : ""}
-  <ellipse cx="${w * 0.78}" cy="${h * 0.22}" rx="70" ry="70" fill="#f5ebcd" opacity="0.9"/>
+  <ellipse cx="${w * 0.78}" cy="${h * 0.22}" rx="70" ry="70" fill="#f5e9d7" opacity="0.9"/>
   <ellipse cx="${w * 0.8}" cy="${h * 0.2}" rx="70" ry="70" fill="url(#${id})" opacity="0.55"/>
-  ${withMosque ? mosque(w * 0.5, h * 0.92, w / 1600, "#06140d", 0.55) : ""}
-  ${withMosque ? mosque(w * 0.2, h * 0.95, (w / 1600) * 0.7, "#040d09", 0.4) : ""}
-  ${withMosque ? mosque(w * 0.82, h * 0.96, (w / 1600) * 0.8, "#040d09", 0.4) : ""}
+  ${withMosque ? mosque(w * 0.5, h * 0.92, w / 1600, "#000a16", 0.55) : ""}
+  ${withMosque ? mosque(w * 0.2, h * 0.95, (w / 1600) * 0.7, "#00060e", 0.4) : ""}
+  ${withMosque ? mosque(w * 0.82, h * 0.96, (w / 1600) * 0.8, "#00060e", 0.4) : ""}
   ${
     label
-      ? `<text x="${w / 2}" y="${h * 0.46}" text-anchor="middle" font-family="Georgia, serif" font-size="${w * 0.05}" fill="#faf6ee" font-weight="700" letter-spacing="1">${xml(label)}</text>`
+      ? `<text x="${w / 2}" y="${h * 0.46}" text-anchor="middle" font-family="Georgia, serif" font-size="${w * 0.05}" fill="#f8f5ef" font-weight="700" letter-spacing="1">${xml(label)}</text>`
       : ""
   }
   ${
     sub
-      ? `<text x="${w / 2}" y="${h * 0.55}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${w * 0.02}" fill="#ecd79b" letter-spacing="4" text-transform="uppercase">${xml(sub)}</text>`
+      ? `<text x="${w / 2}" y="${h * 0.55}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${w * 0.02}" fill="#ebd2ae" letter-spacing="4" text-transform="uppercase">${xml(sub)}</text>`
       : ""
   }
 </svg>`;
@@ -123,12 +124,12 @@ function write(name, content) {
 // Hero slaytları
 // Hero görselleri arka plan olarak kullanıldığı için yazısız üretilir (başlık sitede ayrıca yazılır)
 write("hero-1.svg", svg({ h: 900, palette: "night", label: "", sub: "", seed: 3 }));
-write("hero-2.svg", svg({ h: 900, palette: "emerald", label: "", sub: "", seed: 5 }));
+write("hero-2.svg", svg({ h: 900, palette: "teal", label: "", sub: "", seed: 5 }));
 write("hero-3.svg", svg({ h: 900, palette: "dawn", label: "", sub: "", seed: 9 }));
 
 // Kategoriler
 write("kategori-hac.svg", svg({ palette: "night", label: "Hac", seed: 11 }));
-write("kategori-umre.svg", svg({ palette: "emerald", label: "Umre", seed: 13 }));
+write("kategori-umre.svg", svg({ palette: "teal", label: "Umre", seed: 13 }));
 write("kategori-luks.svg", svg({ palette: "gold", label: "Lüks Umre", seed: 15 }));
 write("kategori-ramazan.svg", svg({ palette: "dawn", label: "Ramazan", seed: 17 }));
 write("kategori-kultur.svg", svg({ palette: "sand", label: "Kültür Turları", withMosque: false, seed: 19 }));
@@ -136,12 +137,12 @@ write("kategori-kultur.svg", svg({ palette: "sand", label: "Kültür Turları", 
 // Turlar
 const tours = [
   ["tur-ekonomik-umre", "night", "13 Gün Umre"],
-  ["tur-20-gun-umre", "emerald", "20 Gün Umre"],
+  ["tur-20-gun-umre", "teal", "20 Gün Umre"],
   ["tur-luks-umre", "gold", "Lüks Umre"],
   ["tur-ramazan-umresi", "dawn", "Ramazan Umresi"],
   ["tur-hac-2026", "night", "Hac 2026"],
   ["tur-kudus", "sand", "Kudüs Turu"],
-  ["tur-balkan", "emerald", "Balkan Turu"],
+  ["tur-balkan", "teal", "Balkan Turu"],
 ];
 tours.forEach(([name, pal, label], i) =>
   write(`${name}.svg`, svg({ palette: pal, label, seed: 21 + i * 2, withMosque: pal !== "sand" })),
@@ -151,9 +152,9 @@ tours.forEach(([name, pal, label], i) =>
 const hotels = [
   ["otel-mekke-1", "gold", "Mekke Oteli"],
   ["otel-mekke-2", "dawn", "Mekke Oteli"],
-  ["otel-mekke-3", "emerald", "Mekke Oteli"],
+  ["otel-mekke-3", "teal", "Mekke Oteli"],
   ["otel-medine-1", "night", "Medine Oteli"],
-  ["otel-medine-2", "emerald", "Medine Oteli"],
+  ["otel-medine-2", "teal", "Medine Oteli"],
   ["otel-medine-3", "gold", "Medine Oteli"],
 ];
 hotels.forEach(([name, pal, label], i) =>
@@ -163,7 +164,7 @@ hotels.forEach(([name, pal, label], i) =>
 // Blog
 const blogs = [
   ["blog-valiz", "sand", "Umre Valizi"],
-  ["blog-ilk-umre", "emerald", "İlk Umre Rehberi"],
+  ["blog-ilk-umre", "teal", "İlk Umre Rehberi"],
   ["blog-hac-umre-fark", "night", "Hac & Umre"],
   ["blog-ihram", "dawn", "İhram"],
   ["blog-mikat", "gold", "Mikat"],
@@ -174,13 +175,13 @@ blogs.forEach(([name, pal, label], i) =>
 
 // Sertifikalar
 write("belge-tursab.svg", svg({ w: 900, h: 1200, palette: "night", label: "TÜRSAB", sub: "A GRUBU BELGE", withMosque: false, seed: 81 }));
-write("belge-diyanet.svg", svg({ w: 900, h: 1200, palette: "emerald", label: "Diyanet", sub: "YETKİ BELGESİ", withMosque: false, seed: 83 }));
+write("belge-diyanet.svg", svg({ w: 900, h: 1200, palette: "teal", label: "Diyanet", sub: "YETKİ BELGESİ", withMosque: false, seed: 83 }));
 write("belge-iata.svg", svg({ w: 900, h: 1200, palette: "gold", label: "IATA", sub: "ÜYELİK", withMosque: false, seed: 85 }));
 
 // Genel / OG / hakkımızda
-write("about.svg", svg({ palette: "emerald", label: "Hakkımızda", seed: 91 }));
+write("about.svg", svg({ palette: "teal", label: "Hakkımızda", seed: 91 }));
 write("cta-bg.svg", svg({ h: 700, palette: "night", withMosque: true, withStars: true, seed: 93 }));
-write("og-image.svg", svg({ w: 1200, h: 630, palette: "night", label: "Rotamız Huzura", sub: "HAC & UMRE TURİZM", seed: 95 }));
-write("logo-mark.svg", svg({ w: 200, h: 200, palette: "emerald", withMosque: true, withStars: false, seed: 97 }));
+// Paylaşım görseli ve logolar logodan üretilmiştir: nemira-og.png, nemira-logo*.png, nemira-icon.png
+write("logo-mark.svg", svg({ w: 200, h: 200, palette: "teal", withMosque: true, withStars: false, seed: 97 }));
 
 console.log("\nTüm görseller oluşturuldu →", OUT);

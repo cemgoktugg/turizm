@@ -49,7 +49,7 @@ export function SettingsForm({ values }: { values: SettingsInput }) {
       noValidate
     >
       <FormSection title="Genel" description="Site adı ve logo; üst menü, footer, panel ve tarayıcı sekmesinde kullanılır.">
-        <div className="grid gap-4 lg:grid-cols-[1fr_240px]">
+        <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Site Adı" required error={errors.siteName?.message}>
               <Input {...register("siteName")} />
@@ -62,18 +62,30 @@ export function SettingsForm({ values }: { values: SettingsInput }) {
             </Field>
           </div>
           <div className="space-y-4">
-            <Field label="Logo" error={errors.logo?.message}>
+            <Field label="Logo (açık zemin — üst menü)" error={errors.logo?.message}>
               <Controller
                 control={control}
                 name="logo"
-                render={({ field }) => <ImagePicker value={field.value} onChange={field.onChange} aspect="square" />}
+                render={({ field }) => (
+                  <ImagePicker value={field.value} onChange={field.onChange} aspect="wide" surface="light" contain />
+                )}
               />
+            </Field>
+            <Field label="Logo (koyu zemin — footer ve panel)" error={errors.logoLight?.message}>
+              <Controller
+                control={control}
+                name="logoLight"
+                render={({ field }) => <ImagePicker value={field.value} onChange={field.onChange} aspect="wide" contain />}
+              />
+              <p className="mt-1 text-xs text-muted">Koyu arka planda okunacak, yazısı açık renkli sürüm. Boşsa üstteki logo kullanılır.</p>
             </Field>
             <Field label="Favicon (tarayıcı sekme ikonu)" error={errors.favicon?.message}>
               <Controller
                 control={control}
                 name="favicon"
-                render={({ field }) => <ImagePicker value={field.value} onChange={field.onChange} aspect="square" />}
+                render={({ field }) => (
+                  <ImagePicker value={field.value} onChange={field.onChange} aspect="square" surface="light" contain />
+                )}
               />
               <p className="mt-1 text-xs text-muted">Kare bir görsel seçin (en az 64×64 px).</p>
             </Field>

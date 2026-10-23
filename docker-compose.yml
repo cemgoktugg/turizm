@@ -1,0 +1,111 @@
+# ============================================================================
+# NEMIRA — Dokploy Compose (repo kökü)
+# Provider = GitHub, Compose Path = docker-compose.yml
+#
+# Testerestore ile aynı sunucuda çalışır: aynı Traefik (dokploy-network),
+# alan adı + SSL otomatik (Let's Encrypt). Router / middleware adları "nemira-"
+# önekli olduğundan diğer sitelerle çakışmaz.
+#
+# Kalıcı veriler:
+#   nemira_data     → SQLite veritabanı (/app/data/turizm.db)
+#   nemira_uploads  → panelden yüklenen görsel ve videolar
+#   nemira_backups  → günlük yedekler (db-backup servisi)
+# ============================================================================
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      SITE_URL: https://${DOMAIN}
+      DATABASE_URL: file:/app/data/turizm.db
+      JWT_SECRET: ${JWT_SECRET}
+      # İlk açılışta yönetici hesabını bu bilgilerle kurar (varsa dokunmaz)
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+    volumes:
+      - nemira_data:/app/data
+      - nemira_uploads:/app/storage/uploads
+    networks:
+      - dokploy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=dokploy-network"
+      - "traefik.http.routers.nemira-web.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.nemira-web.entrypoints=websecure"
+      - "traefik.http.routers.nemira-web.tls.certResolver=letsencrypt"
+      - "traefik.http.routers.nemira-web.middlewares=nemira-headers"
+      - "traefik.http.services.nemira-web.loadbalancer.server.port=3000"
+      # ── Güvenlik başlıkları ───────────────────────────────────────────────
+      - "traefik.http.middlewares.nemira-headers.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.nemira-headers.headers.contentTypeNosniff=true"
+      - "traefik.http.middlewares.nemira-headers.headers.frameDeny=true"
+      - "traefik.http.middlewares.nemira-headers.headers.referrerPolicy=strict-origin-when-cross-origin"
+      - "traefik.http.middlewares.nemira-headers.headers.customResponseHeaders.X-Powered-By="
+      # ── Panel girişi: IP başına dakikada 10 deneme (kaba kuvvete karşı) ─────
+      - "traefik.http.middlewares.nemira-rl-login.ratelimit.average=10"
+      - "traefik.http.middlewares.nemira-rl-login.ratelimit.period=1m"
+      - "traefik.http.middlewares.nemira-rl-login.ratelimit.burst=10"
+      - "traefik.http.routers.nemira-login.rule=Host(`${DOMAIN}`) && Path(`/admin/login`) && Method(`POST`)"
+      - "traefik.http.routers.nemira-login.entrypoints=websecure"
+      - "traefik.http.routers.nemira-login.tls.certResolver=letsencrypt"
+      - "traefik.http.routers.nemira-login.middlewares=nemira-headers,nemira-rl-login"
+      - "traefik.http.routers.nemira-login.service=nemira-web"
+      # ── http:// → https:// (apex + www) ───────────────────────────────────
+      - "traefik.http.middlewares.nemira-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.nemira-to-https.redirectscheme.permanent=true"
+      - "traefik.http.routers.nemira-web-http.rule=Host(`${DOMAIN}`) || Host(`www.${DOMAIN}`)"
+      - "traefik.http.routers.nemira-web-http.entrypoints=web"
+      - "traefik.http.routers.nemira-web-http.middlewares=nemira-to-https"
+      # ── https://www.<alan adı> → https://<alan adı> (www için DNS A kaydı gerekir)
+      - "traefik.http.middlewares.nemira-www-to-apex.redirectregex.regex=^https?://www\\.(.+)"
+      - "traefik.http.middlewares.nemira-www-to-apex.redirectregex.replacement=https://$${1}"
+      - "traefik.http.middlewares.nemira-www-to-apex.redirectregex.permanent=true"
+      - "traefik.http.routers.nemira-www.rule=Host(`www.${DOMAIN}`)"
+      - "traefik.http.routers.nemira-www.entrypoints=websecure"
+      - "traefik.http.routers.nemira-www.tls.certResolver=letsencrypt"
+      - "traefik.http.routers.nemira-www.middlewares=nemira-www-to-apex"
+
+  # ── Otomatik yedek ────────────────────────────────────────────────────────
+  # Her gün: veritabanı (sqlite .backup, sıkıştırılmış) + yüklenen dosyalar.
+  # Veritabanı yedekleri BACKUP_KEEP_DAYS (varsayılan 14) gün, dosya arşivleri
+  # 3 gün tutulur. Sunucu dışına kopya için Dokploy → Volume Backups kullanın.
+  db-backup:
+    image: alpine:3.20
+    restart: unless-stopped
+    depends_on:
+      - web
+    environment:
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes:
+      - nemira_data:/data
+      - nemira_uploads:/uploads:ro
+      - nemira_backups:/backups
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        apk add --no-cache sqlite >/dev/null
+        while true; do
+          TS=$$(date +%Y-%m-%d_%H%M)
+          if [ -f /data/turizm.db ] && sqlite3 /data/turizm.db ".backup '/backups/db_$$TS.db'"; then
+            gzip -f /backups/db_$$TS.db && echo "[yedek] db_$$TS.db.gz tamam"
+          else
+            echo "[yedek] HATA: veritabanı yedeği alınamadı"
+          fi
+          tar -czf /backups/uploads_$$TS.tar.gz -C /uploads . && echo "[yedek] uploads_$$TS.tar.gz tamam"
+          find /backups -name 'db_*.db.gz' -mtime +$$BACKUP_KEEP_DAYS -delete
+          find /backups -name 'uploads_*.tar.gz' -mtime +3 -delete
+          sleep 86400
+        done
+
+volumes:
+  nemira_data:
+  nemira_uploads:
+  nemira_backups:
+
+networks:
+  dokploy-network:
+    external: true

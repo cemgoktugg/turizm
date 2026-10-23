@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Playfair_Display } from "next/font/google";
 import { Toaster } from "sonner";
 import { getSettings } from "@/lib/settings";
+import { SITE_URL } from "@/lib/site-url";
 import "./globals.css";
 
 const sans = Plus_Jakarta_Sans({
@@ -16,20 +17,18 @@ const serif = Playfair_Display({
   display: "swap",
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-
 /** Genel SEO ayarları admin panelindeki "Site Ayarları › SEO" bölümünden gelir */
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings();
   return {
-    metadataBase: new URL(siteUrl),
+    metadataBase: new URL(SITE_URL),
     title: { default: s.seoTitle, template: `%s | ${s.siteName}` },
     description: s.seoDescription,
     keywords: s.seoKeywords
       .split(",")
       .map((k) => k.trim())
       .filter(Boolean),
-    icons: { icon: s.favicon || "/favicon.ico" },
+    icons: { icon: s.favicon || "/favicon.ico", apple: "/images/nemira-apple-icon.png" },
     openGraph: {
       type: "website",
       locale: "tr_TR",
@@ -40,6 +39,9 @@ export async function generateMetadata(): Promise<Metadata> {
     robots: { index: true, follow: true },
   };
 }
+
+/** Mobil tarayıcı çubuğu rengi (logo laciverti) */
+export const viewport: Viewport = { themeColor: "#000f20" };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (

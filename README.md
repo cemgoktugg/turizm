@@ -43,10 +43,11 @@ uyarı gösterilir.
 | **Turlar** | Tam CRUD. Form, tur detay sayfasıyla aynı sıradadır: başlık ve üst etiket, tur no (boşsa otomatik), tarih ve kalan koltuk, galeri ve video, otel kartları (gece, yıldız, mesafe, görsel, video), uçuş ve transfer bacakları, başlangıç fiyatı ve oda ücretleri (2'li / 3'lü / 4'lü / tek / çocuk), genel bakış, dahil / hariç hizmetler, günlük program, SSS, SEO. Filtreler (sitede / tarihi geçen / taslak), **kopyala** (yeni sezon için) |
 | **Kategoriler** | Ana sayfa kategori kartları ve `/turlar` filtreleri: ad, açıklama, ikon, görsel, sıralama. Sayfalara bağlı sistem kategorileri kilitlidir |
 | **Oteller** | Mekke ve Medine otelleri. Tur formundaki otel kartında "Kayıtlı otellerden seç" ile ad, yıldız, mesafe ve görseli otomatik doldurur |
+| **Hikayeler** | Ana sayfada slider'ın altında Instagram hikayesi gibi görünen yuvarlak videolar ve fotoğraflar: kapak, kısa başlık, sırayla oynayan içerikler, açıklama, alt buton, sıralama, yayın durumu ve tam ekran önizleme |
 | **Sayfa İçerikleri** | Sitede görünen her metin ve görsel: üst menü ve alt menüler, footer bağlantı sütunları, hero slaytları, istatistikler, "Neden Biz", hakkımızda, gerekli bilgiler, menasik adımları, dualar, sayfa başlıkları, sayfa yolu adları ve SEO, buton/etiket/form metinleri, boş durum mesajları, WhatsApp hazır mesajları, 404 sayfası |
 | **Blog** | Markdown yazılar, canlı önizleme, otomatik okuma süresi |
 | **Belgeler** | TÜRSAB, Diyanet ve IATA gibi belgeler |
-| **Medya** | Görsel yükleme (sürükle-bırak), kullanıldığı yerleri gösterme, kullanımdaki görselin silinmesini engelleme |
+| **Medya** | Görsel ve video yükleme (sürükle-bırak), kullanıldığı yerleri gösterme, kullanımdaki dosyanın silinmesini engelleme |
 | **Site Ayarları** | Logo, favicon, iletişim, sosyal medya (Facebook, Instagram, YouTube, X, TikTok, LinkedIn, Telegram), Google Harita (iframe kodu doğrudan yapıştırılabilir), genel SEO ve paylaşım görseli |
 | **Kullanıcılar / Hesabım** | Yönetici ekleme ve silme, profil, şifre değiştirme |
 
@@ -68,14 +69,19 @@ uyarı gösterilir.
 - Giriş denemeleri IP ve hesap başına hız sınırlıdır. Başvuru ve değerlendirme formlarında honeypot ve
   IP başına sınır var. Değerlendirmeler panelden onaylanmadan yayınlanmaz.
 - Yüklemelerde dosya türü içeriğinden (magic bytes) doğrulanır. SVG kabul edilmez. Görseller WEBP'ye
-  çevrilip küçültülür.
+  çevrilip küçültülür (en fazla 10 MB). Videolar (MP4, MOV, WEBM; en fazla 50 MB) yalnızca hikaye ve medya
+  alanlarında kabul edilir, dönüştürülmeden saklanır ve parçalı (Range) olarak sunulur.
 - Tüm admin işlemleri sunucu tarafında oturum ve Zod doğrulamasından geçer.
 
 ## Canlıya Çıkış Notları
 
-- **Veritabanı:** SQLite tek sunuculu (VPS / Docker) kurulum için uygundur. Vercel gibi sunucusuz
-  platformlarda dosya sistemi kalıcı olmadığından PostgreSQL gerekir (`provider = "postgresql"`).
-- **Yüklenen görseller** `storage/uploads/` klasöründe tutulur ve `/uploads/...` adresinden sunulur.
+- **Yayın:** Hostinger VPS'teki Dokploy ile Docker Compose olarak yayınlanır. Adım adım rehber:
+  [`deploy/DOKPLOY.md`](deploy/DOKPLOY.md). Gerekli ortam değişkenleri: [`deploy/.env.example`](deploy/.env.example).
+- **Veritabanı:** SQLite, kalıcı Docker volume'unda (`/app/data`) durur. İlk açılışta tablolar ve
+  başlangıç içeriği otomatik kurulur, sonraki sürümlerde yalnızca yeni geçişler uygulanır.
+  Vercel gibi sunucusuz platformlarda dosya sistemi kalıcı olmadığından PostgreSQL gerekir.
+- **Sayfalar** her istekte canlı veritabanından üretilir; panel değişiklikleri anında yansır.
+- **Yüklenen görseller ve videolar** `storage/uploads/` klasöründe tutulur ve `/uploads/...` adresinden sunulur.
   Bu klasörün kalıcı bir diskte olması ve yedeklenmesi gerekir.
 - Hız sınırlayıcı bellek içidir, tek sunucu için yeterlidir.
 - Ramazan ve Hac tarihleri hicri takvime göre yaklaşıktır. Diyanet ilanına göre panelden güncelleyin.
@@ -96,11 +102,12 @@ uyarı gösterilir.
 app/
   (site)/            → genel site
   admin/             → yönetim paneli (login + (panel) oturum korumalı)
-  actions/           → server actions (tours, reviews, categories, hotels, blog, content, media, leads, account, settings)
+  actions/           → server actions (tours, reviews, stories, categories, hotels, blog, content, media, leads, account, settings)
   api/admin/         → görsel yükleme ve CSV dışa aktarma
   uploads/[...path]/ → yüklenen görsellerin sunumu
 components/
   site/  admin/  ui/  seo/
+  site/stories/      → ana sayfa hikaye şeridi ve tam ekran hikaye oynatıcı
   site/tour-detail/  → tur detay sayfası (galeri, otel ve uçuş kartları, fiyat kutusu, tarih tablosu, program, yorumlar)
 lib/
   content/           → içerik blokları (registry), alan tanımları, okuma katmanı

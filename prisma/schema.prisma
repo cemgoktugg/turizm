@@ -243,7 +243,35 @@ model FAQ {
   createdAt DateTime @default(now())
 }
 
-/// Admin panelinden yüklenen görseller
+/// Ana sayfada slider altındaki Instagram hikayesi tarzı yuvarlak videolar / fotoğraflar
+model Story {
+  id          String      @id @default(cuid())
+  title       String
+  /// Yuvarlak kapak görseli (boşsa ilk içerik kullanılır)
+  cover       String?
+  buttonLabel String?
+  buttonUrl   String?
+  order       Int         @default(0)
+  isPublished Boolean     @default(true)
+  items       StoryItem[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+/// Hikayenin sırayla oynayan video / fotoğrafları
+model StoryItem {
+  id        String   @id @default(cuid())
+  url       String
+  caption   String?
+  /// Fotoğrafın ekranda kalma süresi (sn); videolar kendi süresince oynar
+  duration  Int?
+  order     Int      @default(0)
+  storyId   String
+  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+/// Admin panelinden yüklenen görseller ve videolar
 model Media {
   id           String   @id @default(cuid())
   url          String   @unique

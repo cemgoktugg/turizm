@@ -305,6 +305,32 @@ export const certificateSchema = z.object({
 });
 export type CertificateInput = z.infer<typeof certificateSchema>;
 
+/** Site içi yol (/turlar/...) veya http(s) bağlantısı */
+const internalOrWebUrl = z
+  .string()
+  .trim()
+  .max(500)
+  .refine((v) => v === "" || v.startsWith("/") || /^https?:\/\//i.test(v), "Bağlantı '/' veya 'https://' ile başlamalı")
+  .optional();
+
+export const storyItemSchema = z.object({
+  url: imagePath.refine((v) => v.length > 0, "Video veya görsel seçiniz"),
+  caption: optionalText(200),
+  duration: optionalNumber({ min: 2, max: 30, int: true }),
+});
+
+export const storySchema = z
+  .object({
+    title: z.string().trim().min(1, "Başlık gerekli").max(30, "En fazla 30 karakter (yuvarlağın altına sığmalı)"),
+    cover: imagePath.optional(),
+    buttonLabel: optionalText(40),
+    buttonUrl: internalOrWebUrl,
+    isPublished: z.boolean(),
+    items: z.array(storyItemSchema).min(1, "En az bir video veya görsel ekleyin").max(20, "En fazla 20 içerik"),
+  })
+  .refine((d) => !d.buttonLabel || d.buttonUrl, { message: "Buton için bağlantı girin", path: ["buttonUrl"] });
+export type StoryInput = z.infer<typeof storySchema>;
+
 /** Ziyaretçi değerlendirmesi (honeypot ile spam koruması) */
 export const reviewSchema = z.object({
   tourId: z.string().min(1).max(40),
@@ -341,6 +367,7 @@ export const settingsSchema = z.object({
   siteName: z.string().trim().min(2, "Site adı gerekli").max(80),
   tagline: z.string().trim().max(80),
   logo: imagePath,
+  logoLight: imagePath,
   footerNote: z.string().trim().max(400),
   phone: z.string().trim().min(7, "Telefon gerekli").max(30),
   whatsapp: z

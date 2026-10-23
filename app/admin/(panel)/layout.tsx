@@ -30,7 +30,7 @@ export default async function AdminPanelLayout({ children }: { children: React.R
   return (
     <AdminShell
       user={{ name: user.name, email: user.email, mustChangePassword: user.mustChangePassword }}
-      brand={{ siteName: settings.siteName, logo: settings.logo }}
+      brand={{ siteName: settings.siteName, logo: settings.logoLight || settings.logo }}
       newLeads={newLeads}
       pendingReviews={pendingReviews}
     >

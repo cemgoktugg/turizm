@@ -1,0 +1,43 @@
+// Canlı ortam: ADMIN_EMAIL / ADMIN_PASSWORD ortam değişkenleriyle yönetici hesabını hazırlar.
+// - Bu e-postayla hesap varsa hiçbir şeye dokunmaz (her açılışta şifreyi ezmez).
+// - İlk kurulumdaki varsayılan hesap (admin@turizm.com / admin123) duruyorsa onu bu bilgilere çevirir.
+import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
+
+const DEFAULT_EMAIL = "admin@turizm.com";
+const email = (process.env.ADMIN_EMAIL ?? "").trim().toLowerCase();
+const password = process.env.ADMIN_PASSWORD ?? "";
+const prisma = new PrismaClient();
+
+try {
+  const seeded = await prisma.user.findFirst({ where: { email: DEFAULT_EMAIL, passwordChangedAt: null } });
+
+  if (!email || !password) {
+    if (seeded) {
+      console.warn(
+        `[yönetici] UYARI: Varsayılan hesap (${DEFAULT_EMAIL} / admin123) kullanılıyor. ` +
+          "ADMIN_EMAIL ve ADMIN_PASSWORD ortam değişkenlerini girip yeniden başlatın.",
+      );
+    }
+  } else if (password.length < 10 || !/[A-Za-zÇĞİÖŞÜçğıöşü]/.test(password) || !/\d/.test(password)) {
+    console.warn("[yönetici] ADMIN_PASSWORD en az 10 karakter olmalı, harf ve rakam içermeli; hesap değiştirilmedi.");
+  } else if (await prisma.user.findUnique({ where: { email } })) {
+    console.log(`[yönetici] ${email} hesabı mevcut; dokunulmadı.`);
+  } else {
+    const hash = await bcrypt.hash(password, 12);
+    if (seeded) {
+      await prisma.user.update({
+        where: { id: seeded.id },
+        data: { email, password: hash, passwordChangedAt: new Date(), tokenVersion: { increment: 1 } },
+      });
+      console.log(`[yönetici] Varsayılan hesap ${email} olarak güncellendi.`);
+    } else {
+      await prisma.user.create({
+        data: { name: "Site Yöneticisi", email, password: hash, role: "ADMIN", passwordChangedAt: new Date() },
+      });
+      console.log(`[yönetici] ${email} hesabı oluşturuldu.`);
+    }
+  }
+} finally {
+  await prisma.$disconnect();
+}

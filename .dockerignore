@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.gitignore
+.vercel
+storage
+prisma/*.db
+prisma/*.db-journal
+.env*
+!.env.example
+*.tsbuildinfo
+npm-debug.log*
+deploy
+Dockerfile
+docker-compose.yml

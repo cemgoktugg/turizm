@@ -156,7 +156,7 @@ export function TourGallery({
               href={mapUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="group relative grid aspect-[4/3] place-items-center overflow-hidden rounded-2xl border border-border bg-[#eef2ea]"
+              className="group relative grid aspect-[4/3] place-items-center overflow-hidden rounded-2xl border border-border bg-[#edf3f4]"
               style={{
                 backgroundImage:
                   "linear-gradient(90deg, rgb(255 255 255 / 0.7) 2px, transparent 2px), linear-gradient(rgb(255 255 255 / 0.7) 2px, transparent 2px)",

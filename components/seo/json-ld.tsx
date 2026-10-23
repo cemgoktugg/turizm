@@ -1,6 +1,6 @@
 import type { SiteSettings } from "@/lib/settings";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+import { SITE_URL } from "@/lib/site-url";
 
 /** Site içi yolları mutlak URL'ye çevirir */
 function abs(url?: string | null): string | undefined {

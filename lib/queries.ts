@@ -97,6 +97,16 @@ export const getHotelsByCity = cache(async (city: string) => {
   });
 });
 
+/** Ana sayfa hikayeleri (yayında ve en az bir içeriği olanlar) */
+export const getStories = cache(async () => {
+  const stories = await prisma.story.findMany({
+    where: { isPublished: true, items: { some: {} } },
+    include: { items: { orderBy: { order: "asc" } } },
+    orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+  });
+  return stories;
+});
+
 export const getCertificates = cache(async () => {
   return prisma.documentCertificate.findMany({
     where: { isPublished: true },

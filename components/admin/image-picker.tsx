@@ -17,36 +17,38 @@ import {
 } from "lucide-react";
 import { listMedia, type MediaLibrary } from "@/app/actions/media";
 import { SmartImage } from "@/components/ui/smart-image";
+import { MediaThumb } from "@/components/ui/media-thumb";
+import { isVideoUrl, type UploadKind } from "@/lib/media-types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form-controls";
 import { cn } from "@/lib/utils";
 import { Modal } from "@/components/ui/modal";
-import { ACCEPT_IMAGES, uploadImages } from "./upload";
+import { ACCEPT_IMAGES, acceptFor, uploadFiles } from "./upload";
 
 /* ------------------------------------------------------------------ */
 /* Yükleme kancası                                                      */
 /* ------------------------------------------------------------------ */
 
-function useUploader(onUploaded: (urls: string[]) => void) {
+export function useUploader(onUploaded: (urls: string[]) => void, kind: UploadKind = "image") {
   const [uploading, setUploading] = useState(false);
   const upload = useCallback(
     async (files: File[]) => {
       if (!files.length) return;
       setUploading(true);
-      const res = await uploadImages(files);
+      const res = await uploadFiles(files, kind);
       setUploading(false);
       res.errors.forEach((e) => toast.error(e));
       if (res.files.length) {
-        toast.success(res.files.length === 1 ? "Görsel yüklendi." : `${res.files.length} görsel yüklendi.`);
+        toast.success(res.files.length === 1 ? "Dosya yüklendi." : `${res.files.length} dosya yüklendi.`);
         onUploaded(res.files.map((f) => f.url));
       }
     },
-    [onUploaded],
+    [onUploaded, kind],
   );
   return { uploading, upload };
 }
 
-function useDropZone(onFiles: (files: File[]) => void) {
+export function useDropZone(onFiles: (files: File[]) => void) {
   const [over, setOver] = useState(false);
   return {
     over,
@@ -76,6 +78,8 @@ type LibraryProps = {
   onClose: () => void;
   onSelect: (urls: string[]) => void;
   multiple?: boolean;
+  /** "media": videolar da listelenir ve yüklenebilir */
+  kind?: UploadKind;
 };
 
 /** Her açılışta sıfırdan mount edilir; seçim ve arama durumu kendiliğinden temizlenir */
@@ -84,7 +88,7 @@ export function MediaLibraryDialog(props: LibraryProps) {
   return <MediaLibraryInner {...props} />;
 }
 
-function MediaLibraryInner({ open, onClose, onSelect, multiple = false }: LibraryProps) {
+function MediaLibraryInner({ open, onClose, onSelect, multiple = false, kind = "image" }: LibraryProps) {
   const [lib, setLib] = useState<MediaLibrary | null>(null);
   const [tab, setTab] = useState<"uploads" | "builtin">("uploads");
   const [query, setQuery] = useState("");
@@ -98,13 +102,13 @@ function MediaLibraryInner({ open, onClose, onSelect, multiple = false }: Librar
       if (!alive) return;
       if (res.ok && res.data) {
         setLib(res.data);
-        if (!res.data.uploads.length) setTab("builtin");
+        if (!res.data.uploads.some((m) => kind === "media" || !m.mimeType.startsWith("video/"))) setTab("builtin");
       } else toast.error(res.message || "Medya listesi alınamadı.");
     });
     return () => {
       alive = false;
     };
-  }, []);
+  }, [kind]);
 
   const { uploading, upload } = useUploader(
     useCallback(
@@ -115,6 +119,7 @@ function MediaLibraryInner({ open, onClose, onSelect, multiple = false }: Librar
       },
       [multiple],
     ),
+    kind,
   );
   const drop = useDropZone((files) => void upload(files));
 
@@ -122,11 +127,17 @@ function MediaLibraryInner({ open, onClose, onSelect, multiple = false }: Librar
     if (!lib) return [];
     const list =
       tab === "uploads"
-        ? lib.uploads.map((m) => ({ url: m.url, name: m.originalName, meta: m.width ? `${m.width}×${m.height}` : "" }))
+        ? lib.uploads
+            .filter((m) => kind === "media" || !m.mimeType.startsWith("video/"))
+            .map((m) => ({
+              url: m.url,
+              name: m.originalName,
+              meta: m.mimeType.startsWith("video/") ? "Video" : m.width ? `${m.width}×${m.height}` : "",
+            }))
         : lib.builtin.map((u) => ({ url: u, name: u.split("/").pop() ?? u, meta: "Hazır görsel" }));
     const q = query.trim().toLocaleLowerCase("tr");
     return q ? list.filter((i) => i.name.toLocaleLowerCase("tr").includes(q)) : list;
-  }, [lib, tab, query]);
+  }, [lib, tab, query, kind]);
 
   function toggle(url: string) {
     if (!multiple) {
@@ -146,7 +157,7 @@ function MediaLibraryInner({ open, onClose, onSelect, multiple = false }: Librar
       footer={
         multiple ? (
           <div className="flex items-center justify-between gap-3">
-            <span className="text-sm text-muted">{selected.length} görsel seçildi</span>
+            <span className="text-sm text-muted">{selected.length} dosya seçildi</span>
             <div className="flex gap-2">
               <Button type="button" variant="ghost" size="sm" onClick={onClose}>
                 Vazgeç
@@ -197,7 +208,7 @@ function MediaLibraryInner({ open, onClose, onSelect, multiple = false }: Librar
             <input
               ref={fileRef}
               type="file"
-              accept={ACCEPT_IMAGES}
+              accept={acceptFor(kind)}
               multiple
               hidden
               onChange={(e) => {
@@ -216,7 +227,9 @@ function MediaLibraryInner({ open, onClose, onSelect, multiple = false }: Librar
           <div className="grid h-60 place-items-center rounded-2xl border border-dashed border-border text-center text-sm text-muted">
             <div>
               <Images className="mx-auto mb-2 size-8 text-brand-300" />
-              {tab === "uploads" ? "Henüz görsel yüklenmemiş. Görselleri buraya sürükleyin veya 'Yükle'ye tıklayın." : "Sonuç bulunamadı."}
+              {tab === "uploads"
+                ? `Henüz ${kind === "media" ? "dosya" : "görsel"} yüklenmemiş. Dosyaları buraya sürükleyin veya 'Yükle'ye tıklayın.`
+                : "Sonuç bulunamadı."}
             </div>
           </div>
         ) : (
@@ -234,7 +247,7 @@ function MediaLibraryInner({ open, onClose, onSelect, multiple = false }: Librar
                   )}
                 >
                   <div className="aspect-[4/3] bg-brand-950/5">
-                    <SmartImage src={item.url} alt={item.name} className="size-full" />
+                    <MediaThumb src={item.url} alt={item.name} className="size-full" />
                   </div>
                   <div className="px-2 py-1.5">
                     <p className="truncate text-xs font-semibold text-brand-900">{item.name}</p>
@@ -264,16 +277,28 @@ export function ImagePicker({
   onChange,
   aspect = "video",
   invalid,
+  kind = "image",
+  surface = "dark",
+  contain = false,
 }: {
   value?: string | null;
   onChange: (url: string) => void;
-  aspect?: "video" | "square" | "portrait" | "wide";
+  aspect?: "video" | "square" | "portrait" | "wide" | "story";
   invalid?: boolean;
+  /** "media": video da seçilebilir (hikayeler) */
+  kind?: UploadKind;
+  /** Önizleme zemini — logolar için açık veya koyu */
+  surface?: "dark" | "light";
+  /** Görseli kırpmadan sığdır (logolar) */
+  contain?: boolean;
 }) {
   const [libOpen, setLibOpen] = useState(false);
   const [urlMode, setUrlMode] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const { uploading, upload } = useUploader(useCallback((urls: string[]) => onChange(urls[0]), [onChange]));
+  const { uploading, upload } = useUploader(
+    useCallback((urls: string[]) => onChange(urls[0]), [onChange]),
+    kind,
+  );
   const drop = useDropZone((files) => void upload(files.slice(0, 1)));
 
   const aspectClass = {
@@ -281,6 +306,7 @@ export function ImagePicker({
     square: "aspect-square max-w-[200px]",
     portrait: "aspect-[3/4] max-w-[220px]",
     wide: "aspect-[21/9]",
+    story: "aspect-[9/16] max-w-[180px]",
   }[aspect];
 
   return (
@@ -290,14 +316,18 @@ export function ImagePicker({
         className={cn(
           "group relative overflow-hidden rounded-2xl border-2 border-dashed transition",
           aspectClass,
-          value ? "border-transparent bg-brand-950" : "border-border bg-cream-50",
+          value ? (surface === "light" ? "border-border bg-white" : "border-transparent bg-brand-950") : "border-border bg-cream-50",
           drop.over && "border-brand-500 bg-brand-50",
           invalid && "border-red-400",
         )}
       >
         {value ? (
           <>
-            <SmartImage src={value} alt="" className="size-full" />
+            {isVideoUrl(value) ? (
+              <video src={`${value}#t=0.1`} muted playsInline preload="metadata" className="size-full object-cover" />
+            ) : (
+              <SmartImage src={value} alt="" className={cn("size-full", contain && "object-contain p-3")} />
+            )}
             <div className="absolute inset-0 flex items-end justify-end gap-2 bg-gradient-to-t from-brand-950/70 via-transparent to-transparent p-2 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
               <Button type="button" size="sm" variant="white" onClick={() => setLibOpen(true)}>
                 <Images className="size-4" /> Değiştir
@@ -313,7 +343,7 @@ export function ImagePicker({
         ) : (
           <div className="flex size-full flex-col items-center justify-center gap-3 p-4 text-center">
             <ImagePlus className="size-8 text-brand-300" />
-            <p className="text-xs text-muted">Görseli buraya sürükleyin</p>
+            <p className="text-xs text-muted">{kind === "media" ? "Video veya görseli buraya sürükleyin" : "Görseli buraya sürükleyin"}</p>
             <div className="flex flex-wrap justify-center gap-2">
               <Button type="button" size="sm" onClick={() => fileRef.current?.click()}>
                 <Upload className="size-4" /> Yükle
@@ -363,14 +393,19 @@ export function ImagePicker({
       <input
         ref={fileRef}
         type="file"
-        accept={ACCEPT_IMAGES}
+        accept={acceptFor(kind)}
         hidden
         onChange={(e) => {
           void upload(Array.from(e.target.files ?? []).slice(0, 1));
           e.target.value = "";
         }}
       />
-      <MediaLibraryDialog open={libOpen} onClose={() => setLibOpen(false)} onSelect={(urls) => urls[0] && onChange(urls[0])} />
+      <MediaLibraryDialog
+        open={libOpen}
+        onClose={() => setLibOpen(false)}
+        onSelect={(urls) => urls[0] && onChange(urls[0])}
+        kind={kind}
+      />
     </div>
   );
 }

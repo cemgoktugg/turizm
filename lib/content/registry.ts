@@ -115,6 +115,30 @@ export const CONTENT_BLOCKS = {
     },
   }),
 
+  "home.stories": block({
+    group: "home",
+    title: "Hikayeler Şeridi",
+    description:
+      "Slider'ın altındaki yuvarlak hikayelerin başlığı ve oynatıcı buton metinleri. Hikayelerin kendisi panelde 'Hikayeler' bölümünden eklenir.",
+    path: "/",
+    fields: [
+      { type: "text", name: "title", label: "Şerit başlığı (isteğe bağlı)", help: "Boş bırakılırsa yalnızca yuvarlaklar görünür." },
+      { type: "text", name: "unmuteLabel", label: "Oynatıcı — sesi aç" },
+      { type: "text", name: "muteLabel", label: "Oynatıcı — sesi kapat" },
+      { type: "text", name: "closeLabel", label: "Oynatıcı — kapat" },
+      { type: "text", name: "prevLabel", label: "Oynatıcı — önceki" },
+      { type: "text", name: "nextLabel", label: "Oynatıcı — sonraki" },
+    ],
+    defaults: {
+      title: "",
+      unmuteLabel: "Sesi aç",
+      muteLabel: "Sesi kapat",
+      closeLabel: "Kapat",
+      prevLabel: "Önceki",
+      nextLabel: "Sonraki",
+    },
+  }),
+
   "home.stats": block({
     group: "home",
     title: "İstatistik Şeridi",

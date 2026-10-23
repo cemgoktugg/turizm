@@ -40,11 +40,6 @@ import { Stars } from "@/components/site/tour-detail/stars";
 import { cn, formatDate, formatPrice, splitLines } from "@/lib/utils";
 import { TourJsonLd, FaqJsonLd, BreadcrumbJsonLd } from "@/components/seo/json-ld";
 
-export async function generateStaticParams() {
-  const tours = await prisma.tour.findMany({ where: activeTourWhere(), select: { slug: true } });
-  return tours.map((t) => ({ slug: t.slug }));
-}
-
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const tour = await getTourBySlug(slug);

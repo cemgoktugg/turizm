@@ -26,11 +26,14 @@ export default async function AdminLoginPage() {
 
       <div className="relative w-full max-w-md">
         <div className="mb-6 text-center">
-          <span className="mx-auto grid size-16 place-items-center overflow-hidden rounded-2xl bg-white/10 backdrop-blur">
-            <SmartImage src={settings.logo} alt="Logo" className="size-full" />
-          </span>
-          <h1 className="mt-4 font-serif text-2xl font-bold text-white">{settings.siteName}</h1>
-          <p className="mt-1 text-sm text-cream-200/70">Yönetim Paneli Girişi</p>
+          <h1 className="sr-only">{settings.siteName}</h1>
+          <SmartImage
+            src={settings.logoLight || settings.logo}
+            alt={settings.siteName}
+            loading="eager"
+            className="mx-auto h-16 w-auto object-contain"
+          />
+          <p className="mt-3 text-sm text-cream-200/70">Yönetim Paneli Girişi</p>
         </div>
 
         <div className="rounded-3xl border border-white/10 bg-white p-8 shadow-card">

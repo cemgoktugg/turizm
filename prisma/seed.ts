@@ -13,12 +13,24 @@ function day(iso: string, addDays = 0): Date {
   return d;
 }
 
+/**
+ * SEED_PROFILE=production: canlı sunucunun ilk açılışı. Sahte müşteri yorumu ve
+ * örnek başvuru eklenmez; veritabanında kullanıcı varsa hiçbir şeye dokunulmaz.
+ */
+const PRODUCTION = process.env.SEED_PROFILE === "production";
+
 async function main() {
-  console.log("🌱 Seed başlıyor...");
+  if (PRODUCTION && (await prisma.user.count()) > 0) {
+    console.log("ℹ Veritabanı dolu; canlı ortamda seed atlandı (mevcut veriler korunuyor).");
+    return;
+  }
+  console.log(`🌱 Seed başlıyor${PRODUCTION ? " (canlı ortam ilk kurulum)" : ""}...`);
 
   // Temizlik (bağımlılık sırasına göre)
   await prisma.lead.deleteMany();
   await prisma.review.deleteMany();
+  await prisma.storyItem.deleteMany();
+  await prisma.story.deleteMany();
   await prisma.fAQ.deleteMany();
   await prisma.tourDayProgram.deleteMany();
   await prisma.tourPrice.deleteMany();
@@ -695,8 +707,8 @@ async function main() {
 
   console.log(`✓ ${[t1, t1b, t1c, t2, t3, t4, t5, t6, t7].length} tur oluşturuldu`);
 
-  // ---- Örnek değerlendirmeler (ikisi yayında, biri onay bekliyor) ----
-  await prisma.review.createMany({
+  // ---- Örnek değerlendirmeler (yalnızca geliştirme ortamında) ----
+  if (!PRODUCTION) await prisma.review.createMany({
     data: [
       {
         tourId: t1.id,
@@ -726,7 +738,77 @@ async function main() {
       },
     ],
   });
-  console.log("✓ 3 örnek değerlendirme oluşturuldu");
+  if (!PRODUCTION) console.log("✓ 3 örnek değerlendirme oluşturuldu");
+
+  // ---- Hikayeler (ana sayfa, slider altı) — videolar panelden eklenir ----
+  const stories: {
+    title: string;
+    buttonLabel?: string;
+    buttonUrl?: string;
+    items: [string, string][];
+  }[] = [
+    {
+      title: "Kampanya",
+      buttonLabel: "Turu İncele",
+      buttonUrl: "/turlar/13-gunluk-ekonomik-umre",
+      items: [
+        ["/images/tur-ekonomik-umre.svg", "13 günlük ekonomik umre, 1.500 $'dan başlayan fiyatlarla"],
+        ["/images/otel-mekke-1.svg", "Harem'e yürüme mesafesinde merkezi oteller"],
+      ],
+    },
+    {
+      title: "Mekke",
+      buttonLabel: "Mekke Otelleri",
+      buttonUrl: "/oteller/mekke",
+      items: [
+        ["/images/otel-mekke-1.svg", "Mescid-i Haram'a yürüme mesafesindeki otellerimiz"],
+        ["/images/otel-mekke-2.svg", "Konforlu odalar ve zengin açık büfe"],
+        ["/images/otel-mekke-3.svg", "Lüks programlarda Harem manzaralı odalar"],
+      ],
+    },
+    {
+      title: "Medine",
+      buttonLabel: "Medine Otelleri",
+      buttonUrl: "/oteller/medine",
+      items: [
+        ["/images/otel-medine-1.svg", "Mescid-i Nebevi'ye birkaç dakika"],
+        ["/images/otel-medine-2.svg", "Ravza-i Mutahhara ziyareti"],
+      ],
+    },
+    {
+      title: "Lüks Umre",
+      buttonLabel: "Programı Gör",
+      buttonUrl: "/turlar/luks-umre-programi",
+      items: [
+        ["/images/tur-luks-umre.svg", "Harem'e sıfır 5 yıldızlı oteller"],
+        ["/images/otel-medine-3.svg", "VIP transfer ve özel rehberlik"],
+      ],
+    },
+    {
+      title: "Ramazan",
+      buttonLabel: "Ön Kayıt",
+      buttonUrl: "/turlar/ramazan-umresi-2027",
+      items: [["/images/tur-ramazan-umresi.svg", "Ramazan'ı kutsal topraklarda geçirin"]],
+    },
+    {
+      title: "Hac 2027",
+      buttonLabel: "Bilgi Al",
+      buttonUrl: "/turlar/2027-hac-on-kayit-programi",
+      items: [["/images/tur-hac-2026.svg", "2027 hac ön kayıtları başladı"]],
+    },
+  ];
+  for (const [order, s] of stories.entries()) {
+    await prisma.story.create({
+      data: {
+        title: s.title,
+        buttonLabel: s.buttonLabel ?? null,
+        buttonUrl: s.buttonUrl ?? null,
+        order,
+        items: { create: s.items.map(([url, caption], i) => ({ url, caption, order: i })) },
+      },
+    });
+  }
+  console.log(`✓ ${stories.length} hikaye oluşturuldu`);
 
   // ---- Oteller ----
   await Promise.all(
@@ -998,7 +1080,8 @@ Mikat, kutsal topraklara manevi bir hazırlıkla girmenin ilk adımıdır.`,
     instagram: "",
     youtube: "",
     twitter: "",
-    logo: "/images/logo-mark.svg",
+    logo: "/images/nemira-logo.png",
+    logoLight: "/images/nemira-logo-light.png",
     mapEmbed:
       "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3009.9!2d28.955!3d41.019!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zRmF0aWg!5e0!3m2!1str!2str!4v1700000000000",
     footerNote:
@@ -1012,21 +1095,23 @@ Mikat, kutsal topraklara manevi bir hazırlıkla girmenin ilk adımıdır.`,
   );
   console.log(`✓ ${Object.keys(settings).length} site ayarı oluşturuldu`);
 
-  // ---- Örnek başvuru ----
-  await prisma.lead.create({
-    data: {
-      fullName: "Ahmet Yılmaz",
-      phone: "0555 123 45 67",
-      email: "ahmet@example.com",
-      personCount: 2,
-      tourTitle: t1.title,
-      tourId: t1.id,
-      message: "13 günlük umre programı hakkında bilgi almak istiyorum.",
-      source: "tur-detay",
-      status: "Yeni",
-    },
-  });
-  console.log("✓ Örnek başvuru oluşturuldu");
+  // ---- Örnek başvuru (yalnızca geliştirme ortamında) ----
+  if (!PRODUCTION) {
+    await prisma.lead.create({
+      data: {
+        fullName: "Ahmet Yılmaz",
+        phone: "0555 123 45 67",
+        email: "ahmet@example.com",
+        personCount: 2,
+        tourTitle: t1.title,
+        tourId: t1.id,
+        message: "13 günlük umre programı hakkında bilgi almak istiyorum.",
+        source: "tur-detay",
+        status: "Yeni",
+      },
+    });
+    console.log("✓ Örnek başvuru oluşturuldu");
+  }
 
   console.log("\n✅ Seed tamamlandı!");
 }

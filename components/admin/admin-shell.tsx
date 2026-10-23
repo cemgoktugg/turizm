@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   Award,
   Building2,
+  CirclePlay,
   ExternalLink,
   Images,
   Inbox,
@@ -49,6 +50,7 @@ const NAV_GROUPS: { title?: string; items: NavItem[] }[] = [
   {
     title: "İçerik",
     items: [
+      { label: "Hikayeler", href: "/admin/stories", icon: CirclePlay },
       { label: "Sayfa İçerikleri", href: "/admin/content", icon: LayoutTemplate },
       { label: "Blog", href: "/admin/blog", icon: Newspaper },
       { label: "Belgeler", href: "/admin/certificates", icon: Award },
@@ -71,6 +73,7 @@ const TITLES: Record<string, string> = {
   "/admin/categories": "Kategoriler",
   "/admin/hotels": "Oteller",
   "/admin/blog": "Blog Yazıları",
+  "/admin/stories": "Hikayeler",
   "/admin/content": "Sayfa İçerikleri",
   "/admin/media": "Medya Kütüphanesi",
   "/admin/leads": "Başvurular",
@@ -109,14 +112,9 @@ export function AdminShell({
 
   const SidebarContent = (
     <>
-      <Link href="/admin" className="flex items-center gap-3 px-2 py-1" onClick={() => setOpen(false)}>
-        <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-brand-800">
-          <SmartImage src={brand.logo} alt="Logo" className="size-full" />
-        </span>
-        <span className="flex min-w-0 flex-col leading-none">
-          <span className="truncate font-serif text-base font-bold text-white">{brand.siteName}</span>
-          <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-widest text-gold-400">Yönetim Paneli</span>
-        </span>
+      <Link href="/admin" className="flex flex-col gap-1.5 px-2 py-1" onClick={() => setOpen(false)} aria-label={brand.siteName}>
+        <SmartImage src={brand.logo} alt={brand.siteName} className="h-11 w-auto max-w-full object-contain object-left" />
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-gold-400">Yönetim Paneli</span>
       </Link>
 
       <nav className="mt-6 flex-1 space-y-5 overflow-y-auto pr-1">

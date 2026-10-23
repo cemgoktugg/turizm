@@ -1,60 +1,61 @@
 @import "tailwindcss";
 
 /* ==========================================================================
-   Rotamız Huzura — Premium Hac & Umre Turizm Tasarım Sistemi
-   Palet: Koyu Yeşil · Altın · Krem · Lacivert · Beyaz
+   Nemira Travel Agency — Tasarım Sistemi
+   Palet logodan alınmıştır: Turkuaz #008499 · Lacivert #000F20 · Altın #C9934A
    ========================================================================== */
 
 @theme {
-  /* Marka — Koyu Yeşil (emerald / spiritual green) */
-  --color-brand-50: #edf7f2;
-  --color-brand-100: #d3ecdf;
-  --color-brand-200: #a9d8bf;
-  --color-brand-300: #74bd97;
-  --color-brand-400: #459a6f;
-  --color-brand-500: #2b7d55;
-  --color-brand-600: #1f6444;
-  --color-brand-700: #1a5038;
-  --color-brand-800: #163f2d;
-  --color-brand-900: #113222;
-  --color-brand-950: #0a2016;
+  /* Marka — Turkuazdan laciverte (500 = logo turkuazı, 950 = logo laciverti).
+     700 birincil butonlarda beyaz yazıyla yeterli kontrast için biraz koyudur. */
+  --color-brand-50: #e7f5f7;
+  --color-brand-100: #c5e8ee;
+  --color-brand-200: #91d2dc;
+  --color-brand-300: #55b6c6;
+  --color-brand-400: #1e9aae;
+  --color-brand-500: #008499;
+  --color-brand-600: #00778b;
+  --color-brand-700: #006b7d;
+  --color-brand-800: #0b4a5c;
+  --color-brand-900: #072236;
+  --color-brand-950: #000f20;
 
-  /* Altın — Gold accent */
-  --color-gold-50: #fbf7ec;
-  --color-gold-100: #f5ebcd;
-  --color-gold-200: #ecd79b;
-  --color-gold-300: #e0bd63;
-  --color-gold-400: #d4a53d;
-  --color-gold-500: #c68f2a;
-  --color-gold-600: #a97121;
-  --color-gold-700: #86541e;
-  --color-gold-800: #6f441f;
-  --color-gold-900: #5f3a1e;
+  /* Altın — logo altını (500) */
+  --color-gold-50: #fbf6ef;
+  --color-gold-100: #f5e9d7;
+  --color-gold-200: #ebd2ae;
+  --color-gold-300: #dfb680;
+  --color-gold-400: #d4a462;
+  --color-gold-500: #c9934a;
+  --color-gold-600: #9c6b2e;
+  --color-gold-700: #7f5626;
+  --color-gold-800: #654423;
+  --color-gold-900: #52381f;
 
-  /* Lacivert — Navy */
-  --color-navy-50: #eef3f8;
-  --color-navy-100: #d5e0ee;
-  --color-navy-200: #aec3dd;
-  --color-navy-300: #7d9dc5;
-  --color-navy-400: #5379ab;
-  --color-navy-500: #3b5d90;
-  --color-navy-600: #2e4974;
-  --color-navy-700: #273c5e;
-  --color-navy-800: #1e2d46;
-  --color-navy-900: #131d2e;
+  /* Lacivert — logo yazı rengi (900) */
+  --color-navy-50: #eef2f7;
+  --color-navy-100: #d6dfea;
+  --color-navy-200: #adbdd2;
+  --color-navy-300: #7d93b1;
+  --color-navy-400: #536c8f;
+  --color-navy-500: #3a5273;
+  --color-navy-600: #2a3d59;
+  --color-navy-700: #1d2c43;
+  --color-navy-800: #111d30;
+  --color-navy-900: #000f20;
 
-  /* Krem / Kum — Cream & sand neutrals */
-  --color-cream-50: #fdfcf9;
-  --color-cream-100: #faf6ee;
-  --color-cream-200: #f4ecdc;
-  --color-cream-300: #ebddc4;
-  --color-cream-400: #dcc7a4;
+  /* Krem / Kum — sıcak nötrler (altınla uyumlu) */
+  --color-cream-50: #fcfbf8;
+  --color-cream-100: #f8f5ef;
+  --color-cream-200: #f1ebe0;
+  --color-cream-300: #e6dccb;
+  --color-cream-400: #d5c6ad;
 
   /* Semantic */
   --color-background: #ffffff;
-  --color-foreground: #1a2b23;
-  --color-muted: #6b7d73;
-  --color-border: #e7e2d6;
+  --color-foreground: #0b1b2b;
+  --color-muted: #5d6b78;
+  --color-border: #e5e1d8;
 
   /* Tipografi */
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
@@ -66,9 +67,9 @@
   --radius-3xl: 2rem;
 
   /* Soft gölgeler */
-  --shadow-soft: 0 4px 24px -8px rgb(16 50 34 / 0.12);
-  --shadow-card: 0 10px 40px -12px rgb(16 50 34 / 0.18);
-  --shadow-gold: 0 8px 30px -8px rgb(198 143 42 / 0.35);
+  --shadow-soft: 0 4px 24px -8px rgb(0 15 32 / 0.12);
+  --shadow-card: 0 10px 40px -12px rgb(0 15 32 / 0.18);
+  --shadow-gold: 0 8px 30px -8px rgb(201 147 74 / 0.35);
 
   /* Animasyonlar */
   --animate-fade-up: fade-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -172,7 +173,7 @@
     background:
       radial-gradient(
         ellipse 80% 60% at 50% -10%,
-        rgb(198 143 42 / 0.06),
+        rgb(201 147 74 / 0.06),
         transparent
       ),
       var(--color-cream-100);

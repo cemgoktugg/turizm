@@ -16,7 +16,6 @@ type MenuItem = MenuContent["items"][number];
 
 type Props = {
   siteName: string;
-  tagline: string;
   logo: string;
   phone: string;
   whatsapp: string;
@@ -35,7 +34,7 @@ function isActive(href: string, pathname: string) {
 }
 
 export function Navbar(props: Props) {
-  const { siteName, tagline, logo, phone, whatsapp, email, workingHours, whatsappMessage, labels } = props;
+  const { siteName, logo, phone, whatsapp, email, workingHours, whatsappMessage, labels } = props;
   // Adı boş bırakılan menü öğeleri ve alt öğeler sitede gösterilmez
   const menu = {
     ...props.menu,
@@ -96,14 +95,8 @@ export function Navbar(props: Props) {
       >
         <div className="container-tr flex h-16 items-center justify-between lg:h-20">
           {/* Logo */}
-          <Link href="/" className="flex shrink-0 items-center gap-3">
-            <span className="grid size-11 place-items-center overflow-hidden rounded-xl bg-brand-800 shadow-soft lg:size-12">
-              <SmartImage src={logo} alt={siteName} className="size-full" />
-            </span>
-            <span className="flex flex-col whitespace-nowrap leading-none">
-              <span className="font-serif text-lg font-bold text-brand-900 lg:text-xl">{siteName}</span>
-              <span className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-600">{tagline}</span>
-            </span>
+          <Link href="/" className="flex shrink-0 items-center" aria-label={siteName}>
+            <SmartImage src={logo} alt={siteName} loading="eager" className="h-11 w-auto object-contain lg:h-14" />
           </Link>
 
           {/* Masaüstü menü */}

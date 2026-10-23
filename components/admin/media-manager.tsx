@@ -8,11 +8,13 @@ import { Check, Copy, ImageOff, Loader2, Search, Trash2, Upload, X } from "lucid
 import { deleteMedia, getMediaUsage, updateMediaAlt, type MediaItem } from "@/app/actions/media";
 import type { MediaUsage } from "@/lib/media-types";
 import { SmartImage } from "@/components/ui/smart-image";
+import { MediaThumb } from "@/components/ui/media-thumb";
+import { isVideoUrl } from "@/lib/media-types";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/form-controls";
 import { cn, formatDate } from "@/lib/utils";
 import { AdminCard } from "./ui";
-import { ACCEPT_IMAGES, formatBytes, uploadImages } from "./upload";
+import { ACCEPT_MEDIA, formatBytes, uploadFiles } from "./upload";
 
 export function MediaManager({ items }: { items: MediaItem[] }) {
   const router = useRouter();
@@ -26,11 +28,11 @@ export function MediaManager({ items }: { items: MediaItem[] }) {
   async function upload(files: File[]) {
     if (!files.length) return;
     setUploading(true);
-    const res = await uploadImages(files);
+    const res = await uploadFiles(files, "media");
     setUploading(false);
     res.errors.forEach((e) => toast.error(e));
     if (res.files.length) {
-      toast.success(`${res.files.length} görsel yüklendi.`);
+      toast.success(`${res.files.length} dosya yüklendi.`);
       router.refresh();
     }
   }
@@ -65,9 +67,11 @@ export function MediaManager({ items }: { items: MediaItem[] }) {
             <Upload className="size-8 text-brand-300" />
           )}
           <div>
-            <p className="font-semibold text-brand-900">Görselleri buraya sürükleyip bırakın</p>
+            <p className="font-semibold text-brand-900">Görselleri veya videoları buraya sürükleyip bırakın</p>
             <p className="text-xs text-muted">
-              JPG, PNG, WEBP, GIF veya AVIF · en fazla 10 MB · büyük görseller otomatik olarak küçültülüp WEBP&apos;ye çevrilir
+              Görsel: JPG, PNG, WEBP, GIF, AVIF · en fazla 10 MB (otomatik küçültülüp WEBP&apos;ye çevrilir)
+              <br />
+              Video: MP4, MOV veya WEBM · en fazla 50 MB · hikayeler için dikey, 15-30 saniyelik klipler önerilir
             </p>
           </div>
           <Button type="button" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
@@ -76,7 +80,7 @@ export function MediaManager({ items }: { items: MediaItem[] }) {
           <input
             ref={fileRef}
             type="file"
-            accept={ACCEPT_IMAGES}
+            accept={ACCEPT_MEDIA}
             multiple
             hidden
             onChange={(e) => {
@@ -88,7 +92,7 @@ export function MediaManager({ items }: { items: MediaItem[] }) {
 
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted">
-            {items.length} görsel · toplam {formatBytes(totalSize)}
+            {items.length} dosya · toplam {formatBytes(totalSize)}
           </p>
           <div className="relative sm:w-64">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
@@ -99,7 +103,7 @@ export function MediaManager({ items }: { items: MediaItem[] }) {
         {filtered.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-white p-12 text-center text-sm text-muted">
             <ImageOff className="mx-auto mb-2 size-8 text-brand-300" />
-            {items.length ? "Aramaya uygun görsel yok." : "Henüz görsel yüklenmemiş."}
+            {items.length ? "Aramaya uygun dosya yok." : "Henüz dosya yüklenmemiş."}
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -114,7 +118,7 @@ export function MediaManager({ items }: { items: MediaItem[] }) {
                 )}
               >
                 <div className="aspect-[4/3] bg-brand-950/5">
-                  <SmartImage src={m.url} alt={m.alt ?? m.originalName} className="size-full" />
+                  <MediaThumb src={m.url} alt={m.alt ?? m.originalName} className="size-full" />
                 </div>
                 <div className="px-2.5 py-2">
                   <p className="truncate text-xs font-semibold text-brand-900">{m.originalName}</p>
@@ -135,7 +139,7 @@ export function MediaManager({ items }: { items: MediaItem[] }) {
           <MediaDetail key={selected.id} item={selected} onClose={() => setSelectedId(null)} />
         ) : (
           <AdminCard className="p-6 text-center text-sm text-muted">
-            Ayrıntılarını görmek, bağlantısını kopyalamak veya silmek için bir görsel seçin.
+            Ayrıntılarını görmek, bağlantısını kopyalamak veya silmek için bir dosya seçin.
           </AdminCard>
         )}
       </div>
@@ -171,7 +175,11 @@ function MediaDetail({ item, onClose }: { item: MediaItem; onClose: () => void }
   return (
     <AdminCard className="overflow-hidden">
       <div className="relative bg-brand-950">
-        <SmartImage src={item.url} alt={item.alt ?? ""} className="max-h-72 w-full object-contain" />
+        {isVideoUrl(item.url) ? (
+          <video src={item.url} controls playsInline preload="metadata" className="max-h-72 w-full bg-black" />
+        ) : (
+          <SmartImage src={item.url} alt={item.alt ?? ""} className="max-h-72 w-full object-contain" />
+        )}
         <button type="button" onClick={onClose} className="absolute right-2 top-2 grid size-8 place-items-center rounded-full bg-white/90 text-brand-900" aria-label="Kapat">
           <X className="size-4" />
         </button>
@@ -220,7 +228,7 @@ function MediaDetail({ item, onClose }: { item: MediaItem; onClose: () => void }
           {usage === null ? (
             <Loader2 className="size-4 animate-spin text-muted" />
           ) : usage.length === 0 ? (
-            <p className="text-xs text-muted">Bu görsel sitede kullanılmıyor.</p>
+            <p className="text-xs text-muted">Bu dosya sitede kullanılmıyor.</p>
           ) : (
             <ul className="space-y-1">
               {usage.map((u, i) => (
@@ -240,9 +248,9 @@ function MediaDetail({ item, onClose }: { item: MediaItem; onClose: () => void }
           size="sm"
           className="w-full"
           disabled={deleting || (usage?.length ?? 0) > 0}
-          title={(usage?.length ?? 0) > 0 ? "Kullanımdaki görsel silinemez" : undefined}
+          title={(usage?.length ?? 0) > 0 ? "Kullanımdaki dosya silinemez" : undefined}
           onClick={() => {
-            if (!confirm("Bu görsel kalıcı olarak silinecek. Emin misiniz?")) return;
+            if (!confirm("Bu dosya kalıcı olarak silinecek. Emin misiniz?")) return;
             startDelete(async () => {
               const res = await deleteMedia(item.id);
               if (res.ok) {
@@ -257,7 +265,7 @@ function MediaDetail({ item, onClose }: { item: MediaItem; onClose: () => void }
           }}
         >
           {deleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
-          {(usage?.length ?? 0) > 0 ? "Kullanımda — silinemez" : "Görseli Sil"}
+          {(usage?.length ?? 0) > 0 ? "Kullanımda — silinemez" : "Dosyayı Sil"}
         </Button>
       </div>
     </AdminCard>

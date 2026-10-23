@@ -4,9 +4,10 @@ import { WhatsAppButton, MobileBottomBar } from "@/components/site/floating-acti
 import { getSettings } from "@/lib/settings";
 import { getContent } from "@/lib/content";
 
-// Admin değişiklikleri anında yansır (revalidatePath). Ayrıca tarihi geçen
-// turların listelerden düşmesi için sayfalar en geç saatte bir yenilenir.
-export const revalidate = 3600;
+// Sayfalar her istekte canlı veritabanından üretilir: panel değişiklikleri ve
+// tarihi geçen turlar anında yansır; sunucuya yeni sürüm gönderildiğinde
+// derleme anındaki eski içerik görünmez. (SQLite aynı sunucuda, sorgular çok hızlı.)
+export const dynamic = "force-dynamic";
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   const [settings, header, footer, ui, wa] = await Promise.all([
@@ -21,7 +22,6 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
     <div className="flex min-h-dvh flex-col">
       <Navbar
         siteName={settings.siteName}
-        tagline={settings.tagline}
         logo={settings.logo}
         phone={settings.phone}
         whatsapp={settings.whatsapp}

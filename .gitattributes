@@ -1,0 +1,2 @@
+# Linux konteynerde çalışan betikler Windows satır sonuyla bozulmasın
+*.sh text eol=lf

@@ -2,10 +2,10 @@ import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { activeTourWhere } from "@/lib/queries";
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+import { SITE_URL as BASE } from "@/lib/site-url";
 
-// Yeni turlar/yazılar admin kaydında anında (revalidateSite), aksi halde saatlik güncellenir
-export const revalidate = 3600;
+// Her istekte canlı veritabanından üretilir (yeni tur / yazı anında görünür)
+export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes = [

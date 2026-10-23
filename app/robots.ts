@@ -1,6 +1,9 @@
 import type { MetadataRoute } from "next";
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+import { SITE_URL as BASE } from "@/lib/site-url";
+
+// Alan adı çalışma anında okunur (SITE_URL)
+export const dynamic = "force-dynamic";
 
 export default function robots(): MetadataRoute.Robots {
   return {

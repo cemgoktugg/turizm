@@ -8,7 +8,8 @@ export type SiteSettings = SettingsInput & { raw: Record<string, string> };
 export const SETTING_DEFAULTS: SettingsInput = {
   siteName: "Rotamız Huzura",
   tagline: "Hac & Umre Turizm",
-  logo: "/images/logo-mark.svg",
+  logo: "/images/nemira-logo.png",
+  logoLight: "/images/nemira-logo-light.png",
   footerNote: "Yetkili acenta güvencesiyle hac, umre ve kültür turları düzenliyoruz.",
   phone: "+90 850 000 00 00",
   whatsapp: "905000000000",
@@ -28,8 +29,8 @@ export const SETTING_DEFAULTS: SettingsInput = {
     "Yetkili acenta güvencesiyle premium hac ve umre programları, lüks umre, Ramazan umresi ve kültür turları. Merkezi oteller, tecrübeli rehberlik ve şeffaf fiyat.",
   seoKeywords:
     "umre, hac, umre turları, lüks umre, ramazan umresi, hac programları, mekke otelleri, medine otelleri, kültür turları",
-  ogImage: "/images/og-image.svg",
-  favicon: "/favicon.ico",
+  ogImage: "/images/nemira-og.png",
+  favicon: "/images/nemira-icon.png",
 };
 
 /** Boş bırakıldığında varsayılana dönmemesi gereken (isteğe bağlı) alanlar */

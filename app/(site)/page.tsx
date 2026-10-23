@@ -3,9 +3,11 @@ import { MoveRight, Quote } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { getContent } from "@/lib/content";
-import { activeTourWhere } from "@/lib/queries";
+import { activeTourWhere, getStories } from "@/lib/queries";
+import { isVideoUrl } from "@/lib/media-types";
 import { categoryHref } from "@/lib/categories";
 import { HeroSlider } from "@/components/site/hero-slider";
+import { StoriesBar } from "@/components/site/stories/stories-bar";
 import { TourCard } from "@/components/site/tour-card";
 import { HotelCard } from "@/components/site/hotel-card";
 import { BlogCard } from "@/components/site/blog-card";
@@ -19,14 +21,16 @@ import { cn } from "@/lib/utils";
 import { TravelAgencyJsonLd } from "@/components/seo/json-ld";
 
 export default async function HomePage() {
-  const [settings, hero, stats, sections, features, prep, quote] = await Promise.all([
+  const [settings, hero, storiesContent, stats, sections, features, prep, quote, stories] = await Promise.all([
     getSettings(),
     getContent("home.hero"),
+    getContent("home.stories"),
     getContent("home.stats"),
     getContent("home.sections"),
     getContent("home.features"),
     getContent("home.prep"),
     getContent("home.quote"),
+    getStories(),
   ]);
 
   const [featured, categories, mekke, medine, posts] = await Promise.all([
@@ -48,6 +52,27 @@ export default async function HomePage() {
     <>
       <TravelAgencyJsonLd settings={settings} />
       <HeroSlider content={hero} whatsapp={settings.whatsapp} />
+
+      {/* Hikayeler (Instagram tarzı yuvarlak videolar) */}
+      <StoriesBar
+        title={storiesContent.title}
+        labels={storiesContent}
+        stories={stories.map((st) => ({
+          id: st.id,
+          seenKey: `${st.id}:${st.updatedAt.getTime()}`,
+          title: st.title,
+          thumb: st.cover || st.items.find((it) => !isVideoUrl(it.url))?.url || st.items[0].url,
+          buttonLabel: st.buttonLabel,
+          buttonUrl: st.buttonUrl,
+          items: st.items.map((it) => ({
+            id: it.id,
+            url: it.url,
+            caption: it.caption,
+            duration: it.duration,
+            isVideo: isVideoUrl(it.url),
+          })),
+        }))}
+      />
 
       {/* İstatistik şeridi */}
       {stats.items.length > 0 && (

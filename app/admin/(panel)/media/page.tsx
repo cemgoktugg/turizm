@@ -10,6 +10,7 @@ export default async function AdminMediaPage() {
     id: m.id,
     url: m.url,
     originalName: m.originalName,
+    mimeType: m.mimeType,
     alt: m.alt,
     width: m.width,
     height: m.height,
@@ -21,7 +22,7 @@ export default async function AdminMediaPage() {
     <div>
       <AdminPageHeader
         title="Medya Kütüphanesi"
-        description="Yüklediğiniz görseller tüm formlardaki görsel seçicide kullanılabilir. Sitede kullanılan görseller silinemez."
+        description="Yüklediğiniz görseller tüm formlardaki görsel seçicide, videolar hikayelerde kullanılabilir. Sitede kullanılan dosyalar silinemez."
       />
       <MediaManager items={items} />
     </div>

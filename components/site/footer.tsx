@@ -67,16 +67,12 @@ export function Footer({
       <div className="container-tr grid gap-10 py-14 md:grid-cols-2 lg:grid-cols-5">
         {/* Marka */}
         <div className="lg:col-span-2">
-          <Link href="/" className="flex items-center gap-3">
-            <span className="grid size-12 place-items-center overflow-hidden rounded-xl bg-white/10">
-              <SmartImage src={settings.logo} alt={settings.siteName} className="size-full" />
-            </span>
-            <span className="flex flex-col leading-none">
-              <span className="font-serif text-xl font-bold text-white">{settings.siteName}</span>
-              <span className="mt-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-400">
-                {settings.tagline}
-              </span>
-            </span>
+          <Link href="/" className="inline-flex" aria-label={settings.siteName}>
+            <SmartImage
+              src={settings.logoLight || settings.logo}
+              alt={settings.siteName}
+              className="h-16 w-auto object-contain"
+            />
           </Link>
           {settings.footerNote && (
             <p className="mt-5 max-w-sm text-sm leading-relaxed text-cream-200/70">{settings.footerNote}</p>

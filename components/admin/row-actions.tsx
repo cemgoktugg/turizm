@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Copy, ExternalLink, Pencil, Trash2, Loader2, Eye, EyeOff, Star } from "lucide-react";
+import { ArrowLeft, ArrowRight, Copy, ExternalLink, Pencil, Trash2, Loader2, Eye, EyeOff, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ActionResult } from "@/lib/types";
 
@@ -127,6 +127,38 @@ export function DuplicateButton({
     >
       {pending ? <Loader2 className="size-4 animate-spin" /> : <Copy className="size-4" />}
     </button>
+  );
+}
+
+/** Listede bir üste / alta taşıma butonları */
+export function OrderButtons({
+  action,
+  id,
+  first,
+  last,
+}: {
+  action: (id: string, direction: "up" | "down") => Promise<ActionResult>;
+  id: string;
+  first: boolean;
+  last: boolean;
+}) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const move = (direction: "up" | "down") =>
+    start(async () => {
+      const res = await action(id, direction);
+      if (res.ok) router.refresh();
+      else toast.error(res.message);
+    });
+  return (
+    <span className="inline-flex gap-1">
+      <button type="button" onClick={() => move("up")} disabled={pending || first} className={iconBtn} aria-label="Öne al" title="Öne al">
+        <ArrowLeft className="size-4" />
+      </button>
+      <button type="button" onClick={() => move("down")} disabled={pending || last} className={iconBtn} aria-label="Sona al" title="Sona al">
+        <ArrowRight className="size-4" />
+      </button>
+    </span>
   );
 }
 
