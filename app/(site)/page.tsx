@@ -21,11 +21,10 @@ import { cn } from "@/lib/utils";
 import { TravelAgencyJsonLd } from "@/components/seo/json-ld";
 
 export default async function HomePage() {
-  const [settings, hero, storiesContent, stats, sections, features, prep, quote, stories] = await Promise.all([
+  const [settings, hero, storiesContent, sections, features, prep, quote, stories] = await Promise.all([
     getSettings(),
     getContent("home.hero"),
     getContent("home.stories"),
-    getContent("home.stats"),
     getContent("home.sections"),
     getContent("home.features"),
     getContent("home.prep"),
@@ -73,25 +72,6 @@ export default async function HomePage() {
           })),
         }))}
       />
-
-      {/* İstatistik şeridi */}
-      {stats.items.length > 0 && (
-        <section className="border-b border-border bg-white">
-          <div className="container-tr grid grid-cols-2 gap-6 py-8 lg:grid-cols-4">
-            {stats.items.map((s, i) => (
-              <Reveal key={i} delay={i} className="flex items-center gap-3">
-                <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-brand-50 text-brand-700">
-                  <Icon name={s.icon} className="size-6" />
-                </span>
-                <span>
-                  <span className="block font-serif text-xl font-bold text-brand-900">{s.value}</span>
-                  <span className="text-xs text-muted">{s.label}</span>
-                </span>
-              </Reveal>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* Öne çıkan turlar */}
       {featured.length > 0 && (

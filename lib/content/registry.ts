@@ -139,36 +139,6 @@ export const CONTENT_BLOCKS = {
     },
   }),
 
-  "home.stats": block({
-    group: "home",
-    title: "İstatistik Şeridi",
-    description: "Hero altındaki rakamlar (mutlu misafir, tecrübe yılı vb.).",
-    path: "/",
-    fields: [
-      {
-        type: "list",
-        name: "items",
-        label: "İstatistikler",
-        itemLabel: "İstatistik",
-        titleField: "label",
-        max: 6,
-        fields: [
-          { type: "icon", name: "icon", label: "İkon" },
-          { type: "text", name: "value", label: "Değer", placeholder: "25.000+" },
-          { type: "text", name: "label", label: "Etiket", placeholder: "Mutlu Misafir" },
-        ],
-      },
-    ],
-    defaults: {
-      items: [
-        { icon: "Users", value: "25.000+", label: "Mutlu Misafir" },
-        { icon: "CalendarCheck", value: "20+ Yıl", label: "Sektör Tecrübesi" },
-        { icon: "Building2", value: "50+", label: "Anlaşmalı Otel" },
-        { icon: "Star", value: "4.9/5", label: "Misafir Memnuniyeti" },
-      ],
-    },
-  }),
-
   "home.sections": block({
     group: "home",
     title: "Bölüm Başlıkları",
