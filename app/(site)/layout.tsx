@@ -22,6 +22,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
     <div className="flex min-h-dvh flex-col">
       <Navbar
         siteName={settings.siteName}
+        tagline={settings.tagline}
         logo={settings.logo}
         phone={settings.phone}
         whatsapp={settings.whatsapp}

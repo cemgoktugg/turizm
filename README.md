@@ -1,4 +1,4 @@
-# Rotamız Huzura — Hac & Umre Turizm Sitesi
+# Nemira Turizm — En Güzele, En İyiyle
 
 Hac ve umre turizmi için hazırlanmış, SEO uyumlu, **tüm içeriği yönetim panelinden düzenlenebilen**
 bir site. Next.js 16 (App Router), TypeScript, Tailwind CSS v4, Prisma ve SQLite ile geliştirildi.

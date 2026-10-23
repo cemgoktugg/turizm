@@ -1,4 +1,4 @@
-// Rotamız Huzura — Hac & Umre Turizm veritabanı şeması
+// Nemira Turizm — veritabanı şeması
 // Veritabanı: SQLite (yerel dosya)
 
 datasource db {

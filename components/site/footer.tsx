@@ -74,6 +74,7 @@ export function Footer({
               className="h-16 w-auto object-contain"
             />
           </Link>
+          {settings.tagline && <p className="mt-3 font-serif text-lg italic text-gold-300">{settings.tagline}</p>}
           {settings.footerNote && (
             <p className="mt-5 max-w-sm text-sm leading-relaxed text-cream-200/70">{settings.footerNote}</p>
           )}

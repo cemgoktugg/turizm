@@ -92,7 +92,7 @@ export const CONTENT_BLOCKS = {
       slides: [
         {
           image: "/images/hero-1.svg",
-          title: "Rotamız Huzura",
+          title: "En Güzele, En İyiyle",
           subtitle: "Yetkili acenta güvencesiyle, manevi ve konforlu hac & umre yolculukları.",
         },
         {
@@ -250,7 +250,7 @@ export const CONTENT_BLOCKS = {
       },
     ],
     defaults: {
-      eyebrow: "Neden Rotamız Huzura?",
+      eyebrow: "Neden Nemira Turizm?",
       title: "Güvenle Emin Ellerdesiniz",
       description:
         "20 yılı aşkın tecrübemizle, manevi yolculuğunuzu en güzel şekilde tamamlamanız için buradayız.",
@@ -447,7 +447,7 @@ export const CONTENT_BLOCKS = {
       description: "Hac ibadetinizi resmî yetki belgelerine sahip, güvenilir bir acenta ile gerçekleştirin.",
       image: "/images/belge-diyanet.svg",
       intro:
-        "Rotamız Huzura olarak hac organizasyonlarımızı, resmî kurumlar tarafından verilen yetki belgeleri çerçevesinde yürütüyoruz. TÜRSAB A grubu işletme belgemiz ve Diyanet İşleri Başkanlığı yetkimiz ile misafirlerimize güvenli bir hizmet sunuyoruz.",
+        "Nemira Turizm olarak hac organizasyonlarımızı, resmî kurumlar tarafından verilen yetki belgeleri çerçevesinde yürütüyoruz. TÜRSAB A grubu işletme belgemiz ve Diyanet İşleri Başkanlığı yetkimiz ile misafirlerimize güvenli bir hizmet sunuyoruz.",
       seoTitle: "Hac Yetki Belgeleri",
       seoDescription: "Hac organizasyonu için TÜRSAB, Diyanet ve IATA yetki belgelerimiz. Güvenle emin ellerdesiniz.",
     },
@@ -715,7 +715,7 @@ export const CONTENT_BLOCKS = {
       storyEyebrow: "Biz Kimiz?",
       storyTitle: "",
       storyParagraphs: [
-        "Rotamız Huzura, 20 yılı aşkın süredir hac, umre ve kültür turları alanında hizmet veren, TÜRSAB ve Diyanet İşleri Başkanlığı yetki belgelerine sahip bir seyahat acentasıdır. Her misafirimizin kutsal yolculuğunu bir emanet bilinciyle titizlikle organize ediyoruz.",
+        "Nemira Turizm, 20 yılı aşkın süredir hac, umre ve kültür turları alanında hizmet veren, TÜRSAB ve Diyanet İşleri Başkanlığı yetki belgelerine sahip bir seyahat acentasıdır. Her misafirimizin kutsal yolculuğunu bir emanet bilinciyle titizlikle organize ediyoruz.",
         "Merkezi oteller, tecrübeli din görevlileri, şeffaf fiyat politikası ve 7/24 destek anlayışımızla, ibadetinize huzur içinde odaklanmanızı sağlıyoruz. Bugüne kadar 25.000'den fazla misafirimizi kutsal topraklarla buluşturmanın mutluluğunu yaşadık.",
       ],
       storyImage: "/images/about.svg",
@@ -730,7 +730,7 @@ export const CONTENT_BLOCKS = {
       featuresTitle: "Neden Bizi Tercih Etmelisiniz?",
       seoTitle: "Hakkımızda",
       seoDescription:
-        "Rotamız Huzura; TÜRSAB ve Diyanet yetki belgeli, 20 yılı aşkın tecrübesiyle hac, umre ve kültür turları düzenleyen premium seyahat acentası.",
+        "Nemira Turizm; TÜRSAB ve Diyanet yetki belgeli, 20 yılı aşkın tecrübesiyle hac, umre ve kültür turları düzenleyen premium seyahat acentası.",
     },
   }),
 

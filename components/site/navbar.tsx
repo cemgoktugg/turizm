@@ -16,6 +16,8 @@ type MenuItem = MenuContent["items"][number];
 
 type Props = {
   siteName: string;
+  /** Slogan — logonun üstündeki bilgi çubuğunda gösterilir */
+  tagline: string;
   logo: string;
   phone: string;
   whatsapp: string;
@@ -34,7 +36,7 @@ function isActive(href: string, pathname: string) {
 }
 
 export function Navbar(props: Props) {
-  const { siteName, logo, phone, whatsapp, email, workingHours, whatsappMessage, labels } = props;
+  const { siteName, tagline, logo, phone, whatsapp, email, workingHours, whatsappMessage, labels } = props;
   // Adı boş bırakılan menü öğeleri ve alt öğeler sitede gösterilmez
   const menu = {
     ...props.menu,
@@ -57,7 +59,14 @@ export function Navbar(props: Props) {
     <header className="sticky top-0 z-50">
       {/* Üst bilgi çubuğu */}
       <div className="hidden bg-brand-900 text-cream-100 lg:block">
-        <div className="container-tr flex h-10 items-center justify-between text-xs">
+        <div className="container-tr relative flex h-10 items-center justify-between text-xs">
+          {tagline && (
+            <p className="pointer-events-none absolute left-1/2 flex -translate-x-1/2 items-center gap-2.5 whitespace-nowrap font-serif text-[13px] italic tracking-wide text-gold-300">
+              <span className="h-px w-6 bg-gold-400/60" aria-hidden />
+              {tagline}
+              <span className="h-px w-6 bg-gold-400/60" aria-hidden />
+            </p>
+          )}
           <div className="flex items-center gap-6">
             <a href={telLink(phone)} className="flex items-center gap-2 transition-colors hover:text-gold-300">
               <Phone className="size-3.5" /> {phone}

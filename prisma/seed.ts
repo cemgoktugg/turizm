@@ -252,7 +252,6 @@ async function main() {
         requiredDocuments: data.docs ?? requiredDocs,
         isFeatured: data.featured ?? false,
         isPublished: true,
-        seoTitle: `${data.title} | Rotamız Huzura`,
         seoDescription: data.short,
         images: {
           create: data.images.map((url, i) => ({
@@ -1032,7 +1031,6 @@ Mikat, kutsal topraklara manevi bir hazırlıkla girmenin ilk adımıdır.`,
           coverImage: p.cover,
           category: p.category,
           readTime: p.readTime,
-          seoTitle: `${p.title} | Rotamız Huzura Blog`,
           seoDescription: p.excerpt,
           isPublished: true,
         },
@@ -1068,11 +1066,11 @@ Mikat, kutsal topraklara manevi bir hazırlıkla girmenin ilk adımıdır.`,
 
   // ---- Site Ayarları ----
   const settings: Record<string, string> = {
-    siteName: "Rotamız Huzura",
-    tagline: "Hac & Umre Turizm",
+    siteName: "Nemira Turizm",
+    tagline: "En Güzele, En İyiyle",
     phone: "+90 850 000 00 00",
     whatsapp: "905000000000",
-    email: "info@rotamizhuzura.com",
+    email: "info@nemiraturizm.com",
     address: "Merkez Mah. Huzur Cad. No:1 Fatih / İstanbul",
     workingHours: "Hafta içi 09:00 - 18:00, Cumartesi 10:00 - 16:00",
     // Sosyal medya hesapları panelden eklenir; boş olanlar sitede gösterilmez
@@ -1085,7 +1083,7 @@ Mikat, kutsal topraklara manevi bir hazırlıkla girmenin ilk adımıdır.`,
     mapEmbed:
       "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3009.9!2d28.955!3d41.019!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zRmF0aWg!5e0!3m2!1str!2str!4v1700000000000",
     footerNote:
-      "Rotamız Huzura, TÜRSAB ve Diyanet İşleri Başkanlığı yetki belgeli bir seyahat acentasıdır.",
+      "Nemira Turizm, TÜRSAB ve Diyanet İşleri Başkanlığı yetki belgeli bir seyahat acentasıdır.",
   };
 
   await Promise.all(

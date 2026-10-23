@@ -6,14 +6,14 @@ export type SiteSettings = SettingsInput & { raw: Record<string, string> };
 
 /** Veritabanında değer yoksa kullanılan varsayılanlar */
 export const SETTING_DEFAULTS: SettingsInput = {
-  siteName: "Rotamız Huzura",
-  tagline: "Hac & Umre Turizm",
+  siteName: "Nemira Turizm",
+  tagline: "En Güzele, En İyiyle",
   logo: "/images/nemira-logo.png",
   logoLight: "/images/nemira-logo-light.png",
   footerNote: "Yetkili acenta güvencesiyle hac, umre ve kültür turları düzenliyoruz.",
   phone: "+90 850 000 00 00",
   whatsapp: "905000000000",
-  email: "info@rotamizhuzura.com",
+  email: "info@nemiraturizm.com",
   workingHours: "Hafta içi 09:00 - 18:00",
   address: "Merkez Mah. Huzur Cad. No:1 Fatih / İstanbul",
   facebook: "",
@@ -24,7 +24,7 @@ export const SETTING_DEFAULTS: SettingsInput = {
   linkedin: "",
   telegram: "",
   mapEmbed: "",
-  seoTitle: "Rotamız Huzura | Hac & Umre Turizm",
+  seoTitle: "En Güzele, En İyiyle | Nemira Turizm",
   seoDescription:
     "Yetkili acenta güvencesiyle premium hac ve umre programları, lüks umre, Ramazan umresi ve kültür turları. Merkezi oteller, tecrübeli rehberlik ve şeffaf fiyat.",
   seoKeywords:
