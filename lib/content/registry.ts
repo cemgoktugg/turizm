@@ -938,7 +938,7 @@ export const CONTENT_BLOCKS = {
       points: [
         { icon: "BadgeCheck", title: "TÜRSAB A Grubu", text: "A grubu seyahat acentası işletme belgesine sahibiz." },
         { icon: "Award", title: "Diyanet Yetkisi", text: "Diyanet İşleri Başkanlığı'nca yetkilendirilmiş organizasyon." },
-        { icon: "FileCheck2", title: "IATA Üyeliği", text: "Uluslararası hava taşımacılığı akreditasyonu." },
+        { icon: "FileCheck2", title: "IATA Akreditasyonu", text: "Uluslararası hava taşımacılığı akreditasyonu (IATA Kodu: 88227742)." },
         { icon: "ShieldCheck", title: "Güvenli Ödeme", text: "Sözleşmeli, şeffaf ve güvenli ödeme altyapısı." },
       ],
     },
@@ -1350,7 +1350,7 @@ export const CONTENT_BLOCKS = {
           ],
         },
       ],
-      trustBadges: ["TÜRSAB A Grubu Belge", "Diyanet Yetki Belgeli", "IATA Üyesi", "Güvenli Ödeme"],
+      trustBadges: ["TÜRSAB A Grubu Belge", "Diyanet Yetki Belgeli", "IATA Akrediteli Acenta", "Güvenli Ödeme"],
       tursabLabel: "TÜRSAB Belge No",
       mersisLabel: "MERSİS No",
       taxLabel: "Vergi",

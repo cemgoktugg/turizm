@@ -25,7 +25,7 @@ export const SETTING_DEFAULTS: SettingsInput = {
   telegram: "",
   mapEmbed:
     "https://maps.google.com/maps?q=Nemira%20Turizm%2C%20Cami-i%20Kebir%2C%20Ulu%20Camii%20Sk.%20No%3A4%2C%20Sivas%20Merkez%2C%20Sivas&z=17&hl=tr&output=embed",
-  companyTitle: "Hayrabat Turizm",
+  companyTitle: "Hayrabat Turizm ve Seyahat Acentesi Tic. San. Ltd. Şti.",
   tursabNo: "11883",
   mersisNo: "",
   taxInfo: "",

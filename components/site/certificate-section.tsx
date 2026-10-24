@@ -1,4 +1,4 @@
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, ZoomIn } from "lucide-react";
 import { SmartImage } from "@/components/ui/smart-image";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Reveal } from "@/components/ui/reveal";
@@ -18,13 +18,23 @@ export async function CertificateSection({ className = "bg-cream-100" }: { class
           {certificates.map((c, i) => (
             <Reveal key={c.id} delay={i}>
               <figure className="group h-full overflow-hidden rounded-3xl border border-border bg-white shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-card">
-                <div className="relative aspect-[3/4] overflow-hidden bg-brand-950">
+                {/* Belge yatay ya da dikey olabilir: kırpılmadan tamamı gösterilir, tıklayınca büyür */}
+                <a
+                  href={c.image}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`${c.title} — büyüt`}
+                  className="relative block aspect-[4/3] overflow-hidden border-b border-border bg-cream-50"
+                >
                   <SmartImage
                     src={c.image}
                     alt={c.title}
-                    className="size-full transition-transform duration-500 group-hover:scale-105"
+                    className="size-full object-contain p-3 transition-transform duration-500 group-hover:scale-[1.03]"
                   />
-                </div>
+                  <span className="absolute bottom-3 right-3 grid size-9 place-items-center rounded-full bg-white/90 text-brand-700 opacity-0 shadow-soft transition group-hover:opacity-100">
+                    <ZoomIn className="size-4" />
+                  </span>
+                </a>
                 <figcaption className="p-5">
                   <div className="flex items-start gap-2.5">
                     <ShieldCheck className="mt-0.5 size-5 shrink-0 text-gold-500" />
