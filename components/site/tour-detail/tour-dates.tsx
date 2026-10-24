@@ -19,6 +19,7 @@ export type DateRow = {
   returnRoute: string | null;
   airline: string | null;
   price: string;
+  priceTry: string | null;
   seatsLeft: number | null;
 };
 
@@ -119,6 +120,7 @@ export function TourDates({ rows, currentId, labels }: { rows: DateRow[]; curren
                   <td className="px-4 py-3 align-top">{r.airline && <AirlineMark name={r.airline} withName />}</td>
                   <td className="px-4 py-3 text-right align-top">
                     <p className="font-serif text-lg font-bold text-brand-800">{r.price}</p>
+                    {r.priceTry && <p className="text-[11px] font-semibold text-muted">{r.priceTry}</p>}
                     {r.seatsLeft != null && r.seatsLeft > 0 && (
                       <p className="text-xs font-semibold text-red-600">{fill(labels.seatsLeftFormat, { sayi: r.seatsLeft })}</p>
                     )}
@@ -157,6 +159,7 @@ export function TourDates({ rows, currentId, labels }: { rows: DateRow[]; curren
                   </div>
                   <div className="text-right">
                     <p className="font-serif text-lg font-bold text-brand-800">{r.price}</p>
+                    {r.priceTry && <p className="text-[11px] font-semibold text-muted">{r.priceTry}</p>}
                     {r.seatsLeft != null && r.seatsLeft > 0 && (
                       <p className="text-[11px] font-semibold text-red-600">{fill(labels.seatsLeftFormat, { sayi: r.seatsLeft })}</p>
                     )}

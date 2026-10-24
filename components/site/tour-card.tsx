@@ -6,6 +6,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { formatPrice, formatDateRange, cn } from "@/lib/utils";
 import { getContent } from "@/lib/content";
 import { fill } from "@/lib/content/template";
+import { getTryRates } from "@/lib/exchange";
+import { formatTry } from "@/lib/currency";
 
 export type TourCardData = {
   slug: string;
@@ -41,7 +43,8 @@ export async function TourCard({
   tour: TourCardData;
   className?: string;
 }) {
-  const { card } = await getContent("ui.tours");
+  const [{ card }, rates] = await Promise.all([getContent("ui.tours"), getTryRates()]);
+  const priceTry = formatTry(tour.startingPrice, tour.currency, rates, card.tlFormat);
   const dateRange = formatDateRange(tour.departureDate, undefined);
   const duration = formatDuration(tour.durationDays, tour.durationNights, card);
 
@@ -81,6 +84,7 @@ export async function TourCard({
             <span className="block font-serif text-lg font-bold leading-none text-brand-800">
               {formatPrice(tour.startingPrice, tour.currency ?? "USD", card.noPrice)}
             </span>
+            {priceTry && <span className="mt-0.5 block text-[11px] font-semibold text-muted">{priceTry}</span>}
           </div>
         )}
       </div>

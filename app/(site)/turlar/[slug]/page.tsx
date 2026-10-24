@@ -38,6 +38,8 @@ import { ReadMore } from "@/components/site/tour-detail/read-more";
 import { ReviewForm } from "@/components/site/tour-detail/review-form";
 import { Stars } from "@/components/site/tour-detail/stars";
 import { cn, formatDate, formatPrice, splitLines } from "@/lib/utils";
+import { getTryRates } from "@/lib/exchange";
+import { formatTry } from "@/lib/currency";
 import { TourJsonLd, FaqJsonLd, BreadcrumbJsonLd } from "@/components/seo/json-ld";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -72,7 +74,7 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
   if (!tour) notFound();
 
   const past = isPastTour(tour.departureDate);
-  const [settings, booking, ui, turlarPage, general, wa, dates, nearest] = await Promise.all([
+  const [settings, booking, ui, turlarPage, general, wa, dates, nearest, rates] = await Promise.all([
     getSettings(),
     getContent("shared.booking"),
     getContent("ui.tours"),
@@ -86,6 +88,7 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
       orderBy: { departureDate: "asc" },
       take: 3,
     }),
+    getTryRates(),
   ]);
 
   const { detail: d, sidebar: sb, sections: s, reviews: rv } = ui;
@@ -122,6 +125,7 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
     returnRoute: t.legs.length > 1 ? routeText(t.legs[t.legs.length - 1]) : null,
     airline: t.airline,
     price: formatPrice(t.startingPrice, t.currency, noPrice),
+    priceTry: formatTry(t.startingPrice, t.currency, rates, ui.card.tlFormat),
     seatsLeft: t.seatsLeft,
   }));
   const showDates = dateRows.some((r) => r.id !== tour.id);
@@ -255,6 +259,8 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
                   past={past}
                   labels={sb}
                   noPrice={noPrice}
+                  rates={rates}
+                  tlFormat={ui.card.tlFormat}
                   priceDisclaimer={booking.priceDisclaimer}
                   defaultPriceNote={booking.defaultPriceNote}
                   pastText={booking.pastTourText}

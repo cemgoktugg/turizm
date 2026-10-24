@@ -8,10 +8,13 @@ export async function TourFilter({
   options,
   active,
   basePath = "/turlar",
+  query = {},
 }: {
   options: FilterOption[];
   active?: string;
   basePath?: string;
+  /** Kategori değişirken korunacak diğer arama/filtre değerleri */
+  query?: Record<string, string>;
 }) {
   const { list } = await getContent("ui.tours");
   const items: FilterOption[] = [{ label: list.filterAll, slug: "" }, ...options];
@@ -20,11 +23,13 @@ export async function TourFilter({
     <div className="flex flex-wrap gap-2">
       {items.map((opt) => {
         const isActive = (active ?? "") === opt.slug;
-        const href = opt.slug ? `${basePath}?kategori=${opt.slug}` : basePath;
+        const qs = new URLSearchParams({ ...(opt.slug ? { kategori: opt.slug } : {}), ...query }).toString();
+        const href = qs ? `${basePath}?${qs}` : basePath;
         return (
           <Link
             key={opt.slug || "all"}
             href={href}
+            scroll={false}
             className={cn(
               "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-all",
               isActive

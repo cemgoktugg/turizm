@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { ArrowRight, Baby, BedDouble, CalendarCheck, Flame, Headphones, MessageCircle, Phone, User, Users, UsersRound } from "lucide-react";
+import { ArrowRight, Baby, BedDouble, CalendarCheck, CreditCard, Flame, Headphones, MessageCircle, Phone, User, Users, UsersRound } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { fill } from "@/lib/content/template";
 import { telLink, whatsappLink } from "@/lib/settings";
 import { cn, formatPrice } from "@/lib/utils";
+import { formatTry, type TryRates } from "@/lib/currency";
 import type { ContentData } from "@/lib/content/registry";
 import { BookingTrigger } from "./booking-dialog";
 import { PassportCheck } from "./passport-check";
@@ -26,6 +27,8 @@ export function TourSidebar({
   past,
   labels,
   noPrice,
+  rates,
+  tlFormat,
   priceDisclaimer,
   defaultPriceNote,
   pastText,
@@ -45,6 +48,8 @@ export function TourSidebar({
   past: boolean;
   labels: SidebarLabels;
   noPrice: string;
+  rates: TryRates | null;
+  tlFormat: string;
   priceDisclaimer: string;
   defaultPriceNote: string;
   pastText: string;
@@ -53,6 +58,7 @@ export function TourSidebar({
   whatsappText: string;
 }) {
   const months = Number.parseInt(labels.passportMonths, 10);
+  const priceTry = formatTry(tour.startingPrice, tour.currency, rates, tlFormat);
 
   return (
     <div className="space-y-4">
@@ -69,6 +75,17 @@ export function TourSidebar({
           </span>
           {tour.startingPrice != null && <span className="text-sm text-muted">/ {tour.priceNote || defaultPriceNote}</span>}
         </p>
+        {priceTry && (
+          <p className="mt-1 text-sm font-semibold text-brand-700">
+            {priceTry}
+            {labels.tlNote && <span className="mt-0.5 block text-[11px] font-normal leading-snug text-muted">{labels.tlNote}</span>}
+          </p>
+        )}
+        {labels.installmentText && (
+          <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
+            <CreditCard className="size-3.5" /> {labels.installmentText}
+          </p>
+        )}
         {!past && tour.seatsLeft != null && tour.seatsLeft > 0 && (
           <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-600">
             <Flame className="size-3.5" /> {fill(labels.seatsLeftFormat, { sayi: tour.seatsLeft })}
@@ -116,7 +133,12 @@ export function TourSidebar({
                       <Icon className="size-4 shrink-0 text-gold-600" />
                       <span className="truncate">{p.roomType}</span>
                     </span>
-                    <span className="shrink-0 font-bold text-brand-900">{formatPrice(p.price, p.currency, noPrice)}</span>
+                    <span className="shrink-0 text-right">
+                      <span className="block font-bold text-brand-900">{formatPrice(p.price, p.currency, noPrice)}</span>
+                      {formatTry(p.price, p.currency, rates, tlFormat) && (
+                        <span className="block text-[11px] font-medium text-muted">{formatTry(p.price, p.currency, rates, tlFormat)}</span>
+                      )}
+                    </span>
                   </li>
                 );
               })}
