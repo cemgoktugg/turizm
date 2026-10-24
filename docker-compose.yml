@@ -35,6 +35,9 @@ services:
       NOTIFY_EMAIL: ${NOTIFY_EMAIL:-}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      # WhatsApp numaranıza bildirim (CallMeBot anahtarı; numara boşsa Site Ayarları'ndaki WhatsApp)
+      CALLMEBOT_APIKEY: ${CALLMEBOT_APIKEY:-}
+      CALLMEBOT_PHONE: ${CALLMEBOT_PHONE:-}
     volumes:
       - nemira_data:/app/data
       - nemira_uploads:/app/storage/uploads

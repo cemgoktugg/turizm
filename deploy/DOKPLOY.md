@@ -49,6 +49,11 @@ yazan müşteriye de otomatik yanıt gider. `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHA
 Telegram bildirimi de açılabilir. Müşteriye giden metin panelden düzenlenir
 (Sayfa İçerikleri › Başvuru Formu).
 
+**WhatsApp bildirimi:** İşletme numarasının WhatsApp'ından `+34 623 78 95 80`
+numarasına `I allow callmebot to send me messages` yazın; gelen anahtarı
+`CALLMEBOT_APIKEY` olarak girip Redeploy yapın. Her başvuru, müşteriye tek tıkla
+yazma bağlantısıyla birlikte WhatsApp'ınıza gelir.
+
 ## 3. Deploy
 
 **Deploy**'a basın. İlk derleme 3–6 dk sürer. **Logs** sekmesinde `web` servisinde sırasıyla:

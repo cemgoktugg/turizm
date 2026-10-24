@@ -8,6 +8,8 @@ import { LEAD_SOURCES, type LeadSource } from "./validations";
  *  SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM  → e-posta gönderimi
  *  NOTIFY_EMAIL                                            → bildirimin gideceği adres(ler), virgülle
  *  TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID                    → isteğe bağlı Telegram bildirimi
+ *  CALLMEBOT_APIKEY (+ isteğe bağlı CALLMEBOT_PHONE)        → WhatsApp numaranıza bildirim (CallMeBot);
+ *                                                            numara verilmezse Site Ayarları'ndaki WhatsApp kullanılır
  * Ayarlanmamış kanal sessizce atlanır; hatalar başvuruyu asla engellemez.
  */
 
@@ -21,7 +23,7 @@ export type LeadNotice = {
   source: LeadSource | null;
 };
 
-type Brand = { siteName: string; phone: string; adminUrl: string };
+type Brand = { siteName: string; phone: string; whatsapp: string; adminUrl: string };
 type AutoReply = { subject: string; text: string };
 
 function smtp() {
@@ -56,7 +58,7 @@ async function emailAdmin(lead: LeadNotice, brand: Brand) {
   const to = process.env.NOTIFY_EMAIL;
   if (!mail || !to) return;
   const rows = leadLines(lead);
-  const waPhone = lead.phone.replace(/\D/g, "").replace(/^0/, "90");
+  const waPhone = waNumber(lead.phone);
   await mail.transport.sendMail({
     from: `"${brand.siteName}" <${mail.from}>`,
     to,
@@ -104,8 +106,44 @@ async function telegram(lead: LeadNotice, brand: Brand) {
   if (!res.ok) throw new Error(`Telegram ${res.status}`);
 }
 
+/** Müşterinin numarasını WhatsApp bağlantısı biçimine çevirir (0555… → 90555…) */
+function waNumber(phone: string): string {
+  let d = phone.replace(/\D/g, "");
+  if (d.startsWith("0")) d = "90" + d.slice(1);
+  else if (d.length === 10 && d.startsWith("5")) d = "90" + d;
+  return d;
+}
+
+/** WhatsApp numaranıza bildirim (CallMeBot — yalnızca kendi numaranıza mesaj gönderir) */
+async function whatsapp(lead: LeadNotice, brand: Brand) {
+  const apikey = process.env.CALLMEBOT_APIKEY;
+  if (!apikey) return;
+  const phone = (process.env.CALLMEBOT_PHONE || brand.whatsapp).replace(/[^\d]/g, "");
+  if (!phone) return;
+  const text = [
+    "🔔 *Yeni başvuru*",
+    "",
+    ...leadLines(lead).map(([k, v]) => `*${k}:* ${v}`),
+    "",
+    `Müşteriye yaz: https://wa.me/${waNumber(lead.phone)}`,
+    `Panel: ${brand.adminUrl}`,
+  ].join("\n");
+  const url = `https://api.callmebot.com/whatsapp.php?phone=%2B${phone}&text=${encodeURIComponent(text)}&apikey=${encodeURIComponent(apikey)}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+  const body = await res.text();
+  // Servis hata durumunda da 200 dönebildiği için metne bakılır
+  if (!res.ok || /error|invalid|not (allowed|activated)/i.test(body)) {
+    throw new Error(`WhatsApp (CallMeBot) ${res.status}: ${body.replace(/<[^>]+>/g, " ").slice(0, 160)}`);
+  }
+}
+
 /** Tüm kanallara bildirim gönderir; hatalar yalnızca loglanır */
 export async function notifyNewLead(lead: LeadNotice, brand: Brand, reply: AutoReply) {
-  const results = await Promise.allSettled([emailAdmin(lead, brand), emailCustomer(lead, brand, reply), telegram(lead, brand)]);
+  const results = await Promise.allSettled([
+    emailAdmin(lead, brand),
+    emailCustomer(lead, brand, reply),
+    telegram(lead, brand),
+    whatsapp(lead, brand),
+  ]);
   for (const r of results) if (r.status === "rejected") console.error("[bildirim]", r.reason);
 }

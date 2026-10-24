@@ -76,7 +76,7 @@ export async function createLead(input: unknown): Promise<ActionResult> {
         message: lead.message,
         source: (lead.source as LeadSource | null) ?? null,
       },
-      { siteName: settings.siteName, phone: settings.phone, adminUrl: `${SITE_URL}/admin/leads` },
+      { siteName: settings.siteName, phone: settings.phone, whatsapp: settings.whatsapp, adminUrl: `${SITE_URL}/admin/leads` },
       { subject: booking.autoReplySubject, text: booking.autoReplyText },
     );
   });
