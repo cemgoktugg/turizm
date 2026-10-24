@@ -34,7 +34,7 @@ export default async function HakkimizdaPage() {
           <Reveal>
             <div className="relative">
               <div className="overflow-hidden rounded-3xl border border-border shadow-card">
-                <SmartImage src={c.storyImage} alt={settings.siteName} className="aspect-[4/3] w-full" />
+                <SmartImage src={c.storyImage} alt={settings.siteName} sizes="(min-width: 1024px) 600px, 100vw" className="aspect-[4/3] w-full" />
               </div>
               {c.badgeValue && (
                 <div className="absolute -bottom-6 -right-4 hidden rounded-2xl bg-gold-400 px-6 py-4 text-center shadow-gold sm:block">

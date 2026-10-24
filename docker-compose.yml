@@ -99,7 +99,7 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
-        apk add --no-cache sqlite >/dev/null
+        apk add --no-cache sqlite tar >/dev/null
         while true; do
           TS=$$(date +%Y-%m-%d_%H%M)
           if [ -f /data/turizm.db ] && sqlite3 /data/turizm.db ".backup '/backups/db_$$TS.db'"; then
@@ -107,7 +107,8 @@ services:
           else
             echo "[yedek] HATA: veritabanı yedeği alınamadı"
           fi
-          tar -czf /backups/uploads_$$TS.tar.gz -C /uploads . && echo "[yedek] uploads_$$TS.tar.gz tamam"
+          # .variants: mobil için küçültülmüş kopyalar, gerektiğinde yeniden üretilir
+          tar -czf /backups/uploads_$$TS.tar.gz --exclude=./.variants -C /uploads . && echo "[yedek] uploads_$$TS.tar.gz tamam"
           find /backups -name 'db_*.db.gz' -mtime +$$BACKUP_KEEP_DAYS -delete
           find /backups -name 'uploads_*.tar.gz' -mtime +3 -delete
           sleep 86400

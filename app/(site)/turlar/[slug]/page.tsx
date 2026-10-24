@@ -267,6 +267,7 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
                   phone={settings.phone}
                   whatsapp={settings.whatsapp}
                   whatsappText={waText}
+                  program={ui.print.openButton ? { href: `/turlar/${tour.slug}/program`, label: ui.print.openButton } : null}
                 />
               </div>
             </aside>

@@ -2,7 +2,8 @@ import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
-import { resolveUploadPath } from "@/lib/media";
+import { ensureImageVariant, resolveUploadPath } from "@/lib/media";
+import { VARIANT_WIDTHS } from "@/lib/image-variants";
 
 const TYPES: Record<string, string> = {
   ".webp": "image/webp",
@@ -46,6 +47,18 @@ export async function GET(req: Request, { params }: { params: Promise<{ path: st
     size = info.size;
   } catch {
     return new Response("Bulunamadı", { status: 404 });
+  }
+
+  // ?w=800 → küçültülmüş kopya (yalnız izin verilen genişlikler; üretilemezse asıl dosya)
+  const width = Number(new URL(req.url).searchParams.get("w"));
+  if ((VARIANT_WIDTHS as readonly number[]).includes(width) && /\.(webp|jpe?g|png|avif)$/i.test(target)) {
+    const variant = await ensureImageVariant(target, width);
+    if (variant) {
+      const info = await stat(variant);
+      return new Response(stream(variant), {
+        headers: { ...BASE_HEADERS, "Content-Type": "image/webp", "Content-Length": String(info.size) },
+      });
+    }
   }
 
   const range = req.headers.get("range");

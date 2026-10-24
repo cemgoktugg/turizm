@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Baby, BedDouble, CalendarCheck, CreditCard, Flame, Headphones, MessageCircle, Phone, User, Users, UsersRound } from "lucide-react";
+import { ArrowRight, Baby, BedDouble, CalendarCheck, CreditCard, FileDown, Flame, Headphones, MessageCircle, Phone, User, Users, UsersRound } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { fill } from "@/lib/content/template";
 import { telLink, whatsappLink } from "@/lib/settings";
@@ -35,6 +35,7 @@ export function TourSidebar({
   phone,
   whatsapp,
   whatsappText,
+  program,
 }: {
   tour: {
     title: string;
@@ -56,6 +57,8 @@ export function TourSidebar({
   phone: string;
   whatsapp: string;
   whatsappText: string;
+  /** Yazdırılabilir program sayfası (etiketi boşsa gösterilmez) */
+  program?: { href: string; label: string } | null;
 }) {
   const months = Number.parseInt(labels.passportMonths, 10);
   const priceTry = formatTry(tour.startingPrice, tour.currency, rates, tlFormat);
@@ -119,6 +122,16 @@ export function TourSidebar({
               <MessageCircle className="size-4" /> {labels.whatsappButton}
             </a>
           </div>
+          {program && (
+            <a
+              href={program.href}
+              target="_blank"
+              rel="noopener"
+              className="flex items-center justify-center gap-1.5 pt-1 text-[13px] font-semibold text-brand-700 transition hover:text-gold-600"
+            >
+              <FileDown className="size-4" /> {program.label}
+            </a>
+          )}
         </div>
 
         {tour.prices.length > 0 && (

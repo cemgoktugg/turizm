@@ -28,6 +28,7 @@ export async function CertificateSection({ className = "bg-cream-100" }: { class
                 >
                   <SmartImage
                     src={c.image}
+                    sizes="(min-width: 1024px) 300px, 50vw"
                     alt={c.title}
                     className="size-full object-contain p-3 transition-transform duration-500 group-hover:scale-[1.03]"
                   />

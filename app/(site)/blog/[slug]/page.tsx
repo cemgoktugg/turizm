@@ -102,6 +102,7 @@ export default async function BlogDetailPage({
             <div className="relative mt-6 aspect-[16/9] overflow-hidden rounded-3xl border border-border shadow-card">
               <SmartImage
                 src={post.coverImage}
+                sizes="(min-width: 1024px) 900px, 100vw"
                 alt={post.title}
                 loading="eager"
                 className="size-full"

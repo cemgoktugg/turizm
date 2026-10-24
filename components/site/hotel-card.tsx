@@ -34,6 +34,7 @@ export async function HotelCard({
       <div className="relative aspect-[4/3] overflow-hidden">
         <SmartImage
           src={img}
+          sizes="(min-width: 1024px) 400px, (min-width: 640px) 50vw, 100vw"
           alt={hotel.name}
           className="size-full transition-transform duration-700 group-hover:scale-105"
         />

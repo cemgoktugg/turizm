@@ -4,6 +4,7 @@ import { PageHero } from "@/components/site/page-hero";
 import { BlogCard } from "@/components/site/blog-card";
 import { CtaBand } from "@/components/site/cta-band";
 import { Reveal } from "@/components/ui/reveal";
+import { SmartImage } from "@/components/ui/smart-image";
 import { BookOpen } from "lucide-react";
 
 export const generateMetadata = () => pageMetadata("page.blog");
@@ -63,11 +64,12 @@ function FeaturedPost({
   return (
     <article className="grid overflow-hidden rounded-3xl border border-border bg-white shadow-card lg:grid-cols-2">
       <a href={`/blog/${post.slug}`} className="relative aspect-[16/10] overflow-hidden lg:aspect-auto">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={post.coverImage || "/images/logo-mark.svg"}
+        <SmartImage
+          src={post.coverImage}
           alt={post.title}
-          className="size-full object-cover"
+          loading="eager"
+          sizes="(min-width: 1024px) 600px, 100vw"
+          className="size-full"
         />
       </a>
       <div className="flex flex-col justify-center p-8 lg:p-10">

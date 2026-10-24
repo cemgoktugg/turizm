@@ -12,13 +12,16 @@ export function MediaThumb({
   alt = "",
   className,
   badge = true,
+  sizes = "160px",
 }: {
   src?: string | null;
   alt?: string;
   className?: string;
   badge?: boolean;
+  /** Küçük resim olduğu için varsayılan olarak küçük kopya seçilir */
+  sizes?: string;
 }) {
-  if (!isVideoUrl(src)) return <SmartImage src={src} alt={alt} className={className} />;
+  if (!isVideoUrl(src)) return <SmartImage src={src} alt={alt} sizes={sizes} className={className} />;
   return (
     <span className={cn("relative block overflow-hidden bg-brand-950", className)}>
       <video src={`${src}#t=0.1`} muted playsInline preload="metadata" className="size-full object-cover" aria-label={alt} />

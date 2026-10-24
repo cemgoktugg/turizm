@@ -40,7 +40,7 @@ export function HotelCards({ hotels, labels }: { hotels: HotelCardData[]; labels
           {/* Görsel */}
           <div className="relative w-[42%] shrink-0 bg-brand-800">
             {h.image ? (
-              <SmartImage src={h.image} alt={h.name} className="absolute inset-0 size-full" />
+              <SmartImage src={h.image} alt={h.name} sizes="(min-width: 1024px) 280px, 45vw" className="absolute inset-0 size-full" />
             ) : (
               <span className="absolute inset-0 grid place-items-center text-white/30">
                 <BedDouble className="size-10" />

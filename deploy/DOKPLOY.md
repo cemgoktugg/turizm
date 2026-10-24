@@ -121,6 +121,23 @@ docker exec <db-backup konteyneri> sh -c "gunzip -c /backups/db_2026-10-23_0300.
 docker restart <web konteyneri>
 ```
 
+## Kesinti takibi (önerilir)
+
+Site çökerse veya veritabanına ulaşılamazsa haberiniz olsun diye ücretsiz bir izleme
+servisi bağlayın (ör. [UptimeRobot](https://uptimerobot.com) veya Better Stack):
+
+1. Hesap açın → **New Monitor** → tür: **HTTP(s)**.
+2. Adres: `https://<alan adı>/api/health` — kontrol aralığı: 5 dakika.
+3. Uyarı kanalı olarak e-posta, Telegram veya mobil uygulama bildirimini seçin.
+
+`/api/health` site ve veritabanı çalışıyorsa `200`, veritabanına ulaşılamıyorsa `503` döner.
+
+## Görseller
+
+Panelden yüklenen görseller webp'ye çevrilir. Telefon ve tabletler için 480 / 800 /
+1200 / 1600 px kopyalar ilk istendiğinde otomatik üretilir
+(`nemira_uploads` içinde `.variants/`); yedeğe alınmaz, silinirse yeniden üretilir.
+
 ## Güvenlik
 
 - `JWT_SECRET` boş ya da 32 karakterden kısaysa site **açılmaz** (bilerek).

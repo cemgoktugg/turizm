@@ -59,6 +59,7 @@ export async function TourCard({
         <Link href={`/turlar/${tour.slug}`}>
           <SmartImage
             src={tour.coverImage}
+            sizes="(min-width: 1024px) 400px, (min-width: 768px) 50vw, 100vw"
             alt={tour.title}
             className="size-full transition-transform duration-700 group-hover:scale-105"
           />

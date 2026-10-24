@@ -63,6 +63,7 @@ export function TourGallery({
         >
           <SmartImage
             src={list[0]}
+            sizes="(min-width: 1024px) 800px, 100vw"
             alt={title}
             loading="eager"
             className="size-full transition-transform duration-700 group-hover:scale-[1.03]"
@@ -85,6 +86,7 @@ export function TourGallery({
               >
                 <SmartImage
                   src={src}
+                  sizes="(min-width: 1024px) 400px, 50vw"
                   alt={`${title} — görsel ${i + 2}`}
                   className="absolute inset-0 size-full transition-transform duration-700 group-hover:scale-105"
                 />
@@ -127,6 +129,7 @@ export function TourGallery({
             >
               <SmartImage
                 src={src}
+                sizes="(min-width: 1024px) 200px, 33vw"
                 alt={`${title} — görsel ${i + 4}`}
                 className="size-full transition-transform duration-700 group-hover:scale-105"
               />
@@ -139,7 +142,7 @@ export function TourGallery({
               ariaLabel={labels.videoButton}
               className="group relative aspect-[4/3] overflow-hidden rounded-2xl bg-brand-950"
             >
-              <SmartImage src={list[1] ?? list[0]} alt="" className="size-full opacity-60 transition group-hover:opacity-50" />
+              <SmartImage src={list[1] ?? list[0]} alt="" sizes="(min-width: 1024px) 200px, 33vw" className="size-full opacity-60 transition group-hover:opacity-50" />
               <span className="absolute inset-0 grid place-items-center">
                 <span className="grid size-12 place-items-center rounded-full bg-white/90 text-brand-800 shadow-lg transition group-hover:scale-110">
                   <Play className="ml-0.5 size-5 fill-current" />
@@ -175,7 +178,7 @@ export function TourGallery({
             onClick={() => open(Math.min(3 + restShown.length, list.length - 1))}
             className="group relative aspect-[4/3] overflow-hidden rounded-2xl bg-brand-950"
           >
-            <SmartImage src={allTileImage} alt="" className="size-full opacity-45 transition group-hover:scale-105" />
+            <SmartImage src={allTileImage} alt="" sizes="(min-width: 1024px) 200px, 33vw" className="size-full opacity-45 transition group-hover:scale-105" />
             <span className="absolute inset-0 flex flex-col items-center justify-center p-2 text-center text-white">
               <span className="text-sm font-bold">{labels.galleryAll}</span>
               {hidden > 0 && <span className="text-xs text-white/85">{fill(labels.galleryMore, { sayi: hidden })}</span>}
@@ -306,7 +309,7 @@ function Lightbox({
                 i === index ? "border-gold-400" : "border-transparent opacity-50 hover:opacity-100",
               )}
             >
-              <SmartImage src={src} alt="" className="size-full" />
+              <SmartImage src={src} alt="" sizes="96px" className="size-full" />
             </button>
           ))}
         </div>

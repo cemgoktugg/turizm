@@ -196,3 +196,28 @@
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-brand-300);
 }
+
+/* Yazdırılabilir tur programı (A4 / PDF) */
+@page {
+  size: A4;
+  margin: 12mm 14mm;
+}
+.avoid-break {
+  break-inside: avoid;
+}
+.avoid-break-after {
+  break-after: avoid;
+}
+.print-exact {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+@media print {
+  html,
+  body {
+    background: #fff !important;
+  }
+  [data-sonner-toaster] {
+    display: none !important;
+  }
+}

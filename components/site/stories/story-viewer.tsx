@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { ArrowUpRight, ChevronLeft, ChevronRight, Loader2, Play, Volume2, VolumeX, X } from "lucide-react";
 import { MediaThumb } from "@/components/ui/media-thumb";
 import { cn } from "@/lib/utils";
+import { isResizable, uploadSrcSet } from "@/lib/image-variants";
 
 export type StoryView = {
   id: string;
@@ -247,11 +248,18 @@ export function StoryViewer({
         ) : (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={item.url} alt="" aria-hidden className="absolute inset-0 size-full scale-110 object-cover opacity-50 blur-2xl" />
+            <img
+              src={isResizable(item.url) ? `${item.url}?w=480` : item.url}
+              alt=""
+              aria-hidden
+              className="absolute inset-0 size-full scale-110 object-cover opacity-50 blur-2xl"
+            />
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               key={item.id}
               src={item.url}
+              srcSet={uploadSrcSet(item.url)}
+              sizes="(min-width: 640px) 480px, 100vw"
               alt={item.caption ?? story.title}
               draggable={false}
               onLoad={() => setReadyId(item.id)}

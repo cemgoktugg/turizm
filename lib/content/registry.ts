@@ -1762,6 +1762,22 @@ export const CONTENT_BLOCKS = {
       },
       {
         type: "group",
+        name: "print",
+        label: "Yazdırılabilir tur programı (PDF)",
+        fields: [
+          { type: "text", name: "openButton", label: "Tur sayfasındaki buton", help: "Boş bırakılırsa buton gösterilmez." },
+          { type: "text", name: "printButton", label: "Yazdır / PDF kaydet butonu" },
+          { type: "text", name: "shareButton", label: "WhatsApp'ta paylaş butonu" },
+          { type: "text", name: "backButton", label: "Tur sayfasına dön" },
+          { type: "textarea", name: "hint", label: "Ekrandaki kısa açıklama", rows: 2 },
+          { type: "text", name: "departureLabel", label: "Bilgi — Kalkış" },
+          { type: "text", name: "priceLabel", label: "Bilgi — Fiyat" },
+          { type: "text", name: "hotelsTitle", label: "Oteller başlığı" },
+          { type: "textarea", name: "footerNote", label: "Sayfa altı notu", rows: 2 },
+        ],
+      },
+      {
+        type: "group",
         name: "reviews",
         label: "Tur detay — değerlendirmeler",
         fields: [
@@ -1898,6 +1914,17 @@ export const CONTENT_BLOCKS = {
         faqTitle: "Sık Sorulan Sorular",
         nearestTitle: "Kalkışı En Yakın Programlar",
         nearestText: "Kalkışı yaklaşan programlarımız; kontenjanlar hızla dolabilir.",
+      },
+      print: {
+        openButton: "Programı PDF İndir",
+        printButton: "Yazdır / PDF Kaydet",
+        shareButton: "WhatsApp'ta Paylaş",
+        backButton: "Tur sayfasına dön",
+        hint: "Yazdır butonuna basıp hedef olarak 'PDF olarak kaydet'i seçerek programı telefonunuza veya bilgisayarınıza indirebilirsiniz.",
+        departureLabel: "Kalkış",
+        priceLabel: "Başlangıç fiyatı",
+        hotelsTitle: "Konaklama",
+        footerNote: "Bu program bilgilendirme amaçlıdır. Fiyat, uçuş ve otel bilgileri değişebilir; güncel bilgi için bizimle iletişime geçin.",
       },
       reviews: {
         title: "Değerlendirmeler",

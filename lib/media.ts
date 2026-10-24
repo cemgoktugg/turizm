@@ -1,12 +1,13 @@
 import "server-only";
 import path from "node:path";
-import { mkdir, readdir, unlink, writeFile } from "node:fs/promises";
+import { mkdir, readdir, rename, stat, unlink, writeFile } from "node:fs/promises";
 import { randomBytes } from "node:crypto";
 import sharp from "sharp";
 import { prisma } from "./prisma";
 import { toSlug } from "./utils";
 import { CONTENT_BLOCKS, isContentKey } from "./content/registry";
 import type { MediaUsage, UploadKind } from "./media-types";
+import { VARIANT_WIDTHS } from "./image-variants";
 
 export type { MediaUsage, UploadKind } from "./media-types";
 
@@ -156,6 +157,57 @@ export async function deleteUploadFile(url: string) {
   const target = resolveUploadPath(url.slice(UPLOAD_URL_PREFIX.length).split("/"));
   if (!target) return;
   await unlink(target).catch(() => undefined);
+  // Küçültülmüş halleri de sil
+  await Promise.all(VARIANT_WIDTHS.map((w) => unlink(variantPath(target, w)).catch(() => undefined)));
+}
+
+/* ------------------------------------------------------------------ */
+/* Küçültülmüş görseller (mobil için)                                   */
+/* ------------------------------------------------------------------ */
+
+const VARIANT_ROOT = path.join(UPLOAD_ROOT, ".variants");
+const pending = new Map<string, Promise<string | null>>();
+
+function variantPath(original: string, width: number): string {
+  const rel = path.relative(UPLOAD_ROOT, original).replace(/\.[^./\\]+$/, "");
+  return path.join(VARIANT_ROOT, String(width), `${rel}.webp`);
+}
+
+/**
+ * Görselin istenen genişlikteki webp kopyasını döndürür; yoksa üretir.
+ * Aynı anda gelen istekler tek üretimde birleştirilir. Hata olursa null.
+ */
+export async function ensureImageVariant(original: string, width: number): Promise<string | null> {
+  const target = variantPath(original, width);
+  try {
+    await stat(target);
+    return target;
+  } catch {
+    /* henüz üretilmemiş */
+  }
+  let job = pending.get(target);
+  if (!job) {
+    job = (async () => {
+      try {
+        await mkdir(path.dirname(target), { recursive: true });
+        const tmp = `${target}.${randomBytes(4).toString("hex")}.tmp`;
+        await sharp(original)
+          .rotate()
+          .resize({ width, withoutEnlargement: true })
+          .webp({ quality: 78 })
+          .toFile(tmp);
+        await rename(tmp, target);
+        return target;
+      } catch (err) {
+        console.error("[görsel]", err instanceof Error ? err.message : err);
+        return null;
+      } finally {
+        pending.delete(target);
+      }
+    })();
+    pending.set(target, job);
+  }
+  return job;
 }
 
 /** public/images altındaki hazır görseller (kütüphanede seçilebilir) */

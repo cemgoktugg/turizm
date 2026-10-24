@@ -34,6 +34,7 @@ export async function BlogCard({
       <Link href={`/blog/${post.slug}`} className="relative aspect-[16/9] overflow-hidden">
         <SmartImage
           src={post.coverImage}
+          sizes="(min-width: 768px) 400px, 100vw"
           alt={post.title}
           className="size-full transition-transform duration-700 group-hover:scale-105"
         />

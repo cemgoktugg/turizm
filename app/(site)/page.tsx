@@ -132,6 +132,7 @@ export default async function HomePage() {
                   >
                     <SmartImage
                       src={c.image}
+                      sizes="(min-width: 1024px) 400px, (min-width: 640px) 50vw, 100vw"
                       alt={c.name}
                       className="absolute inset-0 size-full transition-transform duration-700 group-hover:scale-110"
                     />

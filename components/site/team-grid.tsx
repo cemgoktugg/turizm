@@ -15,6 +15,7 @@ export function TeamGrid({ members, compact = false }: { members: TeamMember[]; 
               {m.photo ? (
                 <SmartImage
                   src={m.photo}
+                  sizes="(min-width: 1024px) 300px, (min-width: 640px) 50vw, 100vw"
                   alt={m.name}
                   className="size-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
