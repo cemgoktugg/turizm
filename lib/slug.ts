@@ -1,7 +1,7 @@
 import { prisma } from "./prisma";
 import { toSlug } from "./utils";
 
-type SluggableModel = "tour" | "hotel" | "blogPost" | "tourCategory";
+type SluggableModel = "tour" | "hotel" | "blogPost" | "tourCategory" | "landingPage";
 
 /** Benzersiz slug üretir; çakışma varsa sonuna -2, -3 ekler */
 export async function uniqueSlug(

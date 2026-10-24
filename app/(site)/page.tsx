@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { MoveRight, Quote } from "lucide-react";
+import { MessageCircle, MoveRight, Phone, Quote } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { getSettings } from "@/lib/settings";
+import { contentVars, getSettings, telLink, whatsappLink } from "@/lib/settings";
+import { prepareFaqGroups } from "@/lib/faq";
+import { FAQAccordion } from "@/components/site/faq-accordion";
 import { getContent } from "@/lib/content";
 import { activeTourWhere, getStories } from "@/lib/queries";
 import { isVideoUrl } from "@/lib/media-types";
@@ -21,7 +23,7 @@ import { cn } from "@/lib/utils";
 import { TravelAgencyJsonLd } from "@/components/seo/json-ld";
 
 export default async function HomePage() {
-  const [settings, hero, storiesContent, sections, features, prep, quote, stories] = await Promise.all([
+  const [settings, hero, storiesContent, sections, features, prep, quote, stories, faq] = await Promise.all([
     getSettings(),
     getContent("home.hero"),
     getContent("home.stories"),
@@ -30,6 +32,7 @@ export default async function HomePage() {
     getContent("home.prep"),
     getContent("home.quote"),
     getStories(),
+    getContent("page.sss"),
   ]);
 
   const [featured, categories, mekke, medine, posts] = await Promise.all([
@@ -46,6 +49,10 @@ export default async function HomePage() {
   ]);
 
   const hotels = [...mekke, ...medine];
+  const faqCount = Number.parseInt(faq.home.count, 10) || 0;
+  const homeFaqs = faq.home.title && faqCount > 0
+    ? prepareFaqGroups(faq.groups, contentVars(settings)).flatMap((g) => g.items).slice(0, faqCount)
+    : [];
 
   return (
     <>
@@ -267,6 +274,45 @@ export default async function HomePage() {
                 </Reveal>
               ))}
             </div>
+          </div>
+        </section>
+      )}
+
+      {/* Sık sorulan sorular */}
+      {homeFaqs.length > 0 && (
+        <section className="bg-cream-50 py-20">
+          <div className="container-tr grid gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-14">
+            <div>
+              <SectionHeading
+                align="left"
+                eyebrow={faq.home.eyebrow}
+                title={faq.home.title}
+                description={faq.home.description}
+                className="mx-0"
+              />
+              <div className="mt-8 rounded-3xl bg-brand-900 p-6 text-white shadow-card">
+                {faq.home.helpText && <p className="text-sm text-cream-100/80">{faq.home.helpText}</p>}
+                <div className="mt-4 flex flex-wrap gap-2.5">
+                  <a href={telLink(settings.phone)} className={buttonVariants({ variant: "gold", size: "sm" })}>
+                    <Phone className="size-4" /> {settings.phone}
+                  </a>
+                  <a
+                    href={whatsappLink(settings.whatsapp)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-full border border-white/25 px-4 text-sm font-semibold text-white transition hover:bg-white/10"
+                  >
+                    <MessageCircle className="size-4" /> WhatsApp
+                  </a>
+                </div>
+              </div>
+              {faq.home.buttonLabel && (
+                <Link href="/sss" className={cn(buttonVariants({ variant: "outline" }), "mt-6")}>
+                  {faq.home.buttonLabel} <MoveRight className="size-4" />
+                </Link>
+              )}
+            </div>
+            <FAQAccordion items={homeFaqs} />
           </div>
         </section>
       )}

@@ -6,6 +6,7 @@ import { SmartImage } from "@/components/ui/smart-image";
 import { SocialIcon, type SocialName } from "@/components/site/social-icon";
 import type { ContentData } from "@/lib/content/registry";
 import { CookieSettingsButton } from "@/components/site/analytics";
+import { NewsletterForm } from "@/components/site/newsletter-form";
 
 const SOCIALS: { key: SocialName; label: string }[] = [
   { key: "facebook", label: "Facebook" },
@@ -23,6 +24,7 @@ export function Footer({
   whatsappMessage,
   legalLinks,
   cookieSettingsLabel,
+  newsletter,
 }: {
   settings: SiteSettings;
   content: ContentData<"nav.footer">;
@@ -31,6 +33,8 @@ export function Footer({
   legalLinks: { href: string; label: string }[];
   /** Ölçüm araçları açıksa "Çerez tercihleri" bağlantısı */
   cookieSettingsLabel: string | null;
+  /** Kampanya kayıt kutusu (başlığı boşsa gösterilmez) */
+  newsletter: { texts: ContentData<"shared.newsletter">; consentText: string } | null;
 }) {
   // Mevzuat gereği şirket bilgileri (boş olanlar gösterilmez)
   const companyInfo = [
@@ -152,6 +156,13 @@ export function Footer({
           </div>
         ))}
       </div>
+
+      {/* Kampanya kayıt kutusu */}
+      {newsletter && (
+        <div className="container-tr pb-12">
+          <NewsletterForm texts={newsletter.texts} consentText={newsletter.consentText} />
+        </div>
+      )}
 
       {/* Güven rozetleri */}
       {content.trustBadges.length > 0 && (

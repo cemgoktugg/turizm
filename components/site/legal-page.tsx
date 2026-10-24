@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ChevronRight, House } from "lucide-react";
-import { getSettings } from "@/lib/settings";
+import { contentVars, getSettings } from "@/lib/settings";
 import { getContent } from "@/lib/content";
 import { fill } from "@/lib/content/template";
 import { Prose } from "@/components/site/prose";
@@ -12,14 +12,7 @@ export async function LegalPage({ blockKey }: { blockKey: LegalKey }) {
   const [c, settings, general] = await Promise.all([getContent(blockKey), getSettings(), getContent("ui.general")]);
 
   // Metindeki yer tutucular Site Ayarları'ndan doldurulur
-  const vars = {
-    unvan: settings.companyTitle || settings.siteName,
-    marka: settings.siteName,
-    adres: settings.address,
-    telefon: settings.phone,
-    eposta: settings.email,
-    belgeNo: settings.tursabNo,
-  };
+  const vars = contentVars(settings);
 
   return (
     <>

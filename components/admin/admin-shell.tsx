@@ -7,9 +7,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
   Award,
+  BellRing,
   Building2,
   CirclePlay,
   ExternalLink,
+  FileSearch,
   Images,
   Inbox,
   LayoutDashboard,
@@ -37,6 +39,7 @@ const NAV_GROUPS: { title?: string; items: NavItem[] }[] = [
     items: [
       { label: "Başvurular", href: "/admin/leads", icon: Inbox, badgeKey: "leads" },
       { label: "Değerlendirmeler", href: "/admin/reviews", icon: MessageSquareQuote, badgeKey: "reviews" },
+      { label: "Aboneler", href: "/admin/subscribers", icon: BellRing },
     ],
   },
   {
@@ -53,6 +56,7 @@ const NAV_GROUPS: { title?: string; items: NavItem[] }[] = [
       { label: "Hikayeler", href: "/admin/stories", icon: CirclePlay },
       { label: "Sayfa İçerikleri", href: "/admin/content", icon: LayoutTemplate },
       { label: "Blog", href: "/admin/blog", icon: Newspaper },
+      { label: "SEO Sayfaları", href: "/admin/landing", icon: FileSearch },
       { label: "Belgeler", href: "/admin/certificates", icon: Award },
       { label: "Medya", href: "/admin/media", icon: Images },
     ],
@@ -78,6 +82,8 @@ const TITLES: Record<string, string> = {
   "/admin/media": "Medya Kütüphanesi",
   "/admin/leads": "Başvurular",
   "/admin/reviews": "Değerlendirmeler",
+  "/admin/subscribers": "Kampanya Aboneleri",
+  "/admin/landing": "SEO Sayfaları",
   "/admin/certificates": "Belgeler",
   "/admin/settings": "Site Ayarları",
   "/admin/users": "Kullanıcılar",

@@ -88,6 +88,18 @@ export function whatsappLink(number: string, text?: string): string {
 }
 
 /** Telefon linki */
+/** Panel metinlerindeki {unvan}, {marka}, {adres}… yer tutucularının değerleri */
+export function contentVars(settings: SiteSettings): Record<string, string> {
+  return {
+    unvan: settings.companyTitle || settings.siteName,
+    marka: settings.siteName,
+    adres: settings.address,
+    telefon: settings.phone,
+    eposta: settings.email,
+    belgeNo: settings.tursabNo,
+  };
+}
+
 export function telLink(phone: string): string {
   return `tel:${phone.replace(/[^\d+]/g, "")}`;
 }

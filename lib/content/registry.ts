@@ -56,7 +56,7 @@ const legalFields: FieldSpec[] = [
     label: "Metin",
     rows: 24,
     max: 40000,
-    help: "Başlık için satır başına '## ', madde için '- ', kalın için **metin**. {unvan}, {marka}, {adres}, {telefon}, {eposta}, {belgeNo} Site Ayarları'ndan otomatik doldurulur.",
+    help: "Başlık için satır başına '## ', madde için '- ', kalın için **metin**, bağlantı için [metin](/adres). {unvan}, {marka}, {adres}, {telefon}, {eposta}, {belgeNo} Site Ayarları'ndan otomatik doldurulur.",
   },
   ...seoFields,
 ];
@@ -812,6 +812,222 @@ export const CONTENT_BLOCKS = {
     },
   }),
 
+  "page.sss": block({
+    group: "corporate",
+    title: "Sık Sorulan Sorular",
+    description: "/sss sayfası ve ana sayfadaki 'Sık Sorulan Sorular' bölümü.",
+    path: "/sss",
+    fields: [
+      ...heroFields,
+      {
+        type: "list",
+        name: "groups",
+        label: "Soru grupları",
+        itemLabel: "Grup",
+        titleField: "title",
+        max: 12,
+        help: "Sorular gruplar halinde gösterilir. Cevaplarda bağlantı için [metin](/adres) yazın; {marka}, {adres}, {telefon}, {eposta}, {belgeNo} Site Ayarları'ndan otomatik doldurulur.",
+        fields: [
+          { type: "text", name: "title", label: "Grup adı" },
+          {
+            type: "list",
+            name: "items",
+            label: "Sorular",
+            itemLabel: "Soru",
+            titleField: "question",
+            max: 30,
+            fields: [
+              { type: "text", name: "question", label: "Soru", max: 200 },
+              { type: "textarea", name: "answer", label: "Cevap", rows: 3, max: 2000 },
+            ],
+          },
+        ],
+      },
+      { type: "text", name: "ctaTitle", label: "Alt çağrı başlığı" },
+      { type: "textarea", name: "ctaDescription", label: "Alt çağrı açıklaması", rows: 2 },
+      {
+        type: "group",
+        name: "home",
+        label: "Ana sayfa bölümü",
+        fields: [
+          { type: "text", name: "eyebrow", label: "Üst etiket" },
+          { type: "text", name: "title", label: "Başlık", help: "Boş bırakılırsa bölüm ana sayfada gösterilmez." },
+          { type: "textarea", name: "description", label: "Açıklama", rows: 2 },
+          { type: "text", name: "count", label: "Gösterilecek soru sayısı", help: "İlk gruptan başlayarak sırayla alınır (ör. 5)." },
+          { type: "text", name: "buttonLabel", label: "'Tüm sorular' butonu" },
+          { type: "text", name: "helpText", label: "Yardım kutusu metni" },
+        ],
+      },
+      ...seoFields,
+    ],
+    defaults: {
+      title: "Sık Sorulan Sorular",
+      crumb: "SSS",
+      description: "Hac, umre ve kayıt süreciyle ilgili en çok merak edilen soruları sizin için yanıtladık.",
+      image: "/images/hero-2.svg",
+      groups: [
+        {
+          title: "Kayıt ve Ödeme",
+          items: [
+            {
+              question: "Umre kaydı nasıl yapılır?",
+              answer:
+                "Tur sayfasındaki 'Rezervasyon Yap' formunu ya da [rezervasyon sayfasını](/rezervasyon) kullanabilir, WhatsApp hattımızdan yazabilir veya Sivas'taki ofisimize gelebilirsiniz. Danışmanlarımız sizi arayarak program, oda tipi ve evraklar hakkında bilgi verir; kaydınız sözleşme ve ön ödemeyle kesinleşir.",
+            },
+            {
+              question: "Kayıt için hangi belgeler gerekiyor?",
+              answer:
+                "Dönüş tarihinden itibaren en az 6 ay geçerli pasaport ve biyometrik fotoğraf temel belgelerdir. Programa göre ek belge istenebilir; güncel listeyi tur sayfasındaki 'Gerekli Evraklar' bölümünde bulabilirsiniz.",
+            },
+            {
+              question: "Fiyatlar neden dolar olarak belirtiliyor?",
+              answer:
+                "Konaklama, uçuş ve vize giderlerinin büyük bölümü döviz üzerinden ödendiği için umre fiyatları sektörde genellikle dolar olarak ilan edilir. Sitemizde fiyatların yanında bugünkü kurla yaklaşık TL karşılığını da görebilirsiniz.",
+            },
+            {
+              question: "Ödemeyi nasıl yapabilirim?",
+              answer:
+                "Ödeme seçenekleri ve ödeme planı kayıt sırasında danışmanlarımız tarafından ayrıntılı olarak açıklanır. Sorularınız için {telefon} numarasından bize ulaşabilirsiniz.",
+            },
+            {
+              question: "Kaydımı iptal edersem ne olur?",
+              answer:
+                "İptal ve iade koşulları, iptalin yapıldığı tarihe ve programa göre değişir. Ayrıntıları [İptal ve İade Koşulları](/iptal-ve-iade) sayfasında bulabilirsiniz.",
+            },
+          ],
+        },
+        {
+          title: "Umre ve Program",
+          items: [
+            {
+              question: "Umre turları kaç gün sürüyor?",
+              answer:
+                "Programlarımızın süresi tura göre değişir. [Turlar](/turlar) sayfasında tüm programları süreye, aya ve bütçeye göre filtreleyerek size uygun olanı kolayca bulabilirsiniz.",
+            },
+            {
+              question: "Önce Mekke'ye mi, Medine'ye mi gidiliyor?",
+              answer:
+                "Program akışı uçuş ve otel planına göre belirlenir; bazı programlarda önce Medine, bazılarında önce Mekke ziyaret edilir. Her turun günlük programı tur sayfasında yer alır.",
+            },
+            {
+              question: "Oteller Harem'e ne kadar uzak?",
+              answer:
+                "Her programın otel bilgileri ve Harem'e uzaklığı tur sayfasındaki otel kartlarında belirtilir. Yürüme mesafesindeki oteller için [lüks umre programlarımızı](/umre/luks-umre) inceleyebilirsiniz.",
+            },
+            {
+              question: "Umre için en uygun dönem hangisi?",
+              answer:
+                "Umre, hac dönemi dışında yıl boyunca yapılabilir. Ramazan ayı manevi açıdan en çok tercih edilen ama en yoğun dönemdir; sonbahar ve kış ayları ise daha serin ve sakindir.",
+            },
+          ],
+        },
+        {
+          title: "Vize, Sağlık ve Hazırlık",
+          items: [
+            {
+              question: "Umre vizesini kim alıyor?",
+              answer:
+                "Vize işlemleri acentamız tarafından yürütülür. Sizden yalnızca pasaport, fotoğraf ve istenen diğer belgeleri zamanında teslim etmeniz beklenir.",
+            },
+            {
+              question: "Aşı zorunlu mu?",
+              answer:
+                "Meningokok (ACWY) aşısı zorunludur; aşı kartınızı yolculuk boyunca yanınızda bulundurmanız gerekir. Kronik rahatsızlığı olan misafirlerimiz ilaçlarını reçeteleriyle birlikte taşımalıdır.",
+            },
+            {
+              question: "Yanıma neler almalıyım?",
+              answer:
+                "İhram, rahat kıyafetler, kişisel ilaçlar ve bir miktar nakit en önemli ihtiyaçlardır. Ayrıntılı valiz listesini [Gerekli Bilgiler](/gerekli-bilgiler#valiz) sayfamızda bulabilirsiniz.",
+            },
+          ],
+        },
+        {
+          title: "Hac",
+          items: [
+            {
+              question: "Hac kaydı nasıl yapılır?",
+              answer:
+                "Türkiye'de hac kayıtları Diyanet İşleri Başkanlığı'nın belirlediği takvimde yapılır ve hacca gidecek adaylar kurayla belirlenir. Kurası çıkan adaylar, hac yetki belgesine sahip acentalar aracılığıyla hacca gidebilir.",
+            },
+            {
+              question: "Hac organizasyonu için yetki belgeniz var mı?",
+              answer:
+                "Evet. Diyanet İşleri Başkanlığı'ndan alınmış 2027 yılı hac kayıt yetki belgemizi [Hac Yetki Belgeleri](/hac/yetki-belgeleri) sayfasında inceleyebilirsiniz.",
+            },
+          ],
+        },
+        {
+          title: "Kurumsal",
+          items: [
+            {
+              question: "Ofisiniz nerede, yüz yüze görüşebilir miyiz?",
+              answer:
+                "Ofisimiz {adres} adresindedir. Çalışma saatlerimiz içinde ziyaret edebilir ya da {telefon} numarasından bize ulaşabilirsiniz.",
+            },
+            {
+              question: "{marka} hangi belgelere sahip?",
+              answer:
+                "TÜRSAB üyesi bir seyahat acentasıyız (Belge No: {belgeNo}). Diyanet İşleri Başkanlığı umre ve hac yetki belgelerimiz ile IATA akreditasyonumuzu [Yetki Belgeleri](/umre/yetki-belgeleri) sayfasında görebilirsiniz.",
+            },
+          ],
+        },
+      ],
+      ctaTitle: "Sorunuzun cevabını bulamadınız mı?",
+      ctaDescription: "Danışmanlarımız tüm sorularınızı yanıtlamak için hazır. Hemen arayın veya WhatsApp'tan yazın.",
+      home: {
+        eyebrow: "Merak Edilenler",
+        title: "Sık Sorulan Sorular",
+        description: "Kayıt, ödeme ve yolculuk hazırlığıyla ilgili en çok sorulan soruların cevapları.",
+        count: "5",
+        buttonLabel: "Tüm Soruları Gör",
+        helpText: "Aradığınız cevabı bulamadıysanız danışmanlarımıza sorun.",
+      },
+      seoTitle: "Sık Sorulan Sorular",
+      seoDescription:
+        "Umre ve hac hakkında sık sorulan sorular: kayıt, ödeme, vize, aşı, program süresi, otel mesafesi ve hazırlık.",
+    },
+  }),
+
+  "page.ekibimiz": block({
+    group: "corporate",
+    title: "Ekibimiz",
+    description: "/ekibimiz sayfası. Kişi eklenmedikçe sayfa ve Hakkımızda'daki ekip bölümü gizli kalır.",
+    path: "/ekibimiz",
+    fields: [
+      ...heroFields,
+      { type: "textarea", name: "intro", label: "Giriş metni", rows: 3 },
+      {
+        type: "list",
+        name: "members",
+        label: "Ekip üyeleri",
+        itemLabel: "Kişi",
+        titleField: "name",
+        max: 40,
+        fields: [
+          { type: "text", name: "name", label: "Ad soyad" },
+          { type: "text", name: "role", label: "Görevi", placeholder: "Din Görevlisi, Umre Rehberi, Satış Danışmanı…" },
+          { type: "image", name: "photo", label: "Fotoğraf (dikey, ör. 600×750)" },
+          { type: "textarea", name: "bio", label: "Kısa tanıtım", rows: 3, max: 1000 },
+        ],
+      },
+      { type: "text", name: "aboutTitle", label: "Hakkımızda sayfasındaki bölüm başlığı" },
+      { type: "text", name: "aboutButton", label: "Hakkımızda — 'Tüm ekibimiz' butonu" },
+      ...seoFields,
+    ],
+    defaults: {
+      title: "Ekibimiz",
+      crumb: "Ekibimiz",
+      description: "Yolculuğunuzun her adımında yanınızda olan tecrübeli kadromuzla tanışın.",
+      image: "/images/about.svg",
+      intro: "",
+      members: [] as { name: string; role: string; photo: string; bio: string }[],
+      aboutTitle: "Ekibimizle Tanışın",
+      aboutButton: "Tüm Ekibimiz",
+      seoTitle: "Ekibimiz",
+      seoDescription: "Hac ve umre yolculuğunuzda size eşlik eden din görevlileri, rehberler ve danışmanlarımız.",
+    },
+  }),
+
   "page.iletisim": block({
     group: "corporate",
     title: "İletişim",
@@ -907,6 +1123,42 @@ export const CONTENT_BLOCKS = {
       image: "/images/cta-bg.svg",
       primaryLabel: "Rezervasyon Yap",
       whatsappLabel: "WhatsApp'tan Yazın",
+    },
+  }),
+
+  "shared.newsletter": block({
+    group: "shared",
+    title: "Kampanya Kayıt Kutusu",
+    description: "Sayfaların altındaki 'Kampanyalardan haberdar olun' kutusu. Kayıtlar panelde 'Aboneler' altında listelenir.",
+    path: "/",
+    fields: [
+      { type: "text", name: "title", label: "Başlık", help: "Boş bırakılırsa kutu sitede gösterilmez." },
+      { type: "textarea", name: "text", label: "Açıklama", rows: 2 },
+      { type: "text", name: "contactPlaceholder", label: "Telefon / e-posta alanı yer tutucusu" },
+      { type: "text", name: "namePlaceholder", label: "Ad soyad alanı yer tutucusu" },
+      { type: "text", name: "button", label: "Buton metni" },
+      {
+        type: "textarea",
+        name: "consent",
+        label: "Onay metni (zorunlu kutucuk)",
+        rows: 3,
+        help: "6563 sayılı Kanun gereği ticari ileti için açık onay alınır. {marka} site adıyla doldurulur.",
+      },
+      { type: "text", name: "consentLinkLabel", label: "Onay metnindeki KVKK bağlantısı" },
+      { type: "text", name: "success", label: "Başarılı kayıt mesajı" },
+      { type: "text", name: "already", label: "Zaten kayıtlıysa gösterilecek mesaj" },
+    ],
+    defaults: {
+      title: "Kampanyalardan ilk siz haberdar olun",
+      text: "Erken kayıt fırsatları, yeni umre programları ve duyurularımız WhatsApp veya e-posta ile size gelsin.",
+      contactPlaceholder: "Telefon (WhatsApp) veya e-posta",
+      namePlaceholder: "Adınız (isteğe bağlı)",
+      button: "Kaydol",
+      consent:
+        "Kampanya ve duyurulardan haberdar olmak için {marka} tarafından tarafıma SMS, WhatsApp ve e-posta yoluyla ticari elektronik ileti gönderilmesine onay veriyorum. Onayımı dilediğim zaman geri alabilirim.",
+      consentLinkLabel: "KVKK Aydınlatma Metni",
+      success: "Teşekkürler! Kampanya ve duyurularımızdan ilk siz haberdar olacaksınız.",
+      already: "Bu bilgiyle zaten kayıtlısınız, teşekkür ederiz.",
     },
   }),
 
@@ -1325,6 +1577,7 @@ export const CONTENT_BLOCKS = {
             { label: "Hakkımızda", href: "/hakkimizda" },
             { label: "İletişim", href: "/iletisim" },
             { label: "Gerekli Bilgiler", href: "/gerekli-bilgiler" },
+            { label: "Sık Sorulan Sorular", href: "/sss" },
             { label: "Blog", href: "/blog" },
             { label: "Rezervasyon", href: "/rezervasyon" },
           ],
@@ -1665,6 +1918,28 @@ export const CONTENT_BLOCKS = {
         successTitle: "Teşekkür ederiz!",
         successText: "Değerlendirmeniz bize ulaştı. Onaylandıktan sonra bu sayfada yayınlanacak.",
       },
+    },
+  }),
+
+  "ui.landing": block({
+    group: "ui",
+    title: "SEO Sayfaları",
+    description: "Panelden oluşturulan açılış sayfalarındaki (ör. /umre-fiyatlari) ortak başlık ve butonlar.",
+    fields: [
+      { type: "text", name: "toursTitle", label: "Tur listesi başlığı (sayfada girilmemişse)" },
+      { type: "text", name: "toursButton", label: "'Tüm programlar' butonu" },
+      { type: "textarea", name: "toursEmpty", label: "Uygun tur yoksa gösterilecek metin", rows: 2 },
+      { type: "text", name: "faqTitle", label: "Sık sorulan sorular başlığı" },
+      { type: "text", name: "ctaTitle", label: "Alt çağrı başlığı" },
+      { type: "textarea", name: "ctaDescription", label: "Alt çağrı açıklaması", rows: 2 },
+    ],
+    defaults: {
+      toursTitle: "Programlarımız",
+      toursButton: "Tüm Programları İncele",
+      toursEmpty: "Şu anda bu sayfaya uygun kayıt alınan program bulunmuyor. Yeni tarihler için bizimle iletişime geçin.",
+      faqTitle: "Sık Sorulan Sorular",
+      ctaTitle: "Size en uygun programı birlikte bulalım",
+      ctaDescription: "Danışmanlarımız sorularınızı yanıtlamak ve kaydınızı oluşturmak için hazır.",
     },
   }),
 

@@ -100,7 +100,7 @@ export function BlogForm({
 
       <FormSection
         title="İçerik"
-        description="Biçimlendirme: ## Başlık, ### Alt başlık, - madde, 1. sıralı madde, **kalın**"
+        description="Biçimlendirme: ## Başlık, ### Alt başlık, - madde, 1. sıralı madde, **kalın**, [bağlantı metni](/adres)"
         action={
           <div className="inline-flex rounded-full border border-border bg-cream-50 p-1 text-xs font-semibold">
             <button

@@ -81,6 +81,17 @@ export const leadSchema = z.object({
 });
 export type LeadInput = z.infer<typeof leadSchema>;
 
+/** Kampanya kayıt kutusu (public) */
+export const subscribeSchema = z.object({
+  contact: z.string().trim().min(5, "Telefon numaranızı veya e-posta adresinizi yazın").max(120),
+  fullName: z.string().trim().max(80).optional(),
+  consent: z.literal(true, { error: "Devam etmek için onay kutusunu işaretleyin" }),
+  source: z.string().max(200).optional(),
+  // Honeypot — botlar doldurur, insanlar görmez
+  website: z.string().max(0).optional().or(z.literal("")),
+});
+export type SubscribeInput = z.infer<typeof subscribeSchema>;
+
 /** Başvuru durumları */
 export const LEAD_STATUSES = [
   "Yeni",
@@ -295,6 +306,32 @@ export const blogSchema = z.object({
   isPublished: z.boolean(),
 });
 export type BlogInput = z.infer<typeof blogSchema>;
+
+/** Arama motoru açılış sayfası (admin) */
+export const LANDING_SORTS = ["onerilen", "tarih", "fiyat-artan", "fiyat-azalan"] as const;
+export const landingSchema = z.object({
+  title: z.string().trim().min(3, "Başlık gerekli").max(150),
+  slug: slugField,
+  description: optionalText(400),
+  image: imagePath.optional(),
+  content: z.string().trim().min(30, "Sayfa metni en az 30 karakter olmalı").max(40000),
+  tourCategories: z.array(z.string().trim().max(80)).max(30),
+  tourSearch: optionalText(100),
+  toursTitle: optionalText(150),
+  toursSort: z.enum(LANDING_SORTS),
+  faqs: z
+    .array(
+      z.object({
+        question: z.string().trim().min(3, "Soru gerekli").max(200),
+        answer: z.string().trim().min(3, "Cevap gerekli").max(2000),
+      }),
+    )
+    .max(30, "En fazla 30 soru eklenebilir"),
+  seoTitle: optionalText(120),
+  seoDescription: optionalText(320),
+  isPublished: z.boolean(),
+});
+export type LandingInput = z.infer<typeof landingSchema>;
 
 export const certificateSchema = z.object({
   title: z.string().trim().min(2, "Başlık gerekli").max(150),

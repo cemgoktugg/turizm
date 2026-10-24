@@ -7,15 +7,22 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { Reveal } from "@/components/ui/reveal";
 import { SmartImage } from "@/components/ui/smart-image";
 import { Icon } from "@/components/ui/icon";
+import Link from "next/link";
+import { MoveRight } from "lucide-react";
+import { TeamGrid } from "@/components/site/team-grid";
+import { visibleMembers } from "@/lib/team";
+import { buttonVariants } from "@/components/ui/button";
 
 export const generateMetadata = () => pageMetadata("page.hakkimizda");
 
 export default async function HakkimizdaPage() {
-  const [settings, c, features] = await Promise.all([
+  const [settings, c, features, team] = await Promise.all([
     getSettings(),
     getContent("page.hakkimizda"),
     getContent("home.features"),
+    getContent("page.ekibimiz"),
   ]);
+  const members = visibleMembers(team.members);
 
   return (
     <>
@@ -93,6 +100,25 @@ export default async function HakkimizdaPage() {
                 </Reveal>
               ))}
             </div>
+          </div>
+        </section>
+      )}
+
+      {/* Ekip (panelden kişi eklenince görünür) */}
+      {members.length > 0 && (
+        <section className="py-16 lg:py-20">
+          <div className="container-tr">
+            <SectionHeading title={team.aboutTitle} description={team.description} />
+            <div className="mt-10">
+              <TeamGrid members={members.slice(0, 4)} compact />
+            </div>
+            {team.aboutButton && (
+              <div className="mt-10 text-center">
+                <Link href="/ekibimiz" className={buttonVariants({ variant: "outline" })}>
+                  {team.aboutButton} <MoveRight className="size-4" />
+                </Link>
+              </div>
+            )}
           </div>
         </section>
       )}

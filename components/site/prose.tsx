@@ -1,9 +1,28 @@
 import { Fragment } from "react";
+import Link from "next/link";
 
-/** **kalın** metni işler */
+const TOKENS = /(\*\*[^*]+\*\*|\[[^\]]+\]\((?:\/[^)\s]*|https?:\/\/[^)\s]+)\))/g;
+const LINK = /^\[([^\]]+)\]\((\/[^)\s]*|https?:\/\/[^)\s]+)\)$/;
+const linkClass =
+  "font-semibold text-brand-700 underline decoration-brand-200 underline-offset-4 transition hover:text-gold-600";
+
+/** **kalın** ve [bağlantı](/adres) biçimlerini işler */
 function renderInline(text: string, keyBase: string): React.ReactNode {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
+  const parts = text.split(TOKENS).filter(Boolean);
   return parts.map((p, i) => {
+    const link = p.match(LINK);
+    if (link) {
+      const [, label, href] = link;
+      return href.startsWith("/") ? (
+        <Link key={`${keyBase}-${i}`} href={href} className={linkClass}>
+          {label}
+        </Link>
+      ) : (
+        <a key={`${keyBase}-${i}`} href={href} target="_blank" rel="noopener noreferrer" className={linkClass}>
+          {label}
+        </a>
+      );
+    }
     if (p.startsWith("**") && p.endsWith("**")) {
       return (
         <strong key={`${keyBase}-${i}`} className="font-semibold text-brand-900">
@@ -15,8 +34,18 @@ function renderInline(text: string, keyBase: string): React.ReactNode {
   });
 }
 
+/** Tek satırlık metinde **kalın** ve [bağlantı](/adres) biçimleri (ör. SSS cevapları) */
+export function InlineText({ text }: { text: string }) {
+  return <>{renderInline(text, "in")}</>;
+}
+
+/** Biçim işaretlerini temizler (Google yapılandırılmış verisi gibi düz metin gereken yerler için) */
+export function plainText(text: string): string {
+  return text.replace(/\[([^\]]+)\]\([^)\s]+\)/g, "$1").replace(/\*\*([^*]+)\*\*/g, "$1");
+}
+
 /**
- * Basit markdown alt kümesini (## başlık, - madde, 1. sıralı, paragraf, **kalın**)
+ * Basit markdown alt kümesini (## başlık, - madde, 1. sıralı, paragraf, **kalın**, [bağlantı](/adres))
  * güvenli biçimde React'e dönüştürür.
  */
 export function Prose({ content }: { content: string }) {

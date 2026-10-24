@@ -291,3 +291,43 @@ model ContentBlock {
   data      String
   updatedAt DateTime @updatedAt
 }
+
+/// Kampanya ve duyuru aboneleri (sayfa altındaki kayıt kutusu)
+model Subscriber {
+  id        String   @id @default(cuid())
+  /// Telefon (905551112233 biçiminde) veya küçük harfli e-posta
+  contact   String   @unique
+  /// phone | email
+  type      String
+  fullName  String?
+  /// Kaydın yapıldığı sayfa
+  source    String?
+  createdAt DateTime @default(now())
+}
+
+/// Arama motorları için açılış sayfaları (ör. /sivas-umre, /umre-fiyatlari)
+model LandingPage {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  title          String
+  /// Başlık altındaki kısa açıklama
+  description    String?
+  image          String?
+  /// Sayfa metni (## başlık, - madde, **kalın**)
+  content        String
+  /// Listelenecek turların kategorileri (virgülle ayrılmış slug'lar; boşsa tümü)
+  tourCategories String?
+  /// Turları bu kelimelere göre süz (ör. "Sivas")
+  tourSearch     String?
+  /// Tur listesi başlığı
+  toursTitle     String?
+  /// Tur sıralaması: onerilen | tarih | fiyat-artan | fiyat-azalan
+  toursSort      String?
+  /// Sık sorulan sorular: [{ "question": "...", "answer": "..." }]
+  faqs           String?
+  seoTitle       String?
+  seoDescription String?
+  isPublished    Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}

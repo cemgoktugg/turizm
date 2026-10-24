@@ -4,17 +4,21 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { InlineText } from "./prose";
 
 export type FaqItem = { question: string; answer: string };
 
 export function FAQAccordion({
   items,
   className,
+  defaultOpen = 0,
 }: {
   items: FaqItem[];
   className?: string;
+  /** Başlangıçta açık soru (null = hepsi kapalı) */
+  defaultOpen?: number | null;
 }) {
-  const [open, setOpen] = useState<number | null>(0);
+  const [open, setOpen] = useState<number | null>(defaultOpen);
 
   if (!items.length) return null;
 
@@ -48,7 +52,7 @@ export function FAQAccordion({
                   className="overflow-hidden"
                 >
                   <p className="px-5 pb-5 text-sm leading-relaxed text-muted sm:px-6">
-                    {item.answer}
+                    <InlineText text={item.answer} />
                   </p>
                 </motion.div>
               )}

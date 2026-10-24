@@ -2,7 +2,8 @@ import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { WhatsAppButton, MobileBottomBar } from "@/components/site/floating-actions";
 import { Analytics } from "@/components/site/analytics";
-import { getSettings } from "@/lib/settings";
+import { contentVars, getSettings } from "@/lib/settings";
+import { fill } from "@/lib/content/template";
 import { getContent } from "@/lib/content";
 
 // Sayfalar her istekte canlı veritabanından üretilir: panel değişiklikleri ve
@@ -11,7 +12,7 @@ import { getContent } from "@/lib/content";
 export const dynamic = "force-dynamic";
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
-  const [settings, header, footer, ui, wa, cookies, kvkk, cookiePolicy, cancellation] = await Promise.all([
+  const [settings, header, footer, ui, wa, cookies, kvkk, cookiePolicy, cancellation, newsletter] = await Promise.all([
     getSettings(),
     getContent("nav.header"),
     getContent("nav.footer"),
@@ -21,6 +22,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
     getContent("legal.kvkk"),
     getContent("legal.cookies"),
     getContent("legal.cancellation"),
+    getContent("shared.newsletter"),
   ]);
   const analyticsEnabled = Boolean(settings.gaId || settings.metaPixelId);
 
@@ -49,6 +51,11 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
           { href: "/iptal-ve-iade", label: cancellation.title },
         ]}
         cookieSettingsLabel={analyticsEnabled ? cookies.settingsLabel : null}
+        newsletter={
+          newsletter.title.trim()
+            ? { texts: { ...newsletter, consent: "" }, consentText: fill(newsletter.consent, contentVars(settings)) }
+            : null
+        }
       />
       <Analytics gaId={settings.gaId} pixelId={settings.metaPixelId} texts={cookies} />
       <WhatsAppButton whatsapp={settings.whatsapp} message={wa.floating} />
