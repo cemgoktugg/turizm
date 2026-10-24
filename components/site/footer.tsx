@@ -5,6 +5,7 @@ import { whatsappLink, telLink } from "@/lib/settings";
 import { SmartImage } from "@/components/ui/smart-image";
 import { SocialIcon, type SocialName } from "@/components/site/social-icon";
 import type { ContentData } from "@/lib/content/registry";
+import { CookieSettingsButton } from "@/components/site/analytics";
 
 const SOCIALS: { key: SocialName; label: string }[] = [
   { key: "facebook", label: "Facebook" },
@@ -20,11 +21,24 @@ export function Footer({
   settings,
   content,
   whatsappMessage,
+  legalLinks,
+  cookieSettingsLabel,
 }: {
   settings: SiteSettings;
   content: ContentData<"nav.footer">;
   whatsappMessage: string;
+  /** KVKK, çerez politikası, iptal/iade */
+  legalLinks: { href: string; label: string }[];
+  /** Ölçüm araçları açıksa "Çerez tercihleri" bağlantısı */
+  cookieSettingsLabel: string | null;
 }) {
+  // Mevzuat gereği şirket bilgileri (boş olanlar gösterilmez)
+  const companyInfo = [
+    settings.companyTitle,
+    settings.tursabNo && `${content.tursabLabel}: ${settings.tursabNo}`,
+    settings.mersisNo && `${content.mersisLabel}: ${settings.mersisNo}`,
+    settings.taxInfo && `${content.taxLabel}: ${settings.taxInfo}`,
+  ].filter(Boolean);
   const socials = SOCIALS.map((s) => ({ ...s, href: settings[s.key] })).filter((s) => s.href);
   // Adı boş bırakılan bağlantılar / sütunlar sitede gösterilmez
   const columns = content.columns
@@ -153,13 +167,28 @@ export function Footer({
         </div>
       )}
 
-      {/* Telif */}
+      {/* Telif, yasal bağlantılar ve şirket bilgileri */}
       <div className="border-t border-white/10 bg-brand-950">
-        <div className="container-tr flex flex-col items-center justify-between gap-2 py-5 text-xs text-cream-200/50 sm:flex-row">
-          <p>
-            © {new Date().getFullYear()} {settings.siteName}. {content.copyrightText}
-          </p>
-          {content.bottomNote && <p>{content.bottomNote}</p>}
+        <div className="container-tr flex flex-col gap-3 py-5 text-xs text-cream-200/50">
+          <div className="flex flex-col items-center justify-between gap-3 text-center sm:flex-row sm:text-left">
+            <p>
+              © {new Date().getFullYear()} {settings.siteName}. {content.copyrightText}
+            </p>
+            <nav aria-label="Yasal" className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+              {legalLinks.map((l) => (
+                <Link key={l.href} href={l.href} className="hover:text-gold-300">
+                  {l.label}
+                </Link>
+              ))}
+              {cookieSettingsLabel && <CookieSettingsButton label={cookieSettingsLabel} />}
+            </nav>
+          </div>
+          {(companyInfo.length > 0 || content.bottomNote) && (
+            <p className="text-center text-cream-200/40 sm:text-left">
+              {companyInfo.join(" · ")}
+              {content.bottomNote && <>{companyInfo.length > 0 && " · "}{content.bottomNote}</>}
+            </p>
+          )}
         </div>
       </div>
     </footer>

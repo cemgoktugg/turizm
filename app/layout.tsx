@@ -29,6 +29,7 @@ export async function generateMetadata(): Promise<Metadata> {
       .map((k) => k.trim())
       .filter(Boolean),
     icons: { icon: s.favicon || "/favicon.ico", apple: "/images/nemira-apple-icon.png" },
+    verification: s.googleVerification ? { google: s.googleVerification } : undefined,
     openGraph: {
       type: "website",
       locale: "tr_TR",

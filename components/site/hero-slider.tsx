@@ -29,8 +29,9 @@ export function HeroSlider({
 
   const slide = slides[index % count];
 
+  // Mobilde daha kısa: altındaki hikayeler ve turlar kaydırmadan görünsün
   return (
-    <section className="relative h-[88vh] min-h-[560px] w-full overflow-hidden bg-brand-950">
+    <section className="relative h-[70svh] min-h-[480px] w-full overflow-hidden bg-brand-950 md:h-[88vh] md:min-h-[560px]">
       {/* Slaytlar */}
       <AnimatePresence mode="sync">
         <motion.div

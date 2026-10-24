@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -91,10 +92,17 @@ export function ReviewForm({ tourId, labels }: { tourId: string; labels: ReviewL
         </Field>
       </div>
 
-      <Button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-        {labels.submit}
-      </Button>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+          {labels.submit}
+        </Button>
+        {labels.kvkkNote && (
+          <Link href="/kvkk" target="_blank" className="text-xs text-muted underline underline-offset-2 hover:text-brand-700">
+            {labels.kvkkNote}
+          </Link>
+        )}
+      </div>
     </form>
   );
 }

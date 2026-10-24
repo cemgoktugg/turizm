@@ -43,6 +43,12 @@ ADMIN_EMAIL=<panel e-postanız>
 ADMIN_PASSWORD=<en az 10 karakter, harf + rakam>
 ```
 
+**Yeni başvuru bildirimleri (isteğe bağlı):** `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`,
+`SMTP_PASS`, `SMTP_FROM`, `NOTIFY_EMAIL` girilirse her başvuruda size e-posta, e-posta
+yazan müşteriye de otomatik yanıt gider. `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` ile
+Telegram bildirimi de açılabilir. Müşteriye giden metin panelden düzenlenir
+(Sayfa İçerikleri › Başvuru Formu).
+
 ## 3. Deploy
 
 **Deploy**'a basın. İlk derleme 3–6 dk sürer. **Logs** sekmesinde `web` servisinde sırasıyla:

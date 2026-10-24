@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -8,6 +9,7 @@ import { CheckCircle2, Loader2, Send } from "lucide-react";
 import { z } from "zod";
 import { leadSchema, type LeadInput, type LeadSource } from "@/lib/validations";
 import { createLead } from "@/app/actions/leads";
+import { track } from "@/lib/track";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea, Field } from "@/components/ui/form-controls";
 import type { ContentData } from "@/lib/content/registry";
@@ -17,7 +19,7 @@ type TourOption = { id: string; title: string };
 /** Form metinleri "Sayfa İçerikleri › Başvuru Formu" bloğundan gelir */
 export type BookingTexts = Pick<
   ContentData<"shared.booking">,
-  "form" | "submitLabel" | "consentText" | "successTitle" | "successText"
+  "form" | "submitLabel" | "consentText" | "consentLinkLabel" | "successTitle" | "successText"
 >;
 
 export function BookingForm({
@@ -62,6 +64,7 @@ export function BookingForm({
   async function onSubmit(values: LeadInput) {
     const res = await createLead(values);
     if (res.ok) {
+      track("lead", { source, tour: tourTitle });
       setDone(true);
       reset();
       toast.success(res.message);
@@ -156,7 +159,16 @@ export function BookingForm({
           </>
         )}
       </Button>
-      {texts.consentText && <p className="text-center text-xs text-muted">{texts.consentText}</p>}
+      {(texts.consentText || texts.consentLinkLabel) && (
+        <p className="text-center text-xs text-muted">
+          {texts.consentText}{" "}
+          {texts.consentLinkLabel && (
+            <Link href="/kvkk" target="_blank" className="font-semibold text-brand-700 underline underline-offset-2 hover:text-gold-600">
+              {texts.consentLinkLabel}
+            </Link>
+          )}
+        </p>
+      )}
     </form>
   );
 

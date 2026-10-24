@@ -1068,10 +1068,10 @@ Mikat, kutsal topraklara manevi bir hazırlıkla girmenin ilk adımıdır.`,
   const settings: Record<string, string> = {
     siteName: "Nemira Turizm",
     tagline: "En Güzele, En İyiyle",
-    phone: "+90 850 000 00 00",
-    whatsapp: "905000000000",
+    phone: "0501 565 58 44",
+    whatsapp: "905015655844",
     email: "info@nemiraturizm.com",
-    address: "Merkez Mah. Huzur Cad. No:1 Fatih / İstanbul",
+    address: "Camii Kebir Mah. Ulu Cami Sok. Ulu Çarşı No:4/A Merkez / Sivas",
     workingHours: "Hafta içi 09:00 - 18:00, Cumartesi 10:00 - 16:00",
     // Sosyal medya hesapları panelden eklenir; boş olanlar sitede gösterilmez
     facebook: "",
@@ -1081,7 +1081,7 @@ Mikat, kutsal topraklara manevi bir hazırlıkla girmenin ilk adımıdır.`,
     logo: "/images/nemira-logo.png",
     logoLight: "/images/nemira-logo-light.png",
     mapEmbed:
-      "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3009.9!2d28.955!3d41.019!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zRmF0aWg!5e0!3m2!1str!2str!4v1700000000000",
+      "https://maps.google.com/maps?q=Nemira%20Turizm%2C%20Cami-i%20Kebir%2C%20Ulu%20Camii%20Sk.%20No%3A4%2C%20Sivas%20Merkez%2C%20Sivas&z=17&hl=tr&output=embed",
     footerNote:
       "Nemira Turizm, TÜRSAB ve Diyanet İşleri Başkanlığı yetki belgeli bir seyahat acentasıdır.",
   };

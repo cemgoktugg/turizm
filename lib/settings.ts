@@ -11,11 +11,11 @@ export const SETTING_DEFAULTS: SettingsInput = {
   logo: "/images/nemira-logo.png",
   logoLight: "/images/nemira-logo-light.png",
   footerNote: "Yetkili acenta güvencesiyle hac, umre ve kültür turları düzenliyoruz.",
-  phone: "+90 850 000 00 00",
-  whatsapp: "905000000000",
+  phone: "0501 565 58 44",
+  whatsapp: "905015655844",
   email: "info@nemiraturizm.com",
   workingHours: "Hafta içi 09:00 - 18:00",
-  address: "Merkez Mah. Huzur Cad. No:1 Fatih / İstanbul",
+  address: "Camii Kebir Mah. Ulu Cami Sok. Ulu Çarşı No:4/A Merkez / Sivas",
   facebook: "",
   instagram: "",
   youtube: "",
@@ -23,12 +23,20 @@ export const SETTING_DEFAULTS: SettingsInput = {
   tiktok: "",
   linkedin: "",
   telegram: "",
-  mapEmbed: "",
+  mapEmbed:
+    "https://maps.google.com/maps?q=Nemira%20Turizm%2C%20Cami-i%20Kebir%2C%20Ulu%20Camii%20Sk.%20No%3A4%2C%20Sivas%20Merkez%2C%20Sivas&z=17&hl=tr&output=embed",
+  companyTitle: "Hayrabat Turizm",
+  tursabNo: "11883",
+  mersisNo: "",
+  taxInfo: "",
+  gaId: "",
+  metaPixelId: "",
+  googleVerification: "",
   seoTitle: "En Güzele, En İyiyle | Nemira Turizm",
   seoDescription:
     "Yetkili acenta güvencesiyle premium hac ve umre programları, lüks umre, Ramazan umresi ve kültür turları. Merkezi oteller, tecrübeli rehberlik ve şeffaf fiyat.",
   seoKeywords:
-    "umre, hac, umre turları, lüks umre, ramazan umresi, hac programları, mekke otelleri, medine otelleri, kültür turları",
+    "umre, hac, umre turları, sivas umre turları, lüks umre, ramazan umresi, hac programları, mekke otelleri, medine otelleri, kültür turları",
   ogImage: "/images/nemira-og.png",
   favicon: "/images/nemira-icon.png",
 };
@@ -43,6 +51,13 @@ const OPTIONAL_KEYS = new Set<keyof SettingsInput>([
   "linkedin",
   "telegram",
   "mapEmbed",
+  "companyTitle",
+  "tursabNo",
+  "mersisNo",
+  "taxInfo",
+  "gaId",
+  "metaPixelId",
+  "googleVerification",
 ]);
 
 /** Site ayarlarını DB'den yükler (istek başına önbelleklenir) */

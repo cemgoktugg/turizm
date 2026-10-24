@@ -389,9 +389,34 @@ export const settingsSchema = z.object({
     .string()
     .max(4000)
     .transform(extractMapSrc)
-    .refine((v) => v === "" || /^https:\/\/(www\.)?google\.[a-z.]+\/maps\/embed/i.test(v), {
-      message: "Google Haritalar'dan 'Haritayı yerleştir' kodunu veya embed adresini yapıştırın",
-    }),
+    .refine(
+      (v) =>
+        v === "" ||
+        /^https:\/\/(www\.)?google\.[a-z.]+\/maps\/embed/i.test(v) ||
+        /^https:\/\/(maps|www)\.google\.[a-z.]+\/maps\?.*output=embed/i.test(v),
+      { message: "Google Haritalar'dan 'Haritayı yerleştir' kodunu veya embed adresini yapıştırın" },
+    ),
+  // Şirket bilgileri (footer ve KVKK metninde gösterilir)
+  companyTitle: z.string().trim().max(200),
+  tursabNo: z.string().trim().max(30),
+  mersisNo: z.string().trim().max(30),
+  taxInfo: z.string().trim().max(120),
+  // Ölçüm araçları — boşsa yüklenmez; doluysa çerez onayından sonra yüklenir
+  gaId: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .refine((v) => v === "" || /^G-[A-Z0-9]{4,}$/.test(v), "Google Analytics ölçüm kimliği G- ile başlamalı (ör. G-ABC123XYZ)"),
+  metaPixelId: z
+    .string()
+    .trim()
+    .refine((v) => v === "" || /^\d{6,20}$/.test(v), "Meta piksel kimliği yalnızca rakamlardan oluşur"),
+  googleVerification: z
+    .string()
+    .trim()
+    .max(300)
+    // Tam <meta> etiketi yapıştırılırsa yalnızca content değerini al
+    .transform((v) => v.match(/content\s*=\s*["']([^"']+)["']/i)?.[1] ?? v),
   seoTitle: z.string().trim().max(120),
   seoDescription: z.string().trim().max(320),
   seoKeywords: z.string().trim().max(500),

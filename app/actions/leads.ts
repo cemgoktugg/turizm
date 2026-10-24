@@ -1,8 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { leadSchema, LEAD_STATUSES } from "@/lib/validations";
+import { leadSchema, LEAD_STATUSES, type LeadSource } from "@/lib/validations";
+import { getSettings } from "@/lib/settings";
+import { getContent } from "@/lib/content";
+import { notifyNewLead } from "@/lib/notify";
+import { SITE_URL } from "@/lib/site-url";
 import { adminAction, toFieldErrors, type ActionResult } from "@/lib/action";
 import { activeTourWhere } from "@/lib/queries";
 import { clientIp, registerHit, retryAfter } from "@/lib/rate-limit";
@@ -43,7 +48,7 @@ export async function createLead(input: unknown): Promise<ActionResult> {
     }
   }
 
-  await prisma.lead.create({
+  const lead = await prisma.lead.create({
     data: {
       fullName: data.fullName,
       phone: data.phone,
@@ -57,6 +62,24 @@ export async function createLead(input: unknown): Promise<ActionResult> {
     },
   });
   registerHit(key);
+
+  // Bildirimler yanıt gönderildikten sonra çalışır; ziyaretçiyi bekletmez
+  after(async () => {
+    const [settings, booking] = await Promise.all([getSettings(), getContent("shared.booking")]);
+    await notifyNewLead(
+      {
+        fullName: lead.fullName,
+        phone: lead.phone,
+        email: lead.email,
+        personCount: lead.personCount,
+        tourTitle: lead.tourTitle,
+        message: lead.message,
+        source: (lead.source as LeadSource | null) ?? null,
+      },
+      { siteName: settings.siteName, phone: settings.phone, adminUrl: `${SITE_URL}/admin/leads` },
+      { subject: booking.autoReplySubject, text: booking.autoReplyText },
+    );
+  });
 
   revalidatePath("/admin", "layout");
   return {

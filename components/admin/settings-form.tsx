@@ -96,7 +96,7 @@ export function SettingsForm({ values }: { values: SettingsInput }) {
       <FormSection title="İletişim" description="Üst bar, footer, iletişim sayfası, WhatsApp butonları ve mobil alt çubukta kullanılır.">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Telefon" required error={errors.phone?.message}>
-            <Input placeholder="+90 850 000 00 00" {...register("phone")} />
+            <Input placeholder="0501 565 58 44" {...register("phone")} />
           </Field>
           <Field label="WhatsApp (ülke kodu ile)" required error={errors.whatsapp?.message}>
             <Input placeholder="905xxxxxxxxx" inputMode="tel" {...register("whatsapp")} />
@@ -109,6 +109,26 @@ export function SettingsForm({ values }: { values: SettingsInput }) {
           </Field>
           <Field label="Adres" error={errors.address?.message} className="sm:col-span-2">
             <Textarea rows={2} className="min-h-0" {...register("address")} />
+          </Field>
+        </div>
+      </FormSection>
+
+      <FormSection
+        title="Şirket Bilgileri"
+        description="Mevzuat gereği footer'da gösterilir; KVKK aydınlatma metninde veri sorumlusu olarak kullanılır. Boş bırakılan alanlar gösterilmez."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Ticaret unvanı" error={errors.companyTitle?.message} className="sm:col-span-2">
+            <Input placeholder="Örn. Hayrabat Turizm Seyahat Acentası Ltd. Şti." {...register("companyTitle")} />
+          </Field>
+          <Field label="TÜRSAB belge no" error={errors.tursabNo?.message}>
+            <Input placeholder="11883" {...register("tursabNo")} />
+          </Field>
+          <Field label="MERSİS no" error={errors.mersisNo?.message}>
+            <Input placeholder="0123456789000015" {...register("mersisNo")} />
+          </Field>
+          <Field label="Vergi dairesi / no" error={errors.taxInfo?.message} className="sm:col-span-2">
+            <Input placeholder="Sivas Vergi Dairesi · 1234567890" {...register("taxInfo")} />
           </Field>
         </div>
       </FormSection>
@@ -148,7 +168,9 @@ export function SettingsForm({ values }: { values: SettingsInput }) {
             <Textarea rows={5} className="font-mono text-xs" placeholder='<iframe src="https://www.google.com/maps/embed?pb=..." ...></iframe>' {...register("mapEmbed")} />
           </Field>
           <div className="overflow-hidden rounded-2xl border border-border bg-cream-50">
-            {mapSrc && /^https:\/\/(www\.)?google\.[a-z.]+\/maps\/embed/i.test(mapSrc) ? (
+            {mapSrc &&
+            (/^https:\/\/(www\.)?google\.[a-z.]+\/maps\/embed/i.test(mapSrc) ||
+              /^https:\/\/(maps|www)\.google\.[a-z.]+\/maps\?.*output=embed/i.test(mapSrc)) ? (
               <iframe src={mapSrc} title="Harita önizleme" className="h-full min-h-[200px] w-full" loading="lazy" />
             ) : (
               <div className="grid h-full min-h-[200px] place-items-center p-4 text-center text-sm text-muted">
@@ -185,6 +207,23 @@ export function SettingsForm({ values }: { values: SettingsInput }) {
               render={({ field }) => <ImagePicker value={field.value} onChange={field.onChange} />}
             />
             <p className="mt-1 text-xs text-muted">Önerilen boyut 1200×630 px (JPG/PNG).</p>
+          </Field>
+        </div>
+      </FormSection>
+
+      <FormSection
+        title="Ölçüm ve Doğrulama"
+        description="Kimlik girildiğinde Google Analytics ve Meta (Instagram/Facebook) pikseli, ziyaretçi çerez onayı verdikten sonra yüklenir. Form gönderimleri ve WhatsApp tıklamaları dönüşüm olarak ölçülür."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Google Analytics ölçüm kimliği" error={errors.gaId?.message}>
+            <Input placeholder="G-XXXXXXXXXX" {...register("gaId")} />
+          </Field>
+          <Field label="Meta piksel kimliği" error={errors.metaPixelId?.message}>
+            <Input placeholder="123456789012345" inputMode="numeric" {...register("metaPixelId")} />
+          </Field>
+          <Field label="Google Search Console doğrulama kodu" error={errors.googleVerification?.message} className="sm:col-span-2">
+            <Input placeholder='<meta name="google-site-verification" content="..."> etiketini yapıştırabilirsiniz' {...register("googleVerification")} />
           </Field>
         </div>
       </FormSection>
