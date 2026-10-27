@@ -163,7 +163,8 @@ async function main() {
 
   // ---- Tur oluşturucu yardımcı ----
   type RoomPrice = [string, number];
-  type Day = [number, string, string];
+  /** [gün, başlık, açıklama, saat?, buluşma yeri?] */
+  type Day = [number, string, string, string?, string?];
   type HotelCard = {
     city: string;
     name: string;
@@ -279,10 +280,12 @@ async function main() {
           })),
         },
         dayPrograms: {
-          create: data.program.map(([dayNumber, title, description]) => ({
+          create: data.program.map(([dayNumber, title, description, time, place]) => ({
             dayNumber,
             title,
             description,
+            time: time || null,
+            place: place || null,
           })),
         },
         faqs: {
@@ -411,7 +414,31 @@ async function main() {
     images: ["/images/tur-ekonomik-umre.svg", "/images/otel-mekke-1.svg", "/images/otel-medine-1.svg"],
   });
 
-  // 2) 20 Günlük Umre Programı
+  // 2) 20 Günlük Umre Programı (Medine'den başlayan gerçek program; 6. ve 13. gün Cuma)
+  const lobi = "Otel lobisi";
+  const cuma = "Yoğunluktan dolayı Cuma namazı için saat 09:00'da Harem'de olunuz.";
+  const medine20Program: Day[] = [
+    [1, "Otele yerleşim ve Ravza selamlaması", "Otele yerleşimin ardından Ravza selamlamamıza gidiyoruz.", "17:00", lobi],
+    [2, "Medine ziyaretleri", "", "07:30", lobi],
+    [3, "Medine kuyu ziyaretleri", "", "14:30", lobi],
+    [4, "Mekke'ye geçiş", "Mekke'ye geçiş için hazır olunuz.", "12:30", lobi],
+    [5, "Mekke ziyaretleri", "", "13:30", lobi],
+    [6, "Cuma namazı", cuma, "09:00", "Harem-i Şerif"],
+    [7, "Mekke yakın ziyaretler", "Yürüme zorluğu çeken misafirlerimizin bu ziyarete katılmaması önerilir.", "04:00", lobi],
+    [8, "Ci'râne umresi", "Umre yapmak isteyenler ihram giyebilir.", "21:00", lobi],
+    [9, "Serbest gün", ""],
+    [10, "Nur Dağı çıkışı", "Rahat ayakkabı giyiniz.", "08:00", lobi],
+    [11, "Hudeybiye umresi", "İhramlı ve abdestli olarak hazır olunuz.", "17:00", lobi],
+    [12, "Serbest gün", ""],
+    [13, "Cuma namazı", cuma, "09:00", "Harem-i Şerif"],
+    [14, "Serbest gün", ""],
+    [15, "Taif ziyaretleri", "", "07:00", lobi],
+    [16, "Serbest gün", ""],
+    [17, "Cidde gezisi", "", "13:00", lobi],
+    [18, "Ten'im umresi", "", "21:00", lobi],
+    [19, "Serbest gün", "", "22:00", lobi],
+    [20, "Dönüş", "Çantalar hazır olacak şekilde otel lobisinde buluşuyoruz.", "07:00", lobi],
+  ];
   const t2 = await createTour({
     code: "11560",
     title: "20 Günlük Umre Programı",
@@ -420,7 +447,7 @@ async function main() {
     short: "Daha uzun süre kalarak ibadetlerinizi acele etmeden eda edeceğiniz kapsamlı program.",
     description:
       "20 günlük programımız, kutsal topraklarda daha uzun vakit geçirmek isteyenler için ideal. Hem Mekke hem Medine'de uzun konaklama ile ibadetlerinizi telaşsız tamamlar, çevre ziyaretlerini rahatça gerçekleştirirsiniz.",
-    departure: "2026-11-10",
+    departure: "2026-11-08",
     days: 20,
     nights: 19,
     depCity: "İstanbul",
@@ -440,7 +467,7 @@ async function main() {
       ["Tek kişilik oda", 3100],
       ...kidPrices(2200),
     ],
-    program: umreProgram,
+    program: medine20Program,
     images: ["/images/tur-20-gun-umre.svg", "/images/otel-mekke-2.svg", "/images/otel-medine-2.svg", "/images/kategori-umre.svg"],
   });
 

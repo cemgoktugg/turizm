@@ -101,3 +101,14 @@ export function toSlug(input: string): string {
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
 }
+
+/**
+ * Programın n. gününün tarihi (1. gün = gidiş günü), ör. "8 Kasım Pazar".
+ * Tarihler panelde gün olarak (UTC gece yarısı) saklandığı için UTC'ye göre hesaplanır.
+ */
+export function formatTourDay(departure: Date | string | null | undefined, dayNumber: number): string | null {
+  if (!departure) return null;
+  const d = new Date(new Date(departure).getTime() + (dayNumber - 1) * 86_400_000);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("tr-TR", { day: "numeric", month: "long", weekday: "long", timeZone: "UTC" });
+}

@@ -163,7 +163,14 @@ export const dayRowSchema = z.object({
     z.number({ error: "Gün numarası gerekli" }).int().min(1, "En az 1"),
   ),
   title: z.string().trim().min(1, "Gün başlığı gerekli").max(200),
-  description: z.string().trim().min(1, "Gün açıklaması gerekli").max(3000),
+  description: z.string().trim().max(3000),
+  time: z
+    .string()
+    .trim()
+    .max(20)
+    .refine((v) => v === "" || /^([01]?\d|2[0-3])[:.][0-5]\d$/.test(v), "Saat 07:30 biçiminde olmalı")
+    .optional(),
+  place: z.string().trim().max(80).optional(),
 });
 
 /** Boş bırakılabilen http(s) bağlantısı (video, otel sitesi…) */

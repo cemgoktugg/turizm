@@ -161,6 +161,10 @@ model TourDayProgram {
   dayNumber   Int
   title       String
   description String
+  /// Buluşma / hareket saati (ör. "07:30")
+  time        String?
+  /// Buluşma yeri (ör. "Otel lobisi")
+  place       String?
   tourId      String
   tour        Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())

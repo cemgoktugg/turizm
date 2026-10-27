@@ -620,10 +620,12 @@ export function TourForm({ categories, hotels, tourId, slug, defaultValues }: Pr
       <FormSection
         id="program"
         title="Günlük Program"
-        description="Sayfada numaralı, açılır-kapanır gün kartları olarak görünür (ilk gün açık gelir)."
+        description="Sayfada numaralı, açılır-kapanır gün kartları olarak görünür. Tarih, turun gidiş tarihinden otomatik hesaplanır (1. gün = gidiş günü)."
         action={
           <AddButton
-            onClick={() => days.append({ dayNumber: String(days.fields.length + 1), title: "", description: "" })}
+            onClick={() =>
+              days.append({ dayNumber: String(days.fields.length + 1), title: "", description: "", time: "", place: "" })
+            }
             label="Gün Ekle"
           />
         }
@@ -640,8 +642,16 @@ export function TourForm({ categories, hotels, tourId, slug, defaultValues }: Pr
                 </Field>
                 <RemoveButton onClick={() => days.remove(i)} offset />
               </div>
-              <Field label="Açıklama" className="mt-2" error={errors.dayPrograms?.[i]?.description?.message}>
-                <Textarea rows={3} className="min-h-0" {...register(`dayPrograms.${i}.description`)} />
+              <div className="mt-2 grid gap-3 sm:grid-cols-[140px_1fr]">
+                <Field label="Saat (isteğe bağlı)" error={errors.dayPrograms?.[i]?.time?.message}>
+                  <Input placeholder="07:30" inputMode="numeric" maxLength={5} {...register(`dayPrograms.${i}.time`)} />
+                </Field>
+                <Field label="Buluşma yeri (isteğe bağlı)" error={errors.dayPrograms?.[i]?.place?.message}>
+                  <Input placeholder="Otel lobisi" {...register(`dayPrograms.${i}.place`)} />
+                </Field>
+              </div>
+              <Field label="Açıklama (isteğe bağlı)" className="mt-2" error={errors.dayPrograms?.[i]?.description?.message}>
+                <Textarea rows={2} className="min-h-0" {...register(`dayPrograms.${i}.description`)} />
               </Field>
             </div>
           ))}

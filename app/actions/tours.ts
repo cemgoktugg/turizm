@@ -101,7 +101,13 @@ function relationData(d: AdminTourInput) {
       })),
     },
     dayPrograms: {
-      create: d.dayPrograms.map((p) => ({ dayNumber: p.dayNumber, title: p.title, description: p.description })),
+      create: d.dayPrograms.map((p) => ({
+        dayNumber: p.dayNumber,
+        title: p.title,
+        description: p.description,
+        time: p.time?.replace(".", ":") || null,
+        place: p.place || null,
+      })),
     },
     faqs: { create: d.faqs.map((f, i) => ({ question: f.question, answer: f.answer, order: i })) },
   };
@@ -249,7 +255,7 @@ export async function duplicateTour(id: string): Promise<ActionResult<{ id: stri
           })),
         },
         dayPrograms: {
-          create: dayPrograms.map(({ dayNumber, title, description }) => ({ dayNumber, title, description })),
+          create: dayPrograms.map(({ dayNumber, title, description, time, place }) => ({ dayNumber, title, description, time, place })),
         },
         faqs: { create: faqs.map(({ question, answer, order }) => ({ question, answer, order })) },
       },

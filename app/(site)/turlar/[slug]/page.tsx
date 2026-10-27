@@ -37,7 +37,7 @@ import { DayProgram } from "@/components/site/tour-detail/day-program";
 import { ReadMore } from "@/components/site/tour-detail/read-more";
 import { ReviewForm } from "@/components/site/tour-detail/review-form";
 import { Stars } from "@/components/site/tour-detail/stars";
-import { cn, formatDate, formatPrice, splitLines } from "@/lib/utils";
+import { cn, formatDate, formatPrice, formatTourDay, splitLines } from "@/lib/utils";
 import { getTryRates } from "@/lib/exchange";
 import { formatTry } from "@/lib/currency";
 import { TourJsonLd, FaqJsonLd, BreadcrumbJsonLd } from "@/components/seo/json-ld";
@@ -335,7 +335,10 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
 
             {tour.dayPrograms.length > 0 && (
               <Section id="program" title={s.programTitle} icon={<Clock className="size-5" />} description={s.programIntro}>
-                <DayProgram days={tour.dayPrograms} dayFormat={s.dayFormat} />
+                <DayProgram
+                  days={tour.dayPrograms.map((day) => ({ ...day, dateLabel: formatTourDay(tour.departureDate, day.dayNumber) }))}
+                  dayFormat={s.dayFormat}
+                />
               </Section>
             )}
 

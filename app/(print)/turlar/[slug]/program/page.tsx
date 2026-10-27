@@ -8,7 +8,7 @@ import { getSettings, whatsappLink } from "@/lib/settings";
 import { getTryRates } from "@/lib/exchange";
 import { formatTry } from "@/lib/currency";
 import { SITE_URL } from "@/lib/site-url";
-import { formatDate, formatPrice, splitLines } from "@/lib/utils";
+import { formatDate, formatPrice, formatTourDay, splitLines } from "@/lib/utils";
 import { formatDuration } from "@/components/site/tour-card";
 import { SmartImage } from "@/components/ui/smart-image";
 import { PrintToolbar } from "@/components/site/print-toolbar";
@@ -197,7 +197,11 @@ export default async function TourProgramPrintPage({ params, searchParams }: Pro
                   </span>
                   <div>
                     <p className="font-semibold">{day.title}</p>
-                    <p className="whitespace-pre-line text-brand-800">{day.description}</p>
+                    {(() => {
+                      const meta = [formatTourDay(tour.departureDate, day.dayNumber), day.time, day.place].filter(Boolean);
+                      return meta.length > 0 && <p className="text-[11px] font-semibold text-gold-700">{meta.join(" · ")}</p>;
+                    })()}
+                    {day.description && <p className="whitespace-pre-line text-brand-800">{day.description}</p>}
                   </div>
                 </li>
               ))}

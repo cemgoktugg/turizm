@@ -1907,7 +1907,7 @@ export const CONTENT_BLOCKS = {
         includedTitle: "Fiyata Dahil",
         excludedTitle: "Fiyata Dahil Değil",
         docsTitle: "Gerekli Evraklar",
-        programTitle: "Örnek Günlük Tur Programı",
+        programTitle: "Günlük Tur Programı",
         programIntro:
           "Aşağıdaki akış örnek bir programdır; uçuş saatlerine ve grup yoğunluğuna göre gün içinde değişiklik gösterebilir.",
         dayFormat: "{gun}. Gün",

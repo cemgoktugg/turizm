@@ -107,7 +107,13 @@ export default async function EditTourPage({ params }: { params: Promise<{ id: s
             date: toDateInput(l.date),
             time: l.time ?? "",
           })),
-          dayPrograms: tour.dayPrograms.map((d) => ({ dayNumber: String(d.dayNumber), title: d.title, description: d.description })),
+          dayPrograms: tour.dayPrograms.map((d) => ({
+            dayNumber: String(d.dayNumber),
+            title: d.title,
+            description: d.description,
+            time: d.time ?? "",
+            place: d.place ?? "",
+          })),
           faqs: tour.faqs.map((f) => ({ question: f.question, answer: f.answer })),
         }}
       />
