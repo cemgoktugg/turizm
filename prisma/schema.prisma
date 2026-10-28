@@ -335,3 +335,98 @@ model LandingPage {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
+
+/* ------------------------------------------------------------------ */
+/* Satış ve alacak takibi (yalnızca panelde kullanılır)                 */
+/* Tutarlar tam sayıdır; "ödenen" ve "kalan" saklanmaz, tahsilatlardan    */
+/* hesaplanır.                                                          */
+/* ------------------------------------------------------------------ */
+
+/// Tur görevlisi (rehber / kafile başkanı)
+model Staff {
+  id        Int           @id @default(autoincrement())
+  fullName  String
+  tc        String?
+  phone     String
+  note      String?
+  tours1    ServiceTour[] @relation("Guide1")
+  tours2    ServiceTour[] @relation("Guide2")
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+/// Satışı yapılan tur hizmeti (sitedeki katalog turlarından bağımsızdır)
+model ServiceTour {
+  id            Int      @id @default(autoincrement())
+  name          String
+  /// Dönem (ör. "2026 Ramazan Umresi") — satış listesi bu alana göre süzülür
+  period        String
+  departureDate DateTime
+  returnDate    DateTime
+  /// Standart tek kişilik ücret
+  price         Int
+  currency      String   @default("USD")
+  accommodation String?
+  guide1Id      Int
+  guide1        Staff    @relation("Guide1", fields: [guide1Id], references: [id])
+  guide2Id      Int?
+  guide2        Staff?   @relation("Guide2", fields: [guide2Id], references: [id])
+  days          Int
+  note          String?
+  /// Pasif turlar yeni satışta listelenmez
+  isActive      Boolean  @default(true)
+  sales         Sale[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([period])
+}
+
+model Customer {
+  id        Int      @id @default(autoincrement())
+  fullName  String
+  tc        String   @unique
+  phone     String
+  note      String?
+  sales     Sale[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Sale {
+  id          Int         @id @default(autoincrement())
+  date        DateTime
+  tourId      Int
+  tour        ServiceTour @relation(fields: [tourId], references: [id])
+  customerId  Int
+  customer    Customer    @relation(fields: [customerId], references: [id])
+  note        String?
+  reference   String?
+  /// Oda kişi sayısı (2'li, 3'lü, 4'lü oda) — bilgi amaçlı
+  roomSize    Int?
+  price       Int
+  /// İptal edilen satışlar toplamlara ve bakiyeye girmez
+  isCancelled Boolean     @default(false)
+  payments    Payment[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([tourId])
+  @@index([customerId])
+}
+
+/// Tahsilat (satışa yapılan ödeme)
+model Payment {
+  id        Int      @id @default(autoincrement())
+  saleId    Int
+  sale      Sale     @relation(fields: [saleId], references: [id])
+  date      DateTime
+  amount    Int
+  /// Nakit | Havale | Kredi Kartı
+  method    String   @default("Nakit")
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([saleId])
+  @@index([date])
+}

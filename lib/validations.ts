@@ -469,3 +469,114 @@ export const settingsSchema = z.object({
 });
 export type SettingsInput = z.infer<typeof settingsSchema>;
 export const SETTING_KEYS = Object.keys(settingsSchema.shape) as (keyof SettingsInput)[];
+
+/* ------------------------------------------------------------------ */
+/* Satış ve alacak takibi                                               */
+/* ------------------------------------------------------------------ */
+
+export const PAYMENT_METHODS = ["Nakit", "Havale", "Kredi Kartı"] as const;
+
+/** T.C. kimlik numarası algoritma kontrolü (11 hane, son iki hane sağlaması) */
+export function isValidTc(tc: string): boolean {
+  if (!/^[1-9]\d{10}$/.test(tc)) return false;
+  const d = tc.split("").map(Number);
+  const odd = d[0] + d[2] + d[4] + d[6] + d[8];
+  const even = d[1] + d[3] + d[5] + d[7];
+  if ((((odd * 7 - even) % 10) + 10) % 10 !== d[9]) return false;
+  return d.slice(0, 10).reduce((a, b) => a + b, 0) % 10 === d[10];
+}
+
+const tcField = z.string().trim().refine(isValidTc, "Geçerli bir T.C. kimlik numarası giriniz");
+
+const salesPhone = z
+  .string()
+  .trim()
+  .max(30)
+  .refine((v) => (v.match(/\d/g) ?? []).length >= 7, "Geçerli bir telefon numarası giriniz");
+
+/** Zorunlu tam sayı (boş metin hata verir) */
+function requiredInt(label: string, opts: { min?: number; max?: number } = {}) {
+  let n = z.number({ error: `${label} gerekli` }).int("Tam sayı giriniz");
+  if (opts.min != null) n = n.min(opts.min, `En az ${opts.min} olmalı`);
+  if (opts.max != null) n = n.max(opts.max, `En fazla ${opts.max} olmalı`);
+  return z.preprocess((v) => {
+    if (v === "" || v === null || v === undefined) return undefined;
+    if (typeof v === "number") return Number.isNaN(v) ? undefined : v;
+    const num = Number(String(v).replace(/\./g, "").replace(",", "."));
+    return Number.isNaN(num) ? v : num;
+  }, n);
+}
+
+const requiredDate = (label: string) =>
+  z
+    .string({ error: `${label} gerekli` })
+    .trim()
+    .min(1, `${label} gerekli`)
+    .refine((v) => !Number.isNaN(new Date(v).getTime()), "Geçerli bir tarih giriniz");
+
+export const staffSchema = z.object({
+  fullName: z.string().trim().min(3, "Ad soyad gerekli").max(100),
+  tc: z
+    .string()
+    .trim()
+    .refine((v) => v === "" || isValidTc(v), "Geçerli bir T.C. kimlik numarası giriniz")
+    .optional(),
+  phone: salesPhone,
+  note: optionalText(1000),
+});
+export type StaffInput = z.infer<typeof staffSchema>;
+
+export const customerSchema = z.object({
+  fullName: z.string().trim().min(3, "Ad soyad gerekli").max(100),
+  tc: tcField,
+  phone: salesPhone,
+  note: optionalText(1000),
+});
+export type CustomerInput = z.infer<typeof customerSchema>;
+
+export const serviceTourSchema = z
+  .object({
+    name: z.string().trim().min(2, "Tur adı gerekli").max(150),
+    period: z.string().trim().min(2, "Dönem gerekli").max(60),
+    departureDate: requiredDate("Gidiş tarihi"),
+    returnDate: requiredDate("Dönüş tarihi"),
+    price: requiredInt("Ücret", { min: 0, max: 100_000_000 }),
+    currency: z.enum(CURRENCIES),
+    accommodation: optionalText(200),
+    guide1Id: requiredInt("Görevli 1", { min: 1 }),
+    guide2Id: optionalNumber({ min: 1, int: true }),
+    days: requiredInt("Gün", { min: 1, max: 365 }),
+    note: optionalText(2000),
+    isActive: z.boolean(),
+  })
+  .refine((d) => new Date(d.returnDate) >= new Date(d.departureDate), {
+    message: "Dönüş tarihi gidişten önce olamaz",
+    path: ["returnDate"],
+  })
+  .refine((d) => !d.guide2Id || d.guide2Id !== d.guide1Id, {
+    message: "Görevli 2, Görevli 1 ile aynı olamaz",
+    path: ["guide2Id"],
+  });
+export type ServiceTourInput = z.infer<typeof serviceTourSchema>;
+
+export const saleSchema = z.object({
+  date: requiredDate("Satış tarihi"),
+  tourId: requiredInt("Tur", { min: 1 }),
+  customerId: requiredInt("Müşteri", { min: 1 }),
+  note: optionalText(1000),
+  reference: optionalText(100),
+  roomSize: optionalNumber({ min: 1, max: 10, int: true }),
+  price: requiredInt("Ücret", { min: 0, max: 100_000_000 }),
+  /** Yalnızca yeni satışta: girilirse ilk tahsilat olarak kaydedilir */
+  downPayment: optionalNumber({ min: 1, max: 100_000_000, int: true }),
+  downPaymentMethod: z.enum(PAYMENT_METHODS).optional(),
+});
+export type SaleInput = z.infer<typeof saleSchema>;
+
+export const paymentSchema = z.object({
+  date: requiredDate("Tarih"),
+  amount: requiredInt("Tutar", { min: 1, max: 100_000_000 }),
+  method: z.enum(PAYMENT_METHODS),
+  note: optionalText(500),
+});
+export type PaymentInput = z.infer<typeof paymentSchema>;

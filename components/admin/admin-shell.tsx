@@ -9,7 +9,10 @@ import {
   Award,
   BellRing,
   Building2,
+  CalendarRange,
+  ChartColumn,
   CirclePlay,
+  Contact,
   ExternalLink,
   FileSearch,
   Images,
@@ -21,8 +24,10 @@ import {
   MessageSquareQuote,
   Newspaper,
   Plane,
+  Receipt,
   Settings,
   Tags,
+  UserCheck,
   UserCog,
   Users,
 } from "lucide-react";
@@ -62,6 +67,16 @@ const NAV_GROUPS: { title?: string; items: NavItem[] }[] = [
     ],
   },
   {
+    title: "Satış",
+    items: [
+      { label: "Satışlar", href: "/admin/satis", icon: Receipt },
+      { label: "Turlar", href: "/admin/satis/turlar", icon: CalendarRange },
+      { label: "Müşteriler", href: "/admin/satis/musteriler", icon: Contact },
+      { label: "Görevliler", href: "/admin/satis/gorevliler", icon: UserCheck },
+      { label: "Raporlar", href: "/admin/satis/raporlar", icon: ChartColumn },
+    ],
+  },
+  {
     title: "Sistem",
     items: [
       { label: "Site Ayarları", href: "/admin/settings", icon: Settings },
@@ -85,6 +100,11 @@ const TITLES: Record<string, string> = {
   "/admin/subscribers": "Kampanya Aboneleri",
   "/admin/landing": "SEO Sayfaları",
   "/admin/certificates": "Belgeler",
+  "/admin/satis": "Satışlar",
+  "/admin/satis/turlar": "Turlar (Satış)",
+  "/admin/satis/musteriler": "Müşteriler",
+  "/admin/satis/gorevliler": "Görevliler",
+  "/admin/satis/raporlar": "Satış Raporları",
   "/admin/settings": "Site Ayarları",
   "/admin/users": "Kullanıcılar",
   "/admin/profile": "Hesabım",
@@ -108,8 +128,13 @@ export function AdminShell({
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
-  const isActive = (href: string, exact?: boolean) =>
+  const matches = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(href + "/");
+  // İç içe adreslerde (/admin/satis ve /admin/satis/turlar) yalnızca en uzun eşleşen öğe seçili görünür
+  const activeHref = NAV_GROUPS.flatMap((g) => g.items)
+    .filter((i) => matches(i.href, i.exact))
+    .reduce<string | null>((best, i) => (!best || i.href.length > best.length ? i.href : best), null);
+  const isActive = (href: string) => href === activeHref;
 
   let title = "Yönetim";
   for (const [key, val] of Object.entries(TITLES)) {
@@ -131,7 +156,7 @@ export function AdminShell({
             )}
             <div className="space-y-0.5">
               {group.items.map((item) => {
-                const active = isActive(item.href, item.exact);
+                const active = isActive(item.href);
                 const badge = item.badgeKey && badges[item.badgeKey] > 0 ? badges[item.badgeKey] : null;
                 return (
                   <Link

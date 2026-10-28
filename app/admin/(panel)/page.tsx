@@ -11,6 +11,7 @@ import {
   Plane,
   Plus,
   Images,
+  Receipt,
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
@@ -20,6 +21,7 @@ import { AdminCard } from "@/components/admin/ui";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatDateRange } from "@/lib/utils";
 import { LEAD_STATUS_STYLES } from "@/lib/lead-status";
+import { moneyList, totalReceivable } from "@/lib/sales";
 
 export const metadata = { title: "Kontrol Paneli" };
 
@@ -43,6 +45,7 @@ export default async function AdminDashboard() {
     recentLeads,
     upcoming,
     emptyCategories,
+    receivable,
   ] = await Promise.all([
     getCurrentUser(),
     getSettings(),
@@ -70,6 +73,7 @@ export default async function AdminDashboard() {
       where: { tours: { none: activeTourWhere() } },
       select: { name: true },
     }),
+    totalReceivable(),
   ]);
 
   const stats = [
@@ -77,6 +81,7 @@ export default async function AdminDashboard() {
     { label: "Yeni başvuru", value: newLeads, sub: `Bu ay ${monthLeads} başvuru`, icon: Inbox, href: "/admin/leads?durum=Yeni", color: "bg-red-50 text-red-600" },
     { label: "Yayındaki otel", value: hotels, icon: Building2, href: "/admin/hotels", color: "bg-gold-100 text-gold-700" },
     { label: "Yayındaki yazı", value: posts, icon: Newspaper, href: "/admin/blog", color: "bg-navy-100 text-navy-700" },
+    { label: "Kalan alacak", value: moneyList(receivable), icon: Receipt, href: "/admin/satis/raporlar?rapor=borclu", color: "bg-green-50 text-green-700" },
   ];
 
   type Warning = { text: string; href: string; action: string };
@@ -118,7 +123,7 @@ export default async function AdminDashboard() {
         <p className="mt-1 text-sm text-muted">Sitenizin genel durumu ve dikkat etmeniz gerekenler.</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {stats.map((s) => (
           <Link key={s.label} href={s.href}>
             <AdminCard className="group h-full p-5 transition hover:shadow-card">

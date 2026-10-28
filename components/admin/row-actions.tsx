@@ -39,10 +39,13 @@ export function DeleteButton({
   action,
   id,
   label = "Bu kaydı silmek istediğinize emin misiniz?",
+  redirectTo,
 }: {
   action: (id: string) => Promise<ActionResult<unknown>>;
   id: string;
   label?: string;
+  /** Kaydın kendi sayfasında silinirse gidilecek adres */
+  redirectTo?: string;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -53,6 +56,7 @@ export function DeleteButton({
       const res = await action(id);
       if (res.ok) {
         toast.success(res.message);
+        if (redirectTo) router.push(redirectTo);
         router.refresh();
       } else {
         toast.error(res.message);
