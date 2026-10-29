@@ -92,20 +92,8 @@ export function ServiceTourForm({
           <Field label="Gün" required error={errors.days?.message}>
             <Input type="number" min={1} {...register("days")} />
           </Field>
-          <Field label="Konaklama Yeri" error={errors.accommodation?.message}>
+          <Field label="Konaklama Yeri" error={errors.accommodation?.message} className="sm:col-span-2 lg:col-span-1">
             <Input placeholder="Mekke: ..., Medine: ..." {...register("accommodation")} />
-          </Field>
-          <Field label="Standart Tek Kişilik Ücret" required error={errors.price?.message} className="sm:col-span-2 lg:col-span-1">
-            <Input type="number" min={0} step={1} {...register("price")} />
-          </Field>
-          <Field label="Para Birimi" required error={errors.currency?.message}>
-            <Select {...register("currency")}>
-              {CURRENCIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </Select>
           </Field>
           <Field label="Görevli 1" required error={errors.guide1Id?.message}>
             <Select {...register("guide1Id")}>
@@ -133,6 +121,31 @@ export function ServiceTourForm({
         </div>
         <div className="mt-5">
           <CheckboxRow label="Aktif (yeni satışta listelenir)" {...register("isActive")} />
+        </div>
+      </FormSection>
+      <FormSection title="Oda Fiyatları" description="Kişi başı ücretler. Boş bırakılan oda tipi satışta seçilemez.">
+        <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
+          <Field label="Tek Kişilik Oda" required error={errors.price?.message}>
+            <Input type="number" min={0} step={1} {...register("price")} />
+          </Field>
+          <Field label="2 Kişilik Oda" error={errors.price2?.message}>
+            <Input type="number" min={0} step={1} {...register("price2")} />
+          </Field>
+          <Field label="3 Kişilik Oda" error={errors.price3?.message}>
+            <Input type="number" min={0} step={1} {...register("price3")} />
+          </Field>
+          <Field label="4 Kişilik Oda" error={errors.price4?.message}>
+            <Input type="number" min={0} step={1} {...register("price4")} />
+          </Field>
+          <Field label="Para Birimi" required error={errors.currency?.message}>
+            <Select {...register("currency")}>
+              {CURRENCIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </Select>
+          </Field>
         </div>
       </FormSection>
       <FormFooter cancelHref="/admin/satis/turlar" submitting={isSubmitting} label={tourId ? "Kaydet" : "Tur Ekle"} />

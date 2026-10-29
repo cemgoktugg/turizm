@@ -13,7 +13,9 @@ import { FormSection } from "../form-parts";
 import { useUnsavedChanges } from "../use-unsaved-changes";
 import { FormFooter } from "./form-footer";
 import { CustomerPicker } from "./customer-picker";
-import { currencySymbol } from "@/lib/utils";
+import { currencySymbol, formatPrice } from "@/lib/utils";
+
+const ROOM_LABELS: Record<number, string> = { 1: "Tek kişilik oda", 2: "2 kişilik oda", 3: "3 kişilik oda", 4: "4 kişilik oda" };
 
 type FormIn = z.input<typeof saleSchema>;
 
@@ -21,7 +23,8 @@ export type SaleTourOption = {
   id: number;
   name: string;
   period: string;
-  price: number;
+  /** Oda kişi sayısı → kişi başı ücret (yalnızca fiyatı girilmiş oda tipleri) */
+  prices: Record<number, number>;
   currency: string;
   departure: string;
   isActive: boolean;
@@ -57,9 +60,18 @@ export function SaleForm({
   });
   useUnsavedChanges(isDirty);
 
-  const tourId = useWatch({ control, name: "tourId" });
+  const [tourId, roomSize] = useWatch({ control, name: ["tourId", "roomSize"] });
   const tour = tours.find((t) => String(t.id) === String(tourId ?? ""));
   const cur = tour ? currencySymbol(tour.currency).trim() : "";
+
+  // Oda seçenekleri: turun fiyatı girilmiş oda tipleri (+ kayıtlı satışın eski değeri)
+  const roomSizes = tour ? Object.keys(tour.prices).map(Number) : [1, 2, 3, 4];
+  const currentRoom = Number(roomSize);
+  if (currentRoom && !roomSizes.includes(currentRoom)) roomSizes.push(currentRoom);
+  roomSizes.sort((a, b) => a - b);
+
+  /** Seçili tur ve oda tipine göre kişi başı ücret; oda tipinin fiyatı yoksa tek kişilik ücret */
+  const priceFor = (t: SaleTourOption, size: number) => t.prices[size] ?? t.prices[1];
 
   // Dönemlere göre gruplu tur listesi
   const groups = tours.reduce<Record<string, SaleTourOption[]>>((acc, t) => {
@@ -101,9 +113,12 @@ export function SaleForm({
             <Select
               {...register("tourId", {
                 onChange: (e) => {
-                  // Yeni satışta ücret elle değiştirilmediyse turun standart ücretini öner
+                  // Yeni satışta ücret elle değiştirilmediyse turun seçili oda tipindeki ücretini öner
                   const t = tours.find((x) => String(x.id) === e.target.value);
-                  if (t && !saleId && !dirtyFields.price) setValue("price", String(t.price));
+                  if (!t || saleId) return;
+                  const size = Number(getValues("roomSize"));
+                  if (size && t.prices[size] == null) setValue("roomSize", "");
+                  if (!dirtyFields.price) setValue("price", String(priceFor(t, size)));
                 },
               })}
             >
@@ -124,11 +139,20 @@ export function SaleForm({
             <Input type="date" {...register("date")} />
           </Field>
           <Field label="Oda Kişi Sayısı" error={errors.roomSize?.message}>
-            <Select {...register("roomSize")}>
+            <Select
+              {...register("roomSize", {
+                onChange: (e) => {
+                  // Oda tipi seçilince o odanın kişi başı ücreti yazılır
+                  const p = tour?.prices[Number(e.target.value)];
+                  if (p != null) setValue("price", String(p));
+                },
+              })}
+            >
               <option value="">—</option>
-              {[1, 2, 3, 4, 5].map((n) => (
+              {roomSizes.map((n) => (
                 <option key={n} value={n}>
-                  {n} kişilik oda
+                  {ROOM_LABELS[n] ?? `${n} kişilik oda`}
+                  {tour?.prices[n] != null ? ` · ${formatPrice(tour.prices[n], tour.currency)}` : ""}
                 </option>
               ))}
             </Select>

@@ -363,8 +363,11 @@ model ServiceTour {
   period        String
   departureDate DateTime
   returnDate    DateTime
-  /// Standart tek kişilik ücret
+  /// Kişi başı ücretler: tek kişilik oda (zorunlu), 2/3/4 kişilik oda (isteğe bağlı)
   price         Int
+  price2        Int?
+  price3        Int?
+  price4        Int?
   currency      String   @default("USD")
   accommodation String?
   guide1Id      Int
@@ -402,7 +405,7 @@ model Sale {
   customer    Customer    @relation(fields: [customerId], references: [id])
   note        String?
   reference   String?
-  /// Oda kişi sayısı (2'li, 3'lü, 4'lü oda) — bilgi amaçlı
+  /// Oda kişi sayısı (1-4) — seçilince turun o oda tipindeki fiyatı önerilir
   roomSize    Int?
   price       Int
   /// İptal edilen satışlar toplamlara ve bakiyeye girmez
