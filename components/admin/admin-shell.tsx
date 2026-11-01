@@ -15,6 +15,7 @@ import {
   Contact,
   ExternalLink,
   FileSearch,
+  History,
   Images,
   Inbox,
   LayoutDashboard,
@@ -81,6 +82,7 @@ const NAV_GROUPS: { title?: string; items: NavItem[] }[] = [
     items: [
       { label: "Site Ayarları", href: "/admin/settings", icon: Settings },
       { label: "Kullanıcılar", href: "/admin/users", icon: Users },
+      { label: "İşlem Geçmişi", href: "/admin/islem-gecmisi", icon: History },
       { label: "Hesabım", href: "/admin/profile", icon: UserCog },
     ],
   },
@@ -107,6 +109,7 @@ const TITLES: Record<string, string> = {
   "/admin/satis/raporlar": "Satış Raporları",
   "/admin/settings": "Site Ayarları",
   "/admin/users": "Kullanıcılar",
+  "/admin/islem-gecmisi": "İşlem Geçmişi",
   "/admin/profile": "Hesabım",
 };
 

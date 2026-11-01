@@ -36,7 +36,6 @@ export function HotelForm({ hotelId, defaultValues }: { hotelId?: string; defaul
       toast.success(res.message);
       reset(values as unknown as FormIn);
       router.push("/admin/hotels");
-      router.refresh();
     } else {
       toast.error(res.message);
     }

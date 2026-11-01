@@ -205,7 +205,6 @@ export function TourForm({ categories, hotels, tourId, slug, defaultValues }: Pr
       toast.success(res.message);
       reset(values as unknown as FormIn);
       router.push("/admin/tours");
-      router.refresh();
     } else {
       for (const [path, message] of Object.entries(res.fieldErrors ?? {})) {
         setError(path as Parameters<typeof setError>[0], { message });

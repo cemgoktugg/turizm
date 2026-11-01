@@ -1,10 +1,15 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { AdminPageHeader, AdminCard, EmptyState } from "@/components/admin/ui";
+import { EditLink } from "@/components/admin/row-actions";
 import { FilterBar, StatBox, th, td, num, theadRow, qs } from "@/components/admin/sales/ui";
+import { SaleCancelButton } from "@/components/admin/sales/sale-cancel-button";
 import { Badge } from "@/components/ui/badge";
 import { buildSaleWhere, getPeriods, loadSales, money, moneyList, shortDate, totalsOf } from "@/lib/sales";
-import { cn } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
+
+// İşlem butonları geniş tabloda kaydırmadan görünsün diye sağa sabitlenir
+const stickyEnd = "sticky right-0 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.15)]";
 
 export const metadata = { title: "Satışlar" };
 
@@ -53,7 +58,7 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
 
           <AdminCard className="overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1100px] text-sm">
+              <table className="w-full min-w-[1400px] text-sm">
                 <thead>
                   <tr className={theadRow}>
                     <th className={th}>Sıra No</th>
@@ -69,6 +74,8 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
                     <th className={cn(th, num)}>Ücret</th>
                     <th className={cn(th, num)}>Ödenen</th>
                     <th className={cn(th, num)}>Kalan</th>
+                    <th className={th}>Kaydeden</th>
+                    <th className={cn(th, stickyEnd, "bg-cream-50 text-right")}>İşlemler</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -106,6 +113,16 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
                       <td className={cn(td, num, "font-semibold", s.balance > 0 ? "text-red-600" : "text-green-700")}>
                         {money(s.balance, s.currency)}
                       </td>
+                      <td className={td}>
+                        <p className="font-semibold">{s.createdByName ?? "—"}</p>
+                        <p className="text-xs text-muted tabular-nums">{formatDateTime(s.createdAt)}</p>
+                      </td>
+                      <td className={cn(td, stickyEnd, "bg-white")}>
+                        <div className="flex items-center justify-end gap-2">
+                          <EditLink href={`/admin/satis/${s.id}/duzenle`} />
+                          <SaleCancelButton id={s.id} isCancelled={s.isCancelled} short />
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -117,6 +134,8 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
                     <td className={cn(td, num)}>{moneyList(totals.price)}</td>
                     <td className={cn(td, num, "text-green-700")}>{moneyList(totals.paid)}</td>
                     <td className={cn(td, num, "text-red-600")}>{moneyList(totals.balance)}</td>
+                    <td className={td} />
+                    <td className={cn(td, stickyEnd, "bg-cream-50")} />
                   </tr>
                 </tfoot>
               </table>

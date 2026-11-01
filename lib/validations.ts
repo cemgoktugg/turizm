@@ -540,7 +540,6 @@ export const serviceTourSchema = z
     period: z.string().trim().min(2, "Dönem gerekli").max(60),
     departureDate: requiredDate("Gidiş tarihi"),
     returnDate: requiredDate("Dönüş tarihi"),
-    price: requiredInt("Tek kişilik ücret", { min: 0, max: 100_000_000 }),
     price2: optionalNumber({ min: 0, max: 100_000_000, int: true }),
     price3: optionalNumber({ min: 0, max: 100_000_000, int: true }),
     price4: optionalNumber({ min: 0, max: 100_000_000, int: true }),
@@ -555,6 +554,10 @@ export const serviceTourSchema = z
   .refine((d) => new Date(d.returnDate) >= new Date(d.departureDate), {
     message: "Dönüş tarihi gidişten önce olamaz",
     path: ["returnDate"],
+  })
+  .refine((d) => d.price2 != null || d.price3 != null || d.price4 != null, {
+    message: "En az bir oda tipinin fiyatını girin",
+    path: ["price2"],
   })
   .refine((d) => !d.guide2Id || d.guide2Id !== d.guide1Id, {
     message: "Görevli 2, Görevli 1 ile aynı olamaz",

@@ -15,8 +15,6 @@ import { FormFooter } from "./form-footer";
 import { CustomerPicker } from "./customer-picker";
 import { currencySymbol, formatPrice } from "@/lib/utils";
 
-const ROOM_LABELS: Record<number, string> = { 1: "Tek kişilik oda", 2: "2 kişilik oda", 3: "3 kişilik oda", 4: "4 kişilik oda" };
-
 type FormIn = z.input<typeof saleSchema>;
 
 export type SaleTourOption = {
@@ -53,25 +51,27 @@ export function SaleForm({
     control,
     setValue,
     getValues,
-    formState: { errors, isSubmitting, isDirty, dirtyFields },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<FormIn, unknown, SaleInput>({
     resolver: zodResolver(saleSchema),
     defaultValues: { downPaymentMethod: "Nakit", ...defaultValues },
   });
   useUnsavedChanges(isDirty);
+  // Ücret elle yazıldıysa tur değişince üzerine yazılmaz
+  const [priceEdited, setPriceEdited] = useState(false);
 
   const [tourId, roomSize] = useWatch({ control, name: ["tourId", "roomSize"] });
   const tour = tours.find((t) => String(t.id) === String(tourId ?? ""));
   const cur = tour ? currencySymbol(tour.currency).trim() : "";
 
   // Oda seçenekleri: turun fiyatı girilmiş oda tipleri (+ kayıtlı satışın eski değeri)
-  const roomSizes = tour ? Object.keys(tour.prices).map(Number) : [1, 2, 3, 4];
+  const roomSizes = tour ? Object.keys(tour.prices).map(Number) : [2, 3, 4];
   const currentRoom = Number(roomSize);
   if (currentRoom && !roomSizes.includes(currentRoom)) roomSizes.push(currentRoom);
   roomSizes.sort((a, b) => a - b);
 
-  /** Seçili tur ve oda tipine göre kişi başı ücret; oda tipinin fiyatı yoksa tek kişilik ücret */
-  const priceFor = (t: SaleTourOption, size: number) => t.prices[size] ?? t.prices[1];
+  /** Seçili tur ve oda tipine göre kişi başı ücret; oda seçilmediyse turun ilk oda fiyatı */
+  const priceFor = (t: SaleTourOption, size: number) => t.prices[size] ?? Object.values(t.prices)[0];
 
   // Dönemlere göre gruplu tur listesi
   const groups = tours.reduce<Record<string, SaleTourOption[]>>((acc, t) => {
@@ -86,7 +86,6 @@ export function SaleForm({
     reset(getValues());
     const id = saleId ?? (res.data as { id: number } | undefined)?.id;
     router.push(id ? `/admin/satis/${id}` : "/admin/satis");
-    router.refresh();
   }
 
   return (
@@ -118,7 +117,7 @@ export function SaleForm({
                   if (!t || saleId) return;
                   const size = Number(getValues("roomSize"));
                   if (size && t.prices[size] == null) setValue("roomSize", "");
-                  if (!dirtyFields.price) setValue("price", String(priceFor(t, size)));
+                  if (!priceEdited) setValue("price", String(priceFor(t, size)));
                 },
               })}
             >
@@ -151,14 +150,14 @@ export function SaleForm({
               <option value="">—</option>
               {roomSizes.map((n) => (
                 <option key={n} value={n}>
-                  {ROOM_LABELS[n] ?? `${n} kişilik oda`}
+                  {n} kişilik oda
                   {tour?.prices[n] != null ? ` · ${formatPrice(tour.prices[n], tour.currency)}` : ""}
                 </option>
               ))}
             </Select>
           </Field>
           <Field label={`Ücret${cur ? ` (${cur})` : ""}`} required error={errors.price?.message}>
-            <Input type="number" min={0} step={1} {...register("price")} />
+            <Input type="number" min={0} step={1} {...register("price", { onChange: () => setPriceEdited(true) })} />
           </Field>
           <Field label="Referans" error={errors.reference?.message}>
             <Input placeholder="Kim yönlendirdi?" {...register("reference")} />

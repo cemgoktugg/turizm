@@ -5,7 +5,7 @@ import { NewUserForm } from "@/components/admin/account-forms";
 import { DeleteButton } from "@/components/admin/row-actions";
 import { Badge } from "@/components/ui/badge";
 import { deleteUser } from "@/app/actions/account";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatDateTime } from "@/lib/utils";
 
 export const metadata = { title: "Kullanıcılar" };
 
@@ -49,7 +49,7 @@ export default async function AdminUsersPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-muted">{u.lastLoginAt ? u.lastLoginAt.toLocaleString("tr-TR") : "Hiç giriş yapmadı"}</td>
+                    <td className="px-4 py-3 text-muted">{u.lastLoginAt ? formatDateTime(u.lastLoginAt) : "Hiç giriş yapmadı"}</td>
                     <td className="px-4 py-3">
                       {u.passwordChangedAt ? (
                         <Badge variant="green" size="sm">{formatDate(u.passwordChangedAt)} değişti</Badge>

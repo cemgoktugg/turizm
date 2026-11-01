@@ -51,7 +51,6 @@ export function BlogForm({
       toast.success(res.message);
       reset(values as unknown as FormIn);
       router.push("/admin/blog");
-      router.refresh();
     } else {
       toast.error(res.message);
     }

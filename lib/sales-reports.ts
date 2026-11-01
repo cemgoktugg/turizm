@@ -1,4 +1,5 @@
 import "server-only";
+import { formatDateTime } from "./utils";
 import {
   buildSaleWhere,
   debtorReport,
@@ -55,6 +56,8 @@ async function salesTable(p: ReportParams): Promise<ReportTable> {
       { label: "Ödenen", align: R },
       { label: "Kalan", align: R },
       { label: "Durum" },
+      { label: "Kaydeden" },
+      { label: "Kayıt Zamanı" },
     ],
     rows: sales.map((s) => ({
       href: `/admin/satis/${s.id}`,
@@ -74,9 +77,11 @@ async function salesTable(p: ReportParams): Promise<ReportTable> {
         m(s.paid, s.currency),
         m(s.balance, s.currency),
         s.isCancelled ? "İptal" : s.balance > 0 ? "Borçlu" : "Ödendi",
+        s.createdByName,
+        formatDateTime(s.createdAt),
       ],
     })),
-    footer: [`Toplam (${t.count} satış)`, "", "", "", "", "", "", "", "", "", moneyList(t.price), moneyList(t.paid), moneyList(t.balance), ""],
+    footer: [`Toplam (${t.count} satış)`, "", "", "", "", "", "", "", "", "", moneyList(t.price), moneyList(t.paid), moneyList(t.balance), "", "", ""],
   };
 }
 
@@ -201,6 +206,8 @@ async function paymentTable(p: ReportParams): Promise<ReportTable> {
       { label: "Dönem" },
       { label: "Ödeme Şekli" },
       { label: "Açıklama" },
+      { label: "Kaydeden" },
+      { label: "Kayıt Zamanı" },
       { label: "Tutar", align: R },
     ],
     rows: payments.map((x) => ({
@@ -214,10 +221,12 @@ async function paymentTable(p: ReportParams): Promise<ReportTable> {
         x.sale.tour.period,
         x.method,
         x.note,
+        x.createdByName,
+        formatDateTime(x.createdAt),
         m(x.amount, x.sale.tour.currency),
       ],
     })),
-    footer: ["Toplam", "", "", "", "", "", "", "", moneyList(total)],
+    footer: ["Toplam", "", "", "", "", "", "", "", "", "", moneyList(total)],
   };
 }
 

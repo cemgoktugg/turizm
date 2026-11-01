@@ -1,6 +1,7 @@
 import "server-only";
 import { Prisma } from "@prisma/client";
 import type { ZodError } from "zod";
+import { recordActivity, type AuditEntry } from "./activity";
 import { getCurrentUser, type CurrentUser } from "./auth";
 import type { ActionResult } from "./types";
 
@@ -26,14 +27,24 @@ export function invalid(error: ZodError): ActionResult<never> {
  * Admin işlemleri için sarmalayıcı: oturum kontrolü + beklenmeyen hataları
  * kullanıcı dostu mesaja çevirme. (Hata fırlatmak yerine sonuç döndürür ki
  * formlar her durumda bildirim gösterebilsin.)
+ *
+ * Başarılı her işlem işlem geçmişine yazılır: audit() çağrıldıysa o ayrıntı,
+ * çağrılmadıysa kullanıcıya gösterilen mesaj. Mesajı boş olanlar (arama gibi
+ * salt okunur işlemler) yazılmaz.
  */
 export async function adminAction<T>(
-  fn: (user: CurrentUser) => Promise<ActionResult<T>>,
+  fn: (user: CurrentUser, audit: (entry: AuditEntry) => void) => Promise<ActionResult<T>>,
 ): Promise<ActionResult<T>> {
   const user = await getCurrentUser();
   if (!user) return { ok: false, message: "Oturumunuz sona erdi. Lütfen sayfayı yenileyip tekrar giriş yapın." };
   try {
-    return await fn(user);
+    const entries: AuditEntry[] = [];
+    const result = await fn(user, (entry) => entries.push(entry));
+    if (result.ok) {
+      const entry = entries[0] ?? (result.message ? { detail: result.message } : null);
+      if (entry) await recordActivity(user, entry);
+    }
+    return result;
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError) {
       if (e.code === "P2002") return { ok: false, message: "Bu değer (ör. slug veya e-posta) zaten kullanılıyor." };

@@ -45,7 +45,8 @@ export function ServiceTourForm({
     formState: { errors, isSubmitting, isDirty, dirtyFields },
   } = useForm<FormIn, unknown, ServiceTourInput>({
     resolver: zodResolver(serviceTourSchema),
-    defaultValues: { currency: "USD", isActive: true, ...defaultValues },
+    // days: "" — boş başlamazsa alan ilk değişiklikte "elle değiştirildi" sayılır ve gün otomatik hesaplanmaz
+    defaultValues: { currency: "USD", isActive: true, days: "", ...defaultValues },
   });
   useUnsavedChanges(isDirty);
 
@@ -65,7 +66,6 @@ export function ServiceTourForm({
     toast.success(res.message);
     reset(getValues());
     router.push("/admin/satis/turlar");
-    router.refresh();
   }
 
   return (
@@ -123,11 +123,8 @@ export function ServiceTourForm({
           <CheckboxRow label="Aktif (yeni satışta listelenir)" {...register("isActive")} />
         </div>
       </FormSection>
-      <FormSection title="Oda Fiyatları" description="Kişi başı ücretler. Boş bırakılan oda tipi satışta seçilemez.">
-        <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          <Field label="Tek Kişilik Oda" required error={errors.price?.message}>
-            <Input type="number" min={0} step={1} {...register("price")} />
-          </Field>
+      <FormSection title="Oda Fiyatları" description="Kişi başı ücretler. En az bir oda tipinin fiyatını girin; boş bırakılan oda tipi satışta seçilemez.">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Field label="2 Kişilik Oda" error={errors.price2?.message}>
             <Input type="number" min={0} step={1} {...register("price2")} />
           </Field>

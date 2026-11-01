@@ -32,7 +32,6 @@ export default async function EditServiceTourPage({ params }: { params: Promise<
           period: tour.period,
           departureDate: inputDate(tour.departureDate),
           returnDate: inputDate(tour.returnDate),
-          price: String(tour.price),
           price2: tour.price2 == null ? "" : String(tour.price2),
           price3: tour.price3 == null ? "" : String(tour.price3),
           price4: tour.price4 == null ? "" : String(tour.price4),

@@ -78,7 +78,6 @@ export function StoryForm({
       toast.success(res.message);
       reset(data as unknown as FormIn);
       router.push("/admin/stories");
-      router.refresh();
     } else {
       for (const [path, message] of Object.entries(res.fieldErrors ?? {})) {
         setError(path as Parameters<typeof setError>[0], { message });

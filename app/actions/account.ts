@@ -8,7 +8,7 @@ import { passwordChangeSchema, profileSchema, userCreateSchema } from "@/lib/val
 
 /** Kendi ad / e-posta bilgilerini günceller */
 export async function updateProfile(input: unknown): Promise<ActionResult> {
-  return adminAction(async (me) => {
+  return adminAction(async (me, audit) => {
     const parsed = profileSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
     const taken = await prisma.user.findFirst({
@@ -18,6 +18,7 @@ export async function updateProfile(input: unknown): Promise<ActionResult> {
     if (taken) return { ok: false, message: "Bu e-posta başka bir kullanıcıya ait.", fieldErrors: { email: "Bu e-posta kullanılıyor" } };
     await prisma.user.update({ where: { id: me.id }, data: parsed.data });
     revalidatePath("/admin", "layout");
+    audit({ detail: `Profil bilgilerini güncelledi (${parsed.data.name}, ${parsed.data.email})` });
     return { ok: true, message: "Profil bilgileriniz güncellendi." };
   });
 }
@@ -27,7 +28,7 @@ export async function updateProfile(input: unknown): Promise<ActionResult> {
  * geçersiz olur; mevcut oturum yeni sürümle yeniden oluşturulur.
  */
 export async function changePassword(input: unknown): Promise<ActionResult> {
-  return adminAction(async (me) => {
+  return adminAction(async (me, audit) => {
     const parsed = passwordChangeSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
     if (!(await checkPassword(me.id, parsed.data.currentPassword))) {
@@ -43,13 +44,14 @@ export async function changePassword(input: unknown): Promise<ActionResult> {
     });
     await createSession(user);
     revalidatePath("/admin", "layout");
+    audit({ detail: "Şifresini değiştirdi" });
     return { ok: true, message: "Şifreniz değiştirildi. Diğer cihazlardaki oturumlar kapatıldı." };
   });
 }
 
 /** Yeni yönetici ekler */
 export async function createUser(input: unknown): Promise<ActionResult> {
-  return adminAction(async () => {
+  return adminAction(async (_me, audit) => {
     const parsed = userCreateSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
     const exists = await prisma.user.findUnique({ where: { email: parsed.data.email }, select: { id: true } });
@@ -64,18 +66,20 @@ export async function createUser(input: unknown): Promise<ActionResult> {
       },
     });
     revalidatePath("/admin/users");
+    audit({ detail: `Kullanıcı eklendi: ${parsed.data.name} (${parsed.data.email})` });
     return { ok: true, message: "Kullanıcı eklendi. Geçici şifreyi kendisiyle güvenli bir yoldan paylaşın." };
   });
 }
 
 /** Yönetici siler (kendini ve son kullanıcıyı silemez) */
 export async function deleteUser(id: string): Promise<ActionResult> {
-  return adminAction(async (me) => {
+  return adminAction(async (me, audit) => {
     if (id === me.id) return { ok: false, message: "Kendi hesabınızı silemezsiniz." };
     const count = await prisma.user.count();
     if (count <= 1) return { ok: false, message: "Son yönetici hesabı silinemez." };
-    await prisma.user.delete({ where: { id } });
+    const deleted = await prisma.user.delete({ where: { id } });
     revalidatePath("/admin/users");
+    audit({ detail: `Kullanıcı silindi: ${deleted.name} (${deleted.email})` });
     return { ok: true, message: "Kullanıcı silindi; açık oturumları sonlandırıldı." };
   });
 }

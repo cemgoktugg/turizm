@@ -30,7 +30,6 @@ export function StaffForm({ staffId, defaultValues }: { staffId?: number; defaul
     toast.success(res.message);
     reset(values as FormIn);
     router.push("/admin/satis/gorevliler");
-    router.refresh();
   }
 
   return (

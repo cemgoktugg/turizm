@@ -48,6 +48,18 @@ export function formatDateRange(
   return `${fmt(s)} - ${fmt(e)} ${e.getFullYear()}`;
 }
 
+/** 01.11.2026 14:32 — sunucu UTC çalıştığından saat dilimi açıkça verilir */
+export function formatDateTime(date: Date | string): string {
+  return new Date(date).toLocaleString("tr-TR", {
+    timeZone: "Europe/Istanbul",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export function formatDate(date?: Date | string | null): string {
   if (!date) return "";
   return new Date(date).toLocaleDateString("tr-TR", {

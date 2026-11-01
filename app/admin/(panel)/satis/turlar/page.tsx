@@ -54,7 +54,7 @@ export default async function ServiceToursPage({ searchParams }: { searchParams:
                   <th className={th}>Dönem</th>
                   <th className={th}>Gidiş – Dönüş</th>
                   <th className={cn(th, "text-center")}>Gün</th>
-                  <th className={cn(th, num)}>Kişi Başı (1 / 2 / 3 / 4)</th>
+                  <th className={cn(th, num)}>Kişi Başı (2 / 3 / 4)</th>
                   <th className={th}>Görevliler</th>
                   <th className={cn(th, "text-center")}>Satış</th>
                   <th className={th}>Durum</th>
@@ -77,10 +77,7 @@ export default async function ServiceToursPage({ searchParams }: { searchParams:
                     </td>
                     <td className={cn(td, "text-center")}>{t.days}</td>
                     <td className={cn(td, num)}>
-                      {money(t.price, t.currency)}
-                      <p className="text-xs text-muted">
-                        {[t.price2, t.price3, t.price4].map((p) => (p == null ? "—" : money(p, t.currency))).join(" / ")}
-                      </p>
+                      {[t.price2, t.price3, t.price4].map((p) => (p == null ? "—" : money(p, t.currency))).join(" / ")}
                     </td>
                     <td className={td}>{[t.guide1.fullName, t.guide2?.fullName].filter(Boolean).join(", ")}</td>
                     <td className={cn(td, "text-center")}>

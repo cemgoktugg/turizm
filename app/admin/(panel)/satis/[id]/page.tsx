@@ -5,12 +5,13 @@ import { AdminCard } from "@/components/admin/ui";
 import { DeleteButton } from "@/components/admin/row-actions";
 import { BackLink, StatBox, th, td, num, theadRow } from "@/components/admin/sales/ui";
 import { PaymentForm } from "@/components/admin/sales/payment-form";
-import { ToggleButton } from "@/components/admin/sales/toggle-button";
+import { SaleCancelButton } from "@/components/admin/sales/sale-cancel-button";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { deletePayment, deleteSale, toggleSaleCancel } from "@/app/actions/sales";
+import { deletePayment, deleteSale } from "@/app/actions/sales";
+import { getActivityFor } from "@/lib/activity";
 import { getSale, inputDate, money, shortDate } from "@/lib/sales";
-import { cn, currencySymbol } from "@/lib/utils";
+import { cn, currencySymbol, formatDateTime } from "@/lib/utils";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -22,6 +23,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
   const sale = Number.isInteger(Number(id)) ? await getSale(Number(id)) : null;
   if (!sale) notFound();
   const { tour, customer } = sale;
+  const activity = await getActivityFor("Sale", sale.id);
 
   const info: [string, React.ReactNode][] = [
     [
@@ -44,6 +46,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
     ["Oda Kişi Sayısı", sale.roomSize ? `${sale.roomSize} kişilik oda` : "—"],
     ["Referans", sale.reference || "—"],
     ["Açıklama", sale.note || "—"],
+    ["Kaydeden", `${sale.createdByName ?? "—"} · ${formatDateTime(sale.createdAt)}`],
   ];
 
   return (
@@ -60,14 +63,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
             <Link href={`/admin/satis/${sale.id}/duzenle`} className={buttonVariants({ variant: "outline", size: "sm" })}>
               <Pencil className="size-4" /> Düzenle
             </Link>
-            <ToggleButton
-              action={toggleSaleCancel}
-              id={sale.id}
-              on={!sale.isCancelled}
-              labels={{ on: "Satışı İptal Et", off: "İptali Geri Al" }}
-              confirm="Satış iptal edilsin mi? İptal edilen satış toplamlara ve müşteri bakiyesine girmez."
-              variant="button"
-            />
+            <SaleCancelButton id={sale.id} isCancelled={sale.isCancelled} />
             {sale.payments.length === 0 && (
               <DeleteButton action={deleteSale} id={String(sale.id)} label="Bu satışı silmek istediğinize emin misiniz?" redirectTo="/admin/satis" />
             )}
@@ -98,7 +94,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
         </div>
         {sale.payments.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-sm">
+            <table className="w-full min-w-[820px] text-sm">
               <thead>
                 <tr className={theadRow}>
                   <th className={th}>Sıra No</th>
@@ -106,6 +102,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
                   <th className={cn(th, num)}>Tutar</th>
                   <th className={th}>Ödeme Şekli</th>
                   <th className={th}>Açıklama</th>
+                  <th className={th}>Kaydeden</th>
                   <th className={cn(th, "text-right")}>İşlem</th>
                 </tr>
               </thead>
@@ -117,6 +114,10 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
                     <td className={cn(td, num, "font-semibold text-green-700")}>{money(p.amount, sale.currency)}</td>
                     <td className={td}>{p.method}</td>
                     <td className={cn(td, "whitespace-normal")}>{p.note}</td>
+                    <td className={td}>
+                      <p className="font-semibold">{p.createdByName ?? "—"}</p>
+                      <p className="text-xs text-muted tabular-nums">{formatDateTime(p.createdAt)}</p>
+                    </td>
                     <td className={cn(td, "text-right")}>
                       <DeleteButton action={deletePayment} id={String(p.id)} label="Bu tahsilatı silmek istediğinize emin misiniz?" />
                     </td>
@@ -138,6 +139,25 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
               currencyLabel={currencySymbol(sale.currency).trim() || sale.currency}
             />
           </div>
+        )}
+      </AdminCard>
+
+      <AdminCard className="overflow-hidden">
+        <div className="border-b border-border px-5 py-4">
+          <h3 className="font-serif text-lg font-bold text-brand-900">İşlem Geçmişi</h3>
+        </div>
+        {activity.length > 0 ? (
+          <ul className="divide-y divide-border text-sm">
+            {activity.map((a) => (
+              <li key={a.id} className="flex flex-col gap-1 px-5 py-3 sm:flex-row sm:gap-4">
+                <span className="shrink-0 tabular-nums text-muted sm:w-36">{formatDateTime(a.createdAt)}</span>
+                <span className="shrink-0 font-semibold text-brand-900 sm:w-32">{a.userName}</span>
+                <span className="min-w-0 text-brand-900">{a.detail}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="px-5 py-6 text-sm text-muted">Bu satış için kayıtlı işlem yok.</p>
         )}
       </AdminCard>
     </div>

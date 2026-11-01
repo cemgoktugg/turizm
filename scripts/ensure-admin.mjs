@@ -1,6 +1,7 @@
 // Canlı ortam: ADMIN_EMAIL / ADMIN_PASSWORD ortam değişkenleriyle yönetici hesabını hazırlar.
 // - Bu e-postayla hesap varsa hiçbir şeye dokunmaz (her açılışta şifreyi ezmez).
 // - İlk kurulumdaki varsayılan hesap (admin@turizm.com / admin123) duruyorsa onu bu bilgilere çevirir.
+// Panel kullanıcıları (ALPEREN_PASSWORD vb.): şifresi girilmişse ve hesap yoksa oluşturur.
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
@@ -8,6 +9,14 @@ const DEFAULT_EMAIL = "admin@turizm.com";
 const email = (process.env.ADMIN_EMAIL ?? "").trim().toLowerCase();
 const password = process.env.ADMIN_PASSWORD ?? "";
 const prisma = new PrismaClient();
+
+const PANEL_USERS = [
+  { name: "Alperen", email: "alperen@nemiraturizm.com", password: process.env.ALPEREN_PASSWORD },
+  { name: "Ömer", email: "omer@nemiraturizm.com", password: process.env.OMER_PASSWORD },
+  { name: "Personel", email: "personel@nemiraturizm.com", password: process.env.PERSONEL_PASSWORD },
+];
+
+const isWeak = (p) => p.length < 10 || !/[A-Za-zÇĞİÖŞÜçğıöşü]/.test(p) || !/\d/.test(p);
 
 try {
   const seeded = await prisma.user.findFirst({ where: { email: DEFAULT_EMAIL, passwordChangedAt: null } });
@@ -19,7 +28,7 @@ try {
           "ADMIN_EMAIL ve ADMIN_PASSWORD ortam değişkenlerini girip yeniden başlatın.",
       );
     }
-  } else if (password.length < 10 || !/[A-Za-zÇĞİÖŞÜçğıöşü]/.test(password) || !/\d/.test(password)) {
+  } else if (isWeak(password)) {
     console.warn("[yönetici] ADMIN_PASSWORD en az 10 karakter olmalı, harf ve rakam içermeli; hesap değiştirilmedi.");
   } else if (await prisma.user.findUnique({ where: { email } })) {
     console.log(`[yönetici] ${email} hesabı mevcut; dokunulmadı.`);
@@ -37,6 +46,17 @@ try {
       });
       console.log(`[yönetici] ${email} hesabı oluşturuldu.`);
     }
+  }
+
+  for (const u of PANEL_USERS) {
+    if (!u.password || (await prisma.user.findUnique({ where: { email: u.email } }))) continue;
+    if (isWeak(u.password)) {
+      console.warn(`[yönetici] ${u.name} şifresi en az 10 karakter olmalı, harf ve rakam içermeli; hesap oluşturulmadı.`);
+      continue;
+    }
+    // passwordChangedAt boş: panel ilk girişte şifresini değiştirmesini ister
+    await prisma.user.create({ data: { name: u.name, email: u.email, password: await bcrypt.hash(u.password, 12), role: "ADMIN" } });
+    console.log(`[yönetici] ${u.email} hesabı oluşturuldu.`);
   }
 } finally {
   await prisma.$disconnect();

@@ -35,7 +35,6 @@ export function CustomerForm({ customerId, defaultValues }: { customerId?: numbe
     toast.success(res.message);
     reset(values as FormIn);
     router.push("/admin/satis/musteriler");
-    router.refresh();
   }
 
   return (

@@ -56,8 +56,9 @@ export function DeleteButton({
       const res = await action(id);
       if (res.ok) {
         toast.success(res.message);
+        // push ardından refresh, yönlendirmeyi yarıda bırakır
         if (redirectTo) router.push(redirectTo);
-        router.refresh();
+        else router.refresh();
       } else {
         toast.error(res.message);
       }

@@ -62,7 +62,6 @@ export function LandingForm({
       toast.success(res.message);
       reset(values as unknown as FormIn);
       router.push("/admin/landing");
-      router.refresh();
     } else {
       toast.error(res.fieldErrors?.slug ? `${res.message} ${res.fieldErrors.slug}` : res.message);
     }

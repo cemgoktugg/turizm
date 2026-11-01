@@ -363,8 +363,7 @@ model ServiceTour {
   period        String
   departureDate DateTime
   returnDate    DateTime
-  /// Kişi başı ücretler: tek kişilik oda (zorunlu), 2/3/4 kişilik oda (isteğe bağlı)
-  price         Int
+  /// Kişi başı ücretler: 2/3/4 kişilik oda (en az biri girilir)
   price2        Int?
   price3        Int?
   price4        Int?
@@ -405,11 +404,13 @@ model Sale {
   customer    Customer    @relation(fields: [customerId], references: [id])
   note        String?
   reference   String?
-  /// Oda kişi sayısı (1-4) — seçilince turun o oda tipindeki fiyatı önerilir
+  /// Oda kişi sayısı (2-4) — seçilince turun o oda tipindeki fiyatı önerilir
   roomSize    Int?
   price       Int
   /// İptal edilen satışlar toplamlara ve bakiyeye girmez
   isCancelled Boolean     @default(false)
+  /// Kaydı yapan kullanıcının adı (kullanıcı silinse de kalır; eski kayıtlarda boş)
+  createdByName String?
   payments    Payment[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -428,8 +429,26 @@ model Payment {
   /// Nakit | Havale | Kredi Kartı
   method    String   @default("Nakit")
   note      String?
+  /// Kaydı yapan kullanıcının adı (kullanıcı silinse de kalır; eski kayıtlarda boş)
+  createdByName String?
   createdAt DateTime @default(now())
 
   @@index([saleId])
   @@index([date])
+}
+
+/// Panelde kimin ne zaman ne yaptığının kaydı (panelden değiştirilemez, silinemez)
+model ActivityLog {
+  id        Int      @id @default(autoincrement())
+  /// Kullanıcı silinse de kayıt kalsın diye ilişki kurulmaz; ad ayrıca saklanır
+  userId    String?
+  userName  String
+  /// İlgili kayıt: Sale, Customer, ServiceTour, Staff, User (site içeriği işlemlerinde boş)
+  entity    String?
+  entityId  String?
+  detail    String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entity, entityId])
 }

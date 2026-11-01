@@ -26,6 +26,10 @@ services:
       # İlk açılışta yönetici hesabını bu bilgilerle kurar (varsa dokunmaz)
       ADMIN_EMAIL: ${ADMIN_EMAIL}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      # Panel kullanıcıları: şifre girilmişse ve hesap yoksa açılışta oluşturulur
+      ALPEREN_PASSWORD: ${ALPEREN_PASSWORD:-}
+      OMER_PASSWORD: ${OMER_PASSWORD:-}
+      PERSONEL_PASSWORD: ${PERSONEL_PASSWORD:-}
       # Yeni başvuru bildirimleri (isteğe bağlı — boşsa gönderilmez)
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}

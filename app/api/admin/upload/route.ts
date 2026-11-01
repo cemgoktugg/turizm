@@ -1,3 +1,4 @@
+import { recordActivity } from "@/lib/activity";
 import { getCurrentUser } from "@/lib/auth";
 import { saveUpload, UploadError, type SavedMedia, type UploadKind } from "@/lib/media";
 
@@ -37,5 +38,6 @@ export async function POST(req: Request) {
     }
   }
 
+  if (saved.length) await recordActivity(user, { detail: `${saved.length} dosya yüklendi` });
   return Response.json({ files: saved, errors }, { status: saved.length ? 200 : 400 });
 }

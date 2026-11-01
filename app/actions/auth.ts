@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { recordActivity } from "@/lib/activity";
 import { verifyCredentials, createSession, destroySession } from "@/lib/auth";
 import { clientIp, clearHits, formatWait, registerHit, retryAfter } from "@/lib/rate-limit";
 import { loginSchema } from "@/lib/validations";
@@ -36,6 +37,7 @@ export async function loginAction(input: unknown): Promise<ActionResult> {
   clearHits(accountKey);
   await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
   await createSession(user);
+  await recordActivity(user, { detail: "Panele giriş yaptı" });
   return { ok: true, message: "Giriş başarılı. Yönlendiriliyorsunuz..." };
 }
 
