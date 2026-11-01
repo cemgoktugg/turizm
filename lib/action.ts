@@ -23,6 +23,9 @@ export function invalid(error: ZodError): ActionResult<never> {
   return { ok: false, message: first ? `Lütfen formu kontrol edin: ${first}` : "Geçersiz veri.", fieldErrors };
 }
 
+/** Yalnızca yönetici hesabının yapabileceği işlemlerde dönülen sonuç */
+export const ADMIN_ONLY = { ok: false, message: "Bu işlemi yalnızca yönetici hesabı yapabilir." } as const;
+
 /**
  * Admin işlemleri için sarmalayıcı: oturum kontrolü + beklenmeyen hataları
  * kullanıcı dostu mesaja çevirme. (Hata fırlatmak yerine sonuç döndürür ki

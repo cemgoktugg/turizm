@@ -31,12 +31,13 @@ import {
   UserCheck,
   UserCog,
   Users,
+  Wallet,
 } from "lucide-react";
 import { logoutAction } from "@/app/actions/auth";
 import { SmartImage } from "@/components/ui/smart-image";
 import { cn } from "@/lib/utils";
 
-type NavItem = { label: string; href: string; icon: typeof Plane; exact?: boolean; badgeKey?: "leads" | "reviews" };
+type NavItem = { label: string; href: string; icon: typeof Plane; exact?: boolean; badgeKey?: "leads" | "reviews"; adminOnly?: boolean };
 
 const NAV_GROUPS: { title?: string; items: NavItem[] }[] = [
   { items: [{ label: "Kontrol Paneli", href: "/admin", icon: LayoutDashboard, exact: true }] },
@@ -74,6 +75,7 @@ const NAV_GROUPS: { title?: string; items: NavItem[] }[] = [
       { label: "Turlar", href: "/admin/satis/turlar", icon: CalendarRange },
       { label: "Müşteriler", href: "/admin/satis/musteriler", icon: Contact },
       { label: "Görevliler", href: "/admin/satis/gorevliler", icon: UserCheck },
+      { label: "Kasa", href: "/admin/satis/kasa", icon: Wallet },
       { label: "Raporlar", href: "/admin/satis/raporlar", icon: ChartColumn },
     ],
   },
@@ -81,7 +83,7 @@ const NAV_GROUPS: { title?: string; items: NavItem[] }[] = [
     title: "Sistem",
     items: [
       { label: "Site Ayarları", href: "/admin/settings", icon: Settings },
-      { label: "Kullanıcılar", href: "/admin/users", icon: Users },
+      { label: "Kullanıcılar", href: "/admin/users", icon: Users, adminOnly: true },
       { label: "İşlem Geçmişi", href: "/admin/islem-gecmisi", icon: History },
       { label: "Hesabım", href: "/admin/profile", icon: UserCog },
     ],
@@ -106,6 +108,7 @@ const TITLES: Record<string, string> = {
   "/admin/satis/turlar": "Turlar (Satış)",
   "/admin/satis/musteriler": "Müşteriler",
   "/admin/satis/gorevliler": "Görevliler",
+  "/admin/satis/kasa": "Kasa",
   "/admin/satis/raporlar": "Satış Raporları",
   "/admin/settings": "Site Ayarları",
   "/admin/users": "Kullanıcılar",
@@ -120,7 +123,7 @@ export function AdminShell({
   pendingReviews,
   children,
 }: {
-  user: { name: string; email: string; mustChangePassword: boolean };
+  user: { name: string; email: string; mustChangePassword: boolean; isAdmin: boolean };
   brand: { siteName: string; logo: string };
   newLeads: number;
   pendingReviews: number;
@@ -158,7 +161,7 @@ export function AdminShell({
               <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-cream-200/40">{group.title}</p>
             )}
             <div className="space-y-0.5">
-              {group.items.map((item) => {
+              {group.items.filter((item) => !item.adminOnly || user.isAdmin).map((item) => {
                 const active = isActive(item.href);
                 const badge = item.badgeKey && badges[item.badgeKey] > 0 ? badges[item.badgeKey] : null;
                 return (

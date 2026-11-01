@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { AdminPageHeader, AdminCard } from "@/components/admin/ui";
@@ -17,6 +18,7 @@ export default async function AdminUsersPage() {
       select: { id: true, name: true, email: true, createdAt: true, lastLoginAt: true, passwordChangedAt: true },
     }),
   ]);
+  if (me?.role !== "ADMIN") redirect("/admin");
 
   return (
     <div>

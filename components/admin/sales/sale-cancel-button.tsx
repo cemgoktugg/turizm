@@ -9,7 +9,7 @@ export function SaleCancelButton({ id, isCancelled, short }: { id: number; isCan
       id={id}
       on={!isCancelled}
       labels={short ? { on: "İptal Et", off: "Geri Al" } : { on: "Satışı İptal Et", off: "İptali Geri Al" }}
-      confirm={`Satış #${id} iptal edilsin mi? İptal edilen satış toplamlara ve müşteri bakiyesine girmez.`}
+      confirm={`Satış #${id} iptal edilsin mi? İptal edilen satış toplamlara ve müşteri bakiyesine girmez. Alınan para varsa satış sayfasından iadesini kaydedin.`}
       variant="button"
     />
   );

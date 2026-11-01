@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { deletePayment, deleteSale } from "@/app/actions/sales";
 import { getActivityFor } from "@/lib/activity";
-import { getSale, inputDate, money, shortDate } from "@/lib/sales";
+import { getCurrentUser } from "@/lib/auth";
+import { getCashPeople, getSale, inputDate, money, shortDate } from "@/lib/sales";
 import { cn, currencySymbol, formatDateTime } from "@/lib/utils";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
@@ -23,7 +24,8 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
   const sale = Number.isInteger(Number(id)) ? await getSale(Number(id)) : null;
   if (!sale) notFound();
   const { tour, customer } = sale;
-  const activity = await getActivityFor("Sale", sale.id);
+  const [activity, me, people] = await Promise.all([getActivityFor("Sale", sale.id), getCurrentUser(), getCashPeople()]);
+  const isAdmin = me?.role === "ADMIN";
 
   const info: [string, React.ReactNode][] = [
     [
@@ -57,6 +59,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
           <h2 className="flex items-center gap-3 font-serif text-2xl font-bold text-brand-900">
             Satış #{sale.id}
             {sale.isCancelled && <Badge variant="slate">İptal edildi</Badge>}
+            {sale.refundDue > 0 && <Badge variant="amber">İade bekliyor</Badge>}
             {!sale.isCancelled && sale.balance <= 0 && <Badge variant="green">Ödendi</Badge>}
           </h2>
           <div className="flex flex-wrap items-center gap-2">
@@ -74,7 +77,11 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
       <div className="grid gap-3 sm:grid-cols-3">
         <StatBox label="Ücret" value={money(sale.price, sale.currency)} />
         <StatBox label="Ödenen" value={money(sale.paid, sale.currency)} tone="green" />
-        <StatBox label="Kalan" value={money(sale.balance, sale.currency)} tone={sale.balance > 0 ? "red" : "green"} />
+        {sale.isCancelled ? (
+          <StatBox label="İade bekleyen" value={money(sale.refundDue, sale.currency)} tone={sale.refundDue > 0 ? "red" : "green"} />
+        ) : (
+          <StatBox label="Kalan" value={money(sale.balance, sale.currency)} tone={sale.balance > 0 ? "red" : "green"} />
+        )}
       </div>
 
       <AdminCard className="p-5 sm:p-6">
@@ -90,7 +97,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
 
       <AdminCard className="overflow-hidden">
         <div className="border-b border-border px-5 py-4">
-          <h3 className="font-serif text-lg font-bold text-brand-900">Tahsilatlar</h3>
+          <h3 className="font-serif text-lg font-bold text-brand-900">Tahsilat ve İadeler</h3>
         </div>
         {sale.payments.length > 0 ? (
           <div className="overflow-x-auto">
@@ -101,6 +108,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
                   <th className={th}>Tarih</th>
                   <th className={cn(th, num)}>Tutar</th>
                   <th className={th}>Ödeme Şekli</th>
+                  <th className={th}>Parayı Alan / Veren</th>
                   <th className={th}>Açıklama</th>
                   <th className={th}>Kaydeden</th>
                   <th className={cn(th, "text-right")}>İşlem</th>
@@ -111,15 +119,23 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
                   <tr key={p.id} className="hover:bg-cream-50/60">
                     <td className={td}>{p.id}</td>
                     <td className={td}>{shortDate(p.date)}</td>
-                    <td className={cn(td, num, "font-semibold text-green-700")}>{money(p.amount, sale.currency)}</td>
+                    <td className={cn(td, num, "font-semibold", p.amount < 0 ? "text-red-600" : "text-green-700")}>
+                      {money(p.amount, sale.currency)}
+                      {p.amount < 0 && (
+                        <Badge variant="slate" size="sm" className="ml-2">
+                          İade
+                        </Badge>
+                      )}
+                    </td>
                     <td className={td}>{p.method}</td>
+                    <td className={cn(td, "font-semibold")}>{p.receivedByName ?? "—"}</td>
                     <td className={cn(td, "whitespace-normal")}>{p.note}</td>
                     <td className={td}>
                       <p className="font-semibold">{p.createdByName ?? "—"}</p>
                       <p className="text-xs text-muted tabular-nums">{formatDateTime(p.createdAt)}</p>
                     </td>
                     <td className={cn(td, "text-right")}>
-                      <DeleteButton action={deletePayment} id={String(p.id)} label="Bu tahsilatı silmek istediğinize emin misiniz?" />
+                      {isAdmin && <DeleteButton action={deletePayment} id={String(p.id)} label={p.amount < 0 ? "Bu iadeyi silmek istediğinize emin misiniz?" : "Bu tahsilatı silmek istediğinize emin misiniz?"} />}
                     </td>
                   </tr>
                 ))}
@@ -134,9 +150,28 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
             <PaymentForm
               key={sale.paid}
               saleId={sale.id}
-              balance={sale.balance}
+              amount={sale.balance}
               today={inputDate()}
               currencyLabel={currencySymbol(sale.currency).trim() || sale.currency}
+              people={people}
+              person={me?.name ?? ""}
+            />
+          </div>
+        )}
+        {sale.refundDue > 0 && (
+          <div className="border-t border-border bg-amber-50/60 px-5 py-4">
+            <p className="mb-3 text-sm font-semibold text-amber-900">
+              Satış iptal edildi; müşteriye {money(sale.refundDue, sale.currency)} iade edilecek.
+            </p>
+            <PaymentForm
+              key={sale.paid}
+              refund
+              saleId={sale.id}
+              amount={sale.refundDue}
+              today={inputDate()}
+              currencyLabel={currencySymbol(sale.currency).trim() || sale.currency}
+              people={people}
+              person={me?.name ?? ""}
             />
           </div>
         )}

@@ -34,6 +34,8 @@ export function SaleForm({
   customer,
   defaultValues,
   paid = 0,
+  references,
+  people = [],
 }: {
   saleId?: number;
   tours: SaleTourOption[];
@@ -41,6 +43,10 @@ export function SaleForm({
   defaultValues?: Partial<FormIn>;
   /** Düzenlemede: şimdiye kadar tahsil edilen */
   paid?: number;
+  /** Referans alanındaki öneriler (daha önce girilenler) */
+  references: string[];
+  /** Yeni satışta: peşinatı alabilecek kişiler */
+  people?: string[];
 }) {
   const router = useRouter();
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerOption | null>(customer ?? null);
@@ -160,7 +166,12 @@ export function SaleForm({
             <Input type="number" min={0} step={1} {...register("price", { onChange: () => setPriceEdited(true) })} />
           </Field>
           <Field label="Referans" error={errors.reference?.message}>
-            <Input placeholder="Kim yönlendirdi?" {...register("reference")} />
+            <Input list="referanslar" placeholder="Kim yönlendirdi?" autoComplete="off" {...register("reference")} />
+            <datalist id="referanslar">
+              {references.map((r) => (
+                <option key={r} value={r} />
+              ))}
+            </datalist>
           </Field>
           <Field label="Açıklama" error={errors.note?.message} className="sm:col-span-2 lg:col-span-4">
             <Textarea rows={2} {...register("note")} />
@@ -184,6 +195,15 @@ export function SaleForm({
                 {PAYMENT_METHODS.map((m) => (
                   <option key={m} value={m}>
                     {m}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Parayı Alan" error={errors.downPaymentBy?.message}>
+              <Select {...register("downPaymentBy")}>
+                {people.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
                   </option>
                 ))}
               </Select>

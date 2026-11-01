@@ -55,7 +55,7 @@ try {
       continue;
     }
     // passwordChangedAt boş: panel ilk girişte şifresini değiştirmesini ister
-    await prisma.user.create({ data: { name: u.name, email: u.email, password: await bcrypt.hash(u.password, 12), role: "ADMIN" } });
+    await prisma.user.create({ data: { name: u.name, email: u.email, password: await bcrypt.hash(u.password, 12), role: "STAFF" } });
     console.log(`[yönetici] ${u.email} hesabı oluşturuldu.`);
   }
 } finally {

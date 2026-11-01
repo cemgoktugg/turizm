@@ -6,7 +6,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { serviceTourSchema, CURRENCIES, type ServiceTourInput } from "@/lib/validations";
+import { serviceTourSchema, type ServiceTourInput } from "@/lib/validations";
 import { createServiceTour, updateServiceTour } from "@/app/actions/sales";
 import { Input, Textarea, Select, Field } from "@/components/ui/form-controls";
 import { FormSection, CheckboxRow } from "../form-parts";
@@ -46,7 +46,7 @@ export function ServiceTourForm({
   } = useForm<FormIn, unknown, ServiceTourInput>({
     resolver: zodResolver(serviceTourSchema),
     // days: "" — boş başlamazsa alan ilk değişiklikte "elle değiştirildi" sayılır ve gün otomatik hesaplanmaz
-    defaultValues: { currency: "USD", isActive: true, days: "", ...defaultValues },
+    defaultValues: { isActive: true, days: "", ...defaultValues },
   });
   useUnsavedChanges(isDirty);
 
@@ -123,25 +123,16 @@ export function ServiceTourForm({
           <CheckboxRow label="Aktif (yeni satışta listelenir)" {...register("isActive")} />
         </div>
       </FormSection>
-      <FormSection title="Oda Fiyatları" description="Kişi başı ücretler. En az bir oda tipinin fiyatını girin; boş bırakılan oda tipi satışta seçilemez.">
+      <FormSection title="Oda Fiyatları" description="Kişi başı ücretler (dolar). En az bir oda tipinin fiyatını girin; boş bırakılan oda tipi satışta seçilemez.">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Field label="2 Kişilik Oda" error={errors.price2?.message}>
+          <Field label="2 Kişilik Oda ($)" error={errors.price2?.message}>
             <Input type="number" min={0} step={1} {...register("price2")} />
           </Field>
-          <Field label="3 Kişilik Oda" error={errors.price3?.message}>
+          <Field label="3 Kişilik Oda ($)" error={errors.price3?.message}>
             <Input type="number" min={0} step={1} {...register("price3")} />
           </Field>
-          <Field label="4 Kişilik Oda" error={errors.price4?.message}>
+          <Field label="4 Kişilik Oda ($)" error={errors.price4?.message}>
             <Input type="number" min={0} step={1} {...register("price4")} />
-          </Field>
-          <Field label="Para Birimi" required error={errors.currency?.message}>
-            <Select {...register("currency")}>
-              {CURRENCIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </Select>
           </Field>
         </div>
       </FormSection>

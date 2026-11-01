@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { ServiceTourForm } from "@/components/admin/sales/service-tour-form";
 import { BackLink } from "@/components/admin/sales/ui";
 import { getPeriods, inputDate } from "@/lib/sales";
-import type { CURRENCIES } from "@/lib/validations";
 
 export const metadata = { title: "Tur Düzenle (Satış)" };
 
@@ -35,7 +34,6 @@ export default async function EditServiceTourPage({ params }: { params: Promise<
           price2: tour.price2 == null ? "" : String(tour.price2),
           price3: tour.price3 == null ? "" : String(tour.price3),
           price4: tour.price4 == null ? "" : String(tour.price4),
-          currency: tour.currency as (typeof CURRENCIES)[number],
           accommodation: tour.accommodation ?? "",
           guide1Id: String(tour.guide1Id),
           guide2Id: tour.guide2Id == null ? "" : String(tour.guide2Id),

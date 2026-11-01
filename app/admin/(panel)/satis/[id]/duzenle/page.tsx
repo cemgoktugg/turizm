@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { SaleForm } from "@/components/admin/sales/sale-form";
 import { BackLink } from "@/components/admin/sales/ui";
-import { getSale, inputDate } from "@/lib/sales";
+import { getReferences, getSale, inputDate } from "@/lib/sales";
 import { getSaleTourOptions } from "../../tour-options";
 
 export const metadata = { title: "Satış Düzenle" };
@@ -10,7 +10,7 @@ export default async function EditSalePage({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const sale = Number.isInteger(Number(id)) ? await getSale(Number(id)) : null;
   if (!sale) notFound();
-  const tours = await getSaleTourOptions(sale.tourId);
+  const [tours, references] = await Promise.all([getSaleTourOptions(sale.tourId), getReferences()]);
 
   return (
     <div>
@@ -22,6 +22,7 @@ export default async function EditSalePage({ params }: { params: Promise<{ id: s
         saleId={sale.id}
         tours={tours}
         paid={sale.paid}
+        references={references}
         customer={{ id: sale.customer.id, fullName: sale.customer.fullName, tc: sale.customer.tc, phone: sale.customer.phone }}
         defaultValues={{
           date: inputDate(sale.date),

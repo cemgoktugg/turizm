@@ -1,10 +1,11 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { adminAction, invalid, type ActionResult } from "@/lib/action";
-import { money, shortDate } from "@/lib/sales";
+import { ADMIN_ONLY, adminAction, invalid, type ActionResult } from "@/lib/action";
+import { getCashPeople, getCashRows, money, shortDate } from "@/lib/sales";
 import {
   customerSchema,
+  handoverSchema,
   paymentSchema,
   saleSchema,
   serviceTourSchema,
@@ -167,7 +168,6 @@ function tourData(d: ServiceTourInput) {
     price2: d.price2 ?? null,
     price3: d.price3 ?? null,
     price4: d.price4 ?? null,
-    currency: d.currency,
     accommodation: d.accommodation || null,
     guide1Id: d.guide1Id,
     guide2Id: d.guide2Id ?? null,
@@ -193,11 +193,6 @@ export async function updateServiceTour(id: string, input: unknown): Promise<Act
     if (!tourId) return notFound;
     const parsed = serviceTourSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
-    const current = await prisma.serviceTour.findUnique({ where: { id: tourId }, select: { currency: true, _count: { select: { sales: true } } } });
-    if (!current) return notFound;
-    // Satış tutarları turun para birimiyle tutulur; sonradan değişirse eski kayıtların anlamı bozulur
-    if (current._count.sales && current.currency !== parsed.data.currency)
-      return { ok: false, message: "Satışı olan turun para birimi değiştirilemez.", fieldErrors: { currency: "Satışı olan turda değiştirilemez" } };
     const t = await prisma.serviceTour.update({ where: { id: tourId }, data: tourData(parsed.data) });
     audit({ entity: "ServiceTour", entityId: t.id, detail: `Tur #${t.id} ${t.name} güncellendi` });
     return { ok: true, message: "Tur güncellendi." };
@@ -254,6 +249,8 @@ export async function createSale(input: unknown): Promise<ActionResult<{ id: num
     if (!customer) return { ok: false, message: "Müşteri bulunamadı.", fieldErrors: { customerId: "Müşteri seçiniz" } };
     if (d.downPayment && d.downPayment > d.price)
       return { ok: false, message: "Peşinat ücretten fazla olamaz.", fieldErrors: { downPayment: "Ücretten fazla olamaz" } };
+    if (d.downPayment && !(d.downPaymentBy && (await getCashPeople()).includes(d.downPaymentBy)))
+      return { ok: false, message: "Peşinatı alan kişiyi seçin.", fieldErrors: { downPaymentBy: "Kişi seçiniz" } };
 
     const date = new Date(d.date);
     const sale = await prisma.sale.create({
@@ -267,7 +264,7 @@ export async function createSale(input: unknown): Promise<ActionResult<{ id: num
         price: d.price,
         createdByName: me.name,
         ...(d.downPayment
-          ? { payments: { create: { date, amount: d.downPayment, method: d.downPaymentMethod ?? "Nakit", note: "Peşinat", createdByName: me.name } } }
+          ? { payments: { create: { date, amount: d.downPayment, method: d.downPaymentMethod ?? "Nakit", note: "Peşinat", receivedByName: d.downPaymentBy, createdByName: me.name } } }
           : {}),
       },
     });
@@ -276,7 +273,7 @@ export async function createSale(input: unknown): Promise<ActionResult<{ id: num
       entityId: sale.id,
       detail:
         `Satış #${sale.id} eklendi: ${customer.fullName}, ${tour.name}, ${money(d.price, tour.currency)}` +
-        (d.downPayment ? `, peşinat ${money(d.downPayment, tour.currency)}` : ""),
+        (d.downPayment ? `, peşinat ${money(d.downPayment, tour.currency)} (${d.downPaymentMethod ?? "Nakit"}, alan: ${d.downPaymentBy})` : ""),
     });
     return { ok: true, message: `Satış kaydedildi (No: ${sale.id}).`, data: { id: sale.id } };
   });
@@ -373,6 +370,8 @@ export async function addPayment(saleId: string, input: unknown): Promise<Action
     const sale = await prisma.sale.findUnique({ where: { id }, select: { price: true, isCancelled: true, tour: { select: { currency: true } } } });
     if (!sale) return notFound;
     if (sale.isCancelled) return { ok: false, message: "İptal edilmiş satışa tahsilat girilemez." };
+    if (!(await getCashPeople()).includes(parsed.data.receivedBy))
+      return { ok: false, message: "Parayı alan kişiyi listeden seçin.", fieldErrors: { receivedBy: "Kişi seçiniz" } };
     const balance = sale.price - (await paidOf(id));
     if (parsed.data.amount > balance)
       return {
@@ -381,19 +380,90 @@ export async function addPayment(saleId: string, input: unknown): Promise<Action
         fieldErrors: { amount: "Kalan borçtan fazla" },
       };
     await prisma.payment.create({
-      data: { saleId: id, date: new Date(parsed.data.date), amount: parsed.data.amount, method: parsed.data.method, note: parsed.data.note || null, createdByName: me.name },
+      data: { saleId: id, date: new Date(parsed.data.date), amount: parsed.data.amount, method: parsed.data.method, note: parsed.data.note || null, receivedByName: parsed.data.receivedBy, createdByName: me.name },
     });
-    audit({ entity: "Sale", entityId: id, detail: `Satış #${id}: ${money(parsed.data.amount, sale.tour.currency)} tahsilat eklendi (${parsed.data.method})` });
+    audit({ entity: "Sale", entityId: id, detail: `Satış #${id}: ${money(parsed.data.amount, sale.tour.currency)} tahsilat eklendi (${parsed.data.method}, alan: ${parsed.data.receivedBy})` });
     return { ok: true, message: "Tahsilat kaydedildi." };
   });
 }
 
+/** İptal edilen satışın parasını müşteriye iade eder (eksi tutarlı tahsilat olarak tutulur) */
+export async function addRefund(saleId: string, input: unknown): Promise<ActionResult> {
+  return adminAction(async (me, audit) => {
+    const id = toId(saleId);
+    if (!id) return notFound;
+    const parsed = paymentSchema.safeParse(input);
+    if (!parsed.success) return invalid(parsed.error);
+    const sale = await prisma.sale.findUnique({ where: { id }, select: { isCancelled: true, tour: { select: { currency: true } } } });
+    if (!sale) return notFound;
+    if (!sale.isCancelled) return { ok: false, message: "İade yalnızca iptal edilmiş satışa yapılır." };
+    if (!(await getCashPeople()).includes(parsed.data.receivedBy))
+      return { ok: false, message: "İadeyi yapan kişiyi listeden seçin.", fieldErrors: { receivedBy: "Kişi seçiniz" } };
+    const paid = await paidOf(id);
+    if (parsed.data.amount > paid)
+      return {
+        ok: false,
+        message: paid > 0 ? `Tutar iade edilecek paradan (${paid}) fazla olamaz.` : "Bu satışta iade edilecek para yok.",
+        fieldErrors: { amount: "İade edilecek paradan fazla" },
+      };
+    await prisma.payment.create({
+      data: { saleId: id, date: new Date(parsed.data.date), amount: -parsed.data.amount, method: parsed.data.method, note: parsed.data.note || null, receivedByName: parsed.data.receivedBy, createdByName: me.name },
+    });
+    audit({ entity: "Sale", entityId: id, detail: `Satış #${id}: ${money(parsed.data.amount, sale.tour.currency)} iade edildi (${parsed.data.method}, yapan: ${parsed.data.receivedBy})` });
+    return { ok: true, message: "İade kaydedildi." };
+  });
+}
+
 export async function deletePayment(id: string): Promise<ActionResult> {
-  return adminAction(async (_me, audit) => {
+  return adminAction(async (me, audit) => {
+    if (me.role !== "ADMIN") return ADMIN_ONLY;
     const paymentId = toId(id);
     if (!paymentId) return notFound;
+    const current = await prisma.payment.findUnique({ where: { id: paymentId }, select: { saleId: true, amount: true, sale: { select: { price: true, isCancelled: true } } } });
+    if (!current) return notFound;
+    // Silinince iade, alınan paradan fazla kalmamalı; iadesi silinen satış da ücretini aşmamalı
+    const paidAfter = (await paidOf(current.saleId)) - current.amount;
+    if (paidAfter < 0) return { ok: false, message: "Bu tahsilatın iadesi kayıtlı; önce iadeyi silin." };
+    if (!current.sale.isCancelled && paidAfter > current.sale.price) return { ok: false, message: "İade silinirse ödenen tutar ücreti aşar; önce ücreti düzeltin." };
     const p = await prisma.payment.delete({ where: { id: paymentId }, include: { sale: { select: { tour: { select: { currency: true } } } } } });
-    audit({ entity: "Sale", entityId: p.saleId, detail: `Satış #${p.saleId}: ${money(p.amount, p.sale.tour.currency)} tahsilat silindi (${p.method})` });
-    return { ok: true, message: "Tahsilat silindi." };
+    const label = p.amount < 0 ? "iade" : "tahsilat";
+    audit({ entity: "Sale", entityId: p.saleId, detail: `Satış #${p.saleId}: ${money(Math.abs(p.amount), p.sale.tour.currency)} ${label} silindi (${p.method}, ${p.receivedByName ?? "kişi yok"})` });
+    return { ok: true, message: p.amount < 0 ? "İade silindi." : "Tahsilat silindi." };
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* Kasa teslimleri                                                      */
+/* ------------------------------------------------------------------ */
+
+export async function addHandover(input: unknown): Promise<ActionResult> {
+  return adminAction(async (me, audit) => {
+    if (me.role !== "ADMIN") return ADMIN_ONLY;
+    const parsed = handoverSchema.safeParse(input);
+    if (!parsed.success) return invalid(parsed.error);
+    const d = parsed.data;
+    const held = (await getCashRows()).find((r) => r.person === d.fromName && r.currency === "USD")?.held ?? 0;
+    if (d.amount > held)
+      return {
+        ok: false,
+        message: held > 0 ? `Tutar kişinin elindeki nakitten (${money(held, "USD")}) fazla olamaz.` : "Bu kişinin elinde nakit görünmüyor.",
+        fieldErrors: { amount: "Elindeki nakitten fazla" },
+      };
+    const h = await prisma.cashHandover.create({
+      data: { date: new Date(d.date), fromName: d.fromName, amount: d.amount, note: d.note || null, createdByName: me.name },
+    });
+    audit({ detail: `Kasa teslimi #${h.id}: ${h.fromName}, ${money(h.amount, "USD")}` });
+    return { ok: true, message: "Kasa teslimi kaydedildi." };
+  });
+}
+
+export async function deleteHandover(id: string): Promise<ActionResult> {
+  return adminAction(async (me, audit) => {
+    if (me.role !== "ADMIN") return ADMIN_ONLY;
+    const handoverId = toId(id);
+    if (!handoverId) return notFound;
+    const h = await prisma.cashHandover.delete({ where: { id: handoverId } });
+    audit({ detail: `Kasa teslimi #${h.id} silindi: ${h.fromName}, ${money(h.amount, "USD")}` });
+    return { ok: true, message: "Kasa teslimi silindi." };
   });
 }

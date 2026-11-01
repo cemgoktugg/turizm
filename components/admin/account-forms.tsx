@@ -155,7 +155,7 @@ export function NewUserForm() {
   }
 
   return (
-    <FormSection title="Yeni Yönetici Ekle" description="Eklenen kişi ilk girişte şifresini değiştirmesi için uyarılır.">
+    <FormSection title="Yeni Personel Ekle" description="Eklenen kişi ilk girişte şifresini değiştirmesi için uyarılır.">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         <Field label="Ad Soyad" required error={errors.name?.message}>
           <Input {...register("name")} />
@@ -167,7 +167,7 @@ export function NewUserForm() {
           <PasswordInput {...register("password")} />
         </Field>
         <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <UserPlus className="size-4" />} Yönetici Ekle
+          {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <UserPlus className="size-4" />} Personel Ekle
         </Button>
       </form>
     </FormSection>

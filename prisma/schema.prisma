@@ -15,6 +15,7 @@ model User {
   name      String
   email     String   @unique
   password  String
+  /// ADMIN: tüm yetkiler | STAFF: tahsilat silemez, kasa teslimi ve kullanıcı işlemi yapamaz
   role      String   @default("ADMIN")
   // Şifre değişince artırılır; eski oturumları geçersiz kılar
   tokenVersion      Int       @default(0)
@@ -419,7 +420,7 @@ model Sale {
   @@index([customerId])
 }
 
-/// Tahsilat (satışa yapılan ödeme)
+/// Tahsilat (satışa yapılan ödeme). Eksi tutar, iptal edilen satışın iadesidir.
 model Payment {
   id        Int      @id @default(autoincrement())
   saleId    Int
@@ -429,12 +430,27 @@ model Payment {
   /// Nakit | Havale | Kredi Kartı
   method    String   @default("Nakit")
   note      String?
+  /// Parayı alan (iadede: parayı veren) kişi; kaydı girenden farklı olabilir
+  receivedByName String?
   /// Kaydı yapan kullanıcının adı (kullanıcı silinse de kalır; eski kayıtlarda boş)
   createdByName String?
   createdAt DateTime @default(now())
 
   @@index([saleId])
   @@index([date])
+}
+
+/// Personelin elindeki nakdi kasaya teslim etmesi (yalnızca yönetici kaydeder; tutar dolar)
+model CashHandover {
+  id            Int      @id @default(autoincrement())
+  date          DateTime
+  fromName      String
+  amount        Int
+  note          String?
+  createdByName String
+  createdAt     DateTime @default(now())
+
+  @@index([fromName])
 }
 
 /// Panelde kimin ne zaman ne yaptığının kaydı (panelden değiştirilemez, silinemez)

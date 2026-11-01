@@ -20,7 +20,7 @@ export async function GET(req: Request) {
   if (!isReportName(rapor)) return new Response("Geçersiz rapor", { status: 400 });
 
   const get = (k: string) => searchParams.get(k) ?? undefined;
-  const table = await REPORT_BUILDERS[rapor]({ donem: get("donem"), q: get("q"), bas: get("bas"), bit: get("bit") });
+  const table = await REPORT_BUILDERS[rapor]({ donem: get("donem"), q: get("q"), bas: get("bas"), bit: get("bit"), durum: get("durum"), personel: get("personel"), referans: get("referans") });
 
   // Tutar sütunlarının yanına para birimi sütunu eklenir (karışık para birimli listeler için; raporda zaten yoksa)
   const hasMoney =

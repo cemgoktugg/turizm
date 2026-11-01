@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { checkPassword, createSession, hashPassword } from "@/lib/auth";
-import { adminAction, invalid, type ActionResult } from "@/lib/action";
+import { ADMIN_ONLY, adminAction, invalid, type ActionResult } from "@/lib/action";
 import { passwordChangeSchema, profileSchema, userCreateSchema } from "@/lib/validations";
 
 /** Kendi ad / e-posta bilgilerini günceller */
@@ -49,9 +49,10 @@ export async function changePassword(input: unknown): Promise<ActionResult> {
   });
 }
 
-/** Yeni yönetici ekler */
+/** Yeni personel hesabı ekler */
 export async function createUser(input: unknown): Promise<ActionResult> {
-  return adminAction(async (_me, audit) => {
+  return adminAction(async (me, audit) => {
+    if (me.role !== "ADMIN") return ADMIN_ONLY;
     const parsed = userCreateSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
     const exists = await prisma.user.findUnique({ where: { email: parsed.data.email }, select: { id: true } });
@@ -61,6 +62,7 @@ export async function createUser(input: unknown): Promise<ActionResult> {
         name: parsed.data.name,
         email: parsed.data.email,
         password: await hashPassword(parsed.data.password),
+        role: "STAFF",
         // Yeni kullanıcı ilk girişte şifresini değiştirmeye yönlendirilir
         passwordChangedAt: null,
       },
@@ -71,9 +73,10 @@ export async function createUser(input: unknown): Promise<ActionResult> {
   });
 }
 
-/** Yönetici siler (kendini ve son kullanıcıyı silemez) */
+/** Kullanıcı siler (kendini ve son kullanıcıyı silemez) */
 export async function deleteUser(id: string): Promise<ActionResult> {
   return adminAction(async (me, audit) => {
+    if (me.role !== "ADMIN") return ADMIN_ONLY;
     if (id === me.id) return { ok: false, message: "Kendi hesabınızı silemezsiniz." };
     const count = await prisma.user.count();
     if (count <= 1) return { ok: false, message: "Son yönetici hesabı silinemez." };

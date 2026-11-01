@@ -543,7 +543,6 @@ export const serviceTourSchema = z
     price2: optionalNumber({ min: 0, max: 100_000_000, int: true }),
     price3: optionalNumber({ min: 0, max: 100_000_000, int: true }),
     price4: optionalNumber({ min: 0, max: 100_000_000, int: true }),
-    currency: z.enum(CURRENCIES),
     accommodation: optionalText(200),
     guide1Id: requiredInt("Görevli 1", { min: 1 }),
     guide2Id: optionalNumber({ min: 1, int: true }),
@@ -576,6 +575,7 @@ export const saleSchema = z.object({
   /** Yalnızca yeni satışta: girilirse ilk tahsilat olarak kaydedilir */
   downPayment: optionalNumber({ min: 1, max: 100_000_000, int: true }),
   downPaymentMethod: z.enum(PAYMENT_METHODS).optional(),
+  downPaymentBy: optionalText(100),
 });
 export type SaleInput = z.infer<typeof saleSchema>;
 
@@ -583,6 +583,15 @@ export const paymentSchema = z.object({
   date: requiredDate("Tarih"),
   amount: requiredInt("Tutar", { min: 1, max: 100_000_000 }),
   method: z.enum(PAYMENT_METHODS),
+  receivedBy: z.string({ error: "Kişi seçiniz" }).trim().min(1, "Kişi seçiniz").max(100),
   note: optionalText(500),
 });
 export type PaymentInput = z.infer<typeof paymentSchema>;
+
+export const handoverSchema = z.object({
+  date: requiredDate("Tarih"),
+  fromName: z.string({ error: "Kişi seçiniz" }).trim().min(1, "Kişi seçiniz").max(100),
+  amount: requiredInt("Tutar", { min: 1, max: 100_000_000 }),
+  note: optionalText(500),
+});
+export type HandoverInput = z.infer<typeof handoverSchema>;

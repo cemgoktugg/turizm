@@ -67,6 +67,35 @@ export function FilterBar({
   );
 }
 
+/** Süzgeç seçimi (ilk seçenek "tümü") */
+export function FilterSelect({
+  name,
+  value,
+  label,
+  allLabel,
+  options,
+}: {
+  name: string;
+  value: string;
+  label: string;
+  allLabel: string;
+  options: (string | { value: string; label: string })[];
+}) {
+  return (
+    <select name={name} defaultValue={value} aria-label={label} className={cn(control, "sm:w-44")}>
+      <option value="">{allLabel}</option>
+      {options.map((o) => {
+        const opt = typeof o === "string" ? { value: o, label: o } : o;
+        return (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        );
+      })}
+    </select>
+  );
+}
+
 export function DateInput({ name, value, label }: { name: string; value: string; label: string }) {
   return <input type="date" name={name} defaultValue={value} aria-label={label} title={label} className={cn(control, "sm:w-40")} />;
 }

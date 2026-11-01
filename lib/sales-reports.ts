@@ -1,12 +1,17 @@
 import "server-only";
 import { formatDateTime } from "./utils";
 import {
-  buildSaleWhere,
+  KASA,
+  addMoney,
   debtorReport,
+  getCashRows,
+  loadSaleList,
   loadSales,
   moneyList,
   paymentReport,
   periodReport,
+  personReport,
+  referenceReport,
   shortDate,
   totalsOf,
   tourReport,
@@ -26,7 +31,7 @@ export type ReportTable = {
   summary?: { label: string; value: string; tone?: "green" | "red" }[];
 };
 
-export type ReportParams = { donem?: string; q?: string; bas?: string; bit?: string };
+export type ReportParams = { donem?: string; q?: string; bas?: string; bit?: string; durum?: string; personel?: string; referans?: string };
 
 const m = (amount: number, currency: string): MoneyCell => ({ amount, currency });
 const R = "right" as const;
@@ -38,7 +43,7 @@ export function isMoneyCell(c: Cell): c is MoneyCell {
 
 /** Excel'e aktarılan satış listesi (ekrandaki Satışlar tablosuyla aynı sütunlar) */
 async function salesTable(p: ReportParams): Promise<ReportTable> {
-  const sales = await loadSales(buildSaleWhere(p));
+  const sales = await loadSaleList(p);
   const t = totalsOf(sales);
   return {
     columns: [
@@ -76,7 +81,7 @@ async function salesTable(p: ReportParams): Promise<ReportTable> {
         m(s.price, s.currency),
         m(s.paid, s.currency),
         m(s.balance, s.currency),
-        s.isCancelled ? "İptal" : s.balance > 0 ? "Borçlu" : "Ödendi",
+        s.refundDue > 0 ? "İade bekliyor" : s.isCancelled ? "İptal" : s.balance > 0 ? "Borçlu" : "Ödendi",
         s.createdByName,
         formatDateTime(s.createdAt),
       ],
@@ -95,6 +100,7 @@ async function summaryTable(p: ReportParams): Promise<ReportTable> {
       { label: "Toplam ciro", value: moneyList(t.price) },
       { label: "Tahsil edilen", value: moneyList(t.paid), tone: "green" },
       { label: "Kalan alacak", value: moneyList(t.balance), tone: "red" },
+      ...(Object.keys(t.refundDue).length ? [{ label: "İade bekleyen", value: moneyList(t.refundDue), tone: "red" as const }] : []),
     ],
     columns: [
       { label: "Dönem" },
@@ -190,11 +196,17 @@ async function debtorTable(p: ReportParams): Promise<ReportTable> {
 }
 
 async function paymentTable(p: ReportParams): Promise<ReportTable> {
-  const { payments, total, byMethod } = await paymentReport(p);
+  const { payments, total, collected, refunded, byMethod } = await paymentReport(p);
   return {
     summary: [
-      { label: "Tahsilat adedi", value: String(payments.length) },
-      { label: "Toplam tahsilat", value: moneyList(total), tone: "green" },
+      { label: "Tahsilat adedi", value: String(payments.filter((x) => x.amount > 0).length) },
+      { label: "Toplam tahsilat", value: moneyList(collected), tone: "green" },
+      ...(Object.keys(refunded).length
+        ? [
+            { label: "İade", value: moneyList(refunded), tone: "red" as const },
+            { label: "Net", value: moneyList(total) },
+          ]
+        : []),
       ...Object.entries(byMethod).map(([method, v]) => ({ label: method, value: moneyList(v) })),
     ],
     columns: [
@@ -204,7 +216,9 @@ async function paymentTable(p: ReportParams): Promise<ReportTable> {
       { label: "Müşteri" },
       { label: "Tur" },
       { label: "Dönem" },
+      { label: "Tür" },
       { label: "Ödeme Şekli" },
+      { label: "Parayı Alan / Veren" },
       { label: "Açıklama" },
       { label: "Kaydeden" },
       { label: "Kayıt Zamanı" },
@@ -219,14 +233,98 @@ async function paymentTable(p: ReportParams): Promise<ReportTable> {
         x.sale.customer.fullName,
         x.sale.tour.name,
         x.sale.tour.period,
+        x.amount < 0 ? "İade" : x.sale.isCancelled ? "Tahsilat (satış iptal)" : "Tahsilat",
         x.method,
+        x.receivedByName,
         x.note,
         x.createdByName,
         formatDateTime(x.createdAt),
         m(x.amount, x.sale.tour.currency),
       ],
     })),
-    footer: ["Toplam", "", "", "", "", "", "", "", "", "", moneyList(total)],
+    footer: ["Net toplam", "", "", "", "", "", "", "", "", "", "", "", moneyList(total)],
+  };
+}
+
+async function personTable(p: ReportParams): Promise<ReportTable> {
+  const rows = await personReport(p);
+  const collected: Money = {};
+  const refunded: Money = {};
+  for (const r of rows) {
+    addMoney(collected, r.currency, r.collected);
+    addMoney(refunded, r.currency, r.refunded);
+  }
+  return {
+    summary: [
+      { label: "Toplam tahsilat", value: moneyList(collected), tone: "green" },
+      { label: "İade", value: moneyList(refunded), tone: "red" },
+    ],
+    columns: [
+      { label: "Parayı Alan" },
+      { label: "Tahsilat Adedi", align: C },
+      { label: "Nakit", align: R },
+      { label: "Havale", align: R },
+      { label: "Kredi Kartı", align: R },
+      { label: "Toplam Alınan", align: R },
+      { label: "İade", align: R },
+      { label: "Net", align: R },
+    ],
+    rows: rows.map((r) => ({
+      href: `/admin/satis/raporlar?${new URLSearchParams({ rapor: "tahsilat", personel: r.person, donem: p.donem ?? "", bas: p.bas ?? "", bit: p.bit ?? "" })}`,
+      cells: [
+        r.person,
+        r.count,
+        m(r.cash, r.currency),
+        m(r.transfer, r.currency),
+        m(r.card, r.currency),
+        m(r.collected, r.currency),
+        m(r.refunded, r.currency),
+        m(r.collected - r.refunded, r.currency),
+      ],
+    })),
+  };
+}
+
+async function referenceTable(p: ReportParams): Promise<ReportTable> {
+  const rows = referenceReport(await loadSales(p.donem ? { tour: { period: p.donem } } : {}));
+  const t = { price: {} as Money, paid: {} as Money, balance: {} as Money };
+  let count = 0;
+  for (const r of rows) {
+    count += r.count;
+    addMoney(t.price, r.currency, r.price);
+    addMoney(t.paid, r.currency, r.paid);
+    addMoney(t.balance, r.currency, r.balance);
+  }
+  return {
+    columns: [
+      { label: "Referans" },
+      { label: "Satış Adedi", align: C },
+      { label: "Ciro", align: R },
+      { label: "Tahsil Edilen", align: R },
+      { label: "Kalan", align: R },
+    ],
+    rows: rows.map((r) => ({
+      href: r.reference ? `/admin/satis?${new URLSearchParams({ referans: r.reference, donem: p.donem ?? "" })}` : undefined,
+      cells: [r.reference || "Referanssız", r.count, m(r.price, r.currency), m(r.paid, r.currency), m(r.balance, r.currency)],
+    })),
+    footer: ["Toplam", String(count), moneyList(t.price), moneyList(t.paid), moneyList(t.balance)],
+  };
+}
+
+/** Kişilerin elindeki nakit (Kasa sayfası ve Excel) */
+async function cashTable(): Promise<ReportTable> {
+  const rows = (await getCashRows()).filter((r) => r.person !== KASA);
+  return {
+    columns: [
+      { label: "Kişi" },
+      { label: "Alınan Nakit", align: R },
+      { label: "Nakit İade", align: R },
+      { label: "Kasaya Teslim", align: R },
+      { label: "Elinde Kalan", align: R },
+    ],
+    rows: rows.map((r) => ({
+      cells: [r.person, m(r.received, r.currency), m(r.refunded, r.currency), m(r.handedOver, r.currency), m(r.held, r.currency)],
+    })),
   };
 }
 
@@ -236,6 +334,9 @@ export const REPORT_BUILDERS = {
   tur: tourTable,
   borclu: debtorTable,
   tahsilat: paymentTable,
+  personel: personTable,
+  referans: referenceTable,
+  kasa: cashTable,
 } as const;
 export type ReportName = keyof typeof REPORT_BUILDERS;
 

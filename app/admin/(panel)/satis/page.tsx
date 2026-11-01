@@ -2,10 +2,10 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { AdminPageHeader, AdminCard, EmptyState } from "@/components/admin/ui";
 import { EditLink } from "@/components/admin/row-actions";
-import { FilterBar, StatBox, th, td, num, theadRow, qs } from "@/components/admin/sales/ui";
+import { FilterBar, FilterSelect, StatBox, th, td, num, theadRow, qs } from "@/components/admin/sales/ui";
 import { SaleCancelButton } from "@/components/admin/sales/sale-cancel-button";
 import { Badge } from "@/components/ui/badge";
-import { buildSaleWhere, getPeriods, loadSales, money, moneyList, shortDate, totalsOf } from "@/lib/sales";
+import { SALE_STATUSES, getCashPeople, getPeriods, getReferences, loadSaleList, money, moneyList, shortDate, totalsOf } from "@/lib/sales";
 import { cn, formatDateTime } from "@/lib/utils";
 
 // İşlem butonları geniş tabloda kaydırmadan görünsün diye sağa sabitlenir
@@ -13,9 +13,19 @@ const stickyEnd = "sticky right-0 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.15)]";
 
 export const metadata = { title: "Satışlar" };
 
-export default async function SalesPage({ searchParams }: { searchParams: Promise<{ donem?: string; q?: string }> }) {
-  const { donem = "", q = "" } = await searchParams;
-  const [periods, sales, tourCount] = await Promise.all([getPeriods(), loadSales(buildSaleWhere({ donem, q })), prisma.serviceTour.count()]);
+export default async function SalesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ donem?: string; q?: string; durum?: string; personel?: string; referans?: string }>;
+}) {
+  const { donem = "", q = "", durum = "", personel = "", referans = "" } = await searchParams;
+  const [periods, sales, tourCount, people, references] = await Promise.all([
+    getPeriods(),
+    loadSaleList({ donem, q, durum, personel, referans }),
+    prisma.serviceTour.count(),
+    getCashPeople(),
+    getReferences(),
+  ]);
   const totals = totalsOf(sales);
 
   return (
@@ -33,8 +43,18 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
         donem={donem}
         q={q}
         searchPlaceholder="Müşteri, T.C., telefon, tur, referans veya satış no..."
-        exportHref={`/api/admin/satis/export${qs({ rapor: "satislar", donem, q })}`}
-      />
+        exportHref={`/api/admin/satis/export${qs({ rapor: "satislar", donem, q, durum, personel, referans })}`}
+      >
+        <FilterSelect
+          name="durum"
+          value={durum}
+          label="Durum"
+          allLabel="Tüm durumlar"
+          options={Object.entries(SALE_STATUSES).map(([value, label]) => ({ value, label }))}
+        />
+        <FilterSelect name="personel" value={personel} label="Personel" allLabel="Tüm personel" options={people} />
+        <FilterSelect name="referans" value={referans} label="Referans" allLabel="Tüm referanslar" options={references} />
+      </FilterBar>
 
       {sales.length === 0 ? (
         tourCount === 0 ? (
@@ -54,6 +74,7 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
             <StatBox label="Toplam ücret" value={moneyList(totals.price)} />
             <StatBox label="Tahsil edilen" value={moneyList(totals.paid)} tone="green" />
             <StatBox label="Kalan alacak" value={moneyList(totals.balance)} tone="red" />
+            {Object.keys(totals.refundDue).length > 0 && <StatBox label="İade bekleyen" value={moneyList(totals.refundDue)} tone="red" />}
           </div>
 
           <AdminCard className="overflow-hidden">
@@ -100,6 +121,11 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
                         {s.isCancelled && (
                           <Badge variant="slate" size="sm" className="ml-2 no-underline">
                             İptal
+                          </Badge>
+                        )}
+                        {s.refundDue > 0 && (
+                          <Badge variant="amber" size="sm" className="ml-2 no-underline">
+                            İade: {money(s.refundDue, s.currency)}
                           </Badge>
                         )}
                       </td>

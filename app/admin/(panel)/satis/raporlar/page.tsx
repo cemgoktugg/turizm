@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AdminPageHeader, AdminCard, EmptyState } from "@/components/admin/ui";
-import { DateInput, FilterBar, StatBox, th, td, num, theadRow, qs } from "@/components/admin/sales/ui";
-import { getPeriods, money, REPORTS, type ReportKey } from "@/lib/sales";
+import { DateInput, FilterBar, FilterSelect, StatBox, th, td, num, theadRow, qs } from "@/components/admin/sales/ui";
+import { UNKNOWN_PERSON, getCashPeople, getPeriods, money, REPORTS, type ReportKey } from "@/lib/sales";
 import { REPORT_BUILDERS, isMoneyCell, type Cell } from "@/lib/sales-reports";
 import { cn } from "@/lib/utils";
 
@@ -15,18 +15,20 @@ function cellText(c: Cell) {
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ rapor?: string; donem?: string; bas?: string; bit?: string }>;
+  searchParams: Promise<{ rapor?: string; donem?: string; bas?: string; bit?: string; personel?: string }>;
 }) {
   const sp = await searchParams;
   const rapor: ReportKey = sp.rapor && Object.hasOwn(REPORTS, sp.rapor) ? (sp.rapor as ReportKey) : "ozet";
   const donem = sp.donem ?? "";
-  // Tahsilat listesi varsayılan olarak bu ayın başından bugüne
+  // Tahsilat listesi ve personel raporu varsayılan olarak bu ayın başından bugüne
+  const dated = rapor === "tahsilat" || rapor === "personel";
   const today = new Date();
-  const bas = rapor === "tahsilat" ? (sp.bas ?? new Date(today.getFullYear(), today.getMonth(), 1).toLocaleDateString("sv-SE")) : "";
-  const bit = rapor === "tahsilat" ? (sp.bit ?? today.toLocaleDateString("sv-SE")) : "";
+  const bas = dated ? (sp.bas || new Date(today.getFullYear(), today.getMonth(), 1).toLocaleDateString("sv-SE")) : "";
+  const bit = dated ? (sp.bit || today.toLocaleDateString("sv-SE")) : "";
+  const personel = rapor === "tahsilat" ? (sp.personel ?? "") : "";
 
-  const [periods, table] = await Promise.all([getPeriods(), REPORT_BUILDERS[rapor]({ donem, bas, bit })]);
-  const params = { donem, bas, bit };
+  const [periods, people, table] = await Promise.all([getPeriods(), getCashPeople(), REPORT_BUILDERS[rapor]({ donem, bas, bit, personel })]);
+  const params = { donem, bas, bit, personel };
 
   return (
     <div>
@@ -55,6 +57,9 @@ export default async function ReportsPage({
         exportHref={`/api/admin/satis/export${qs({ rapor, ...params })}`}
       >
         {rapor === "tahsilat" && (
+          <FilterSelect name="personel" value={personel} label="Parayı alan" allLabel="Tüm personel" options={[...people, UNKNOWN_PERSON]} />
+        )}
+        {dated && (
           <>
             <DateInput name="bas" value={bas} label="Başlangıç tarihi" />
             <DateInput name="bit" value={bit} label="Bitiş tarihi" />
