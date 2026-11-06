@@ -2,10 +2,11 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { AdminPageHeader, AdminCard } from "@/components/admin/ui";
-import { NewUserForm } from "@/components/admin/account-forms";
+import { NewUserForm, RoleSelect } from "@/components/admin/account-forms";
 import { DeleteButton } from "@/components/admin/row-actions";
 import { Badge } from "@/components/ui/badge";
 import { deleteUser } from "@/app/actions/account";
+import { ROLE_LABELS } from "@/lib/roles";
 import { formatDate, formatDateTime } from "@/lib/utils";
 
 export const metadata = { title: "Kullanıcılar" };
@@ -15,7 +16,7 @@ export default async function AdminUsersPage() {
     getCurrentUser(),
     prisma.user.findMany({
       orderBy: { createdAt: "asc" },
-      select: { id: true, name: true, email: true, createdAt: true, lastLoginAt: true, passwordChangedAt: true },
+      select: { id: true, name: true, email: true, role: true, createdAt: true, lastLoginAt: true, passwordChangedAt: true },
     }),
   ]);
   if (me?.role !== "ADMIN") redirect("/admin");
@@ -26,10 +27,11 @@ export default async function AdminUsersPage() {
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <AdminCard className="overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[600px] text-sm">
+            <table className="w-full min-w-[680px] text-sm">
               <thead>
                 <tr className="border-b border-border bg-cream-50 text-left text-xs uppercase tracking-wide text-muted">
                   <th className="px-4 py-3 font-semibold">Kullanıcı</th>
+                  <th className="px-4 py-3 font-semibold">Yetki</th>
                   <th className="px-4 py-3 font-semibold">Son giriş</th>
                   <th className="px-4 py-3 font-semibold">Şifre</th>
                   <th className="px-4 py-3 text-right font-semibold">İşlem</th>
@@ -50,6 +52,13 @@ export default async function AdminUsersPage() {
                           <p className="text-xs text-muted">{u.email}</p>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {u.role === "ADMIN" ? (
+                        <Badge variant="slate" size="sm">{ROLE_LABELS.ADMIN}</Badge>
+                      ) : (
+                        <RoleSelect userId={u.id} role={u.role} />
+                      )}
                     </td>
                     <td className="px-4 py-3 text-muted">{u.lastLoginAt ? formatDateTime(u.lastLoginAt) : "Hiç giriş yapmadı"}</td>
                     <td className="px-4 py-3">

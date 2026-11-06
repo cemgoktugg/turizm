@@ -140,7 +140,11 @@ export const passwordChangeSchema = z
   });
 export type PasswordChangeInput = z.infer<typeof passwordChangeSchema>;
 
-export const userCreateSchema = profileSchema.extend({ password: strongPassword });
+export const userCreateSchema = profileSchema.extend({
+  password: strongPassword,
+  /** STAFF: site + satış, SALES: yalnızca Satış Programı (bkz. lib/roles.ts) */
+  role: z.enum(["STAFF", "SALES"]),
+});
 export type UserCreateInput = z.infer<typeof userCreateSchema>;
 
 /* ------------------------------------------------------------------ */

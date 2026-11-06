@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { getCurrentUser, SESSION_COOKIE } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { prisma } from "@/lib/prisma";
+import { canManageSite } from "@/lib/roles";
+import { SALES_BASE } from "@/lib/sales-base";
 import { AdminShell } from "@/components/admin/admin-shell";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +22,8 @@ export default async function AdminPanelLayout({ children }: { children: React.R
     const hasCookie = (await cookies()).has(SESSION_COOKIE);
     redirect(hasCookie ? "/admin/login?expired=1" : "/admin/login");
   }
+  // Satış personeli yönetim paneline (site içeriği) giremez; Satış Programı'nda çalışır
+  if (!canManageSite(user.role)) redirect(SALES_BASE);
 
   const [settings, newLeads, pendingReviews] = await Promise.all([
     getSettings(),

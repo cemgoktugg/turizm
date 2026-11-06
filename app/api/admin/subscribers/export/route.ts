@@ -1,4 +1,5 @@
 import { getCurrentUser } from "@/lib/auth";
+import { canManageSite } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { buildSubscriberWhere } from "@/lib/subscriber-query";
 import { formatContact } from "@/lib/subscribers";
@@ -14,6 +15,7 @@ function csvCell(value: unknown): string {
 export async function GET(req: Request) {
   const user = await getCurrentUser();
   if (!user) return new Response("Yetkisiz", { status: 401 });
+  if (!canManageSite(user.role)) return new Response("Yetkisiz", { status: 403 });
 
   const { searchParams } = new URL(req.url);
   const subscribers = await prisma.subscriber.findMany({

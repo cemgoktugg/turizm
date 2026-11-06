@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import type { ZodError } from "zod";
 import { recordActivity, type AuditEntry } from "./activity";
 import { getCurrentUser, type CurrentUser } from "./auth";
+import { canManageSite } from "./roles";
 import type { ActionResult } from "./types";
 
 export type { ActionResult } from "./types";
@@ -26,20 +27,31 @@ export function invalid(error: ZodError): ActionResult<never> {
 /** Yalnızca yönetici hesabının yapabileceği işlemlerde dönülen sonuç */
 export const ADMIN_ONLY = { ok: false, message: "Bu işlemi yalnızca yönetici hesabı yapabilir." } as const;
 
+type ActionFn<T> = (user: CurrentUser, audit: (entry: AuditEntry) => void) => Promise<ActionResult<T>>;
+
 /**
- * Admin işlemleri için sarmalayıcı: oturum kontrolü + beklenmeyen hataları
- * kullanıcı dostu mesaja çevirme. (Hata fırlatmak yerine sonuç döndürür ki
- * formlar her durumda bildirim gösterebilsin.)
+ * Yönetim paneli (site içeriği) işlemleri için sarmalayıcı: oturum + rol kontrolü
+ * ve beklenmeyen hataları kullanıcı dostu mesaja çevirme. (Hata fırlatmak yerine
+ * sonuç döndürür ki formlar her durumda bildirim gösterebilsin.) Satış personeli
+ * (SALES) bu işlemleri çalıştıramaz.
  *
  * Başarılı her işlem işlem geçmişine yazılır: audit() çağrıldıysa o ayrıntı,
  * çağrılmadıysa kullanıcıya gösterilen mesaj. Mesajı boş olanlar (arama gibi
  * salt okunur işlemler) yazılmaz.
  */
-export async function adminAction<T>(
-  fn: (user: CurrentUser, audit: (entry: AuditEntry) => void) => Promise<ActionResult<T>>,
-): Promise<ActionResult<T>> {
+export async function adminAction<T>(fn: ActionFn<T>): Promise<ActionResult<T>> {
+  return run(fn, true);
+}
+
+/** Satış Programı ve hesap işlemleri: oturum açmış her kullanıcı (satış personeli dahil) */
+export async function salesAction<T>(fn: ActionFn<T>): Promise<ActionResult<T>> {
+  return run(fn, false);
+}
+
+async function run<T>(fn: ActionFn<T>, siteOnly: boolean): Promise<ActionResult<T>> {
   const user = await getCurrentUser();
   if (!user) return { ok: false, message: "Oturumunuz sona erdi. Lütfen sayfayı yenileyip tekrar giriş yapın." };
+  if (siteOnly && !canManageSite(user.role)) return { ok: false, message: "Bu işlem için yetkiniz yok." };
   try {
     const entries: AuditEntry[] = [];
     const result = await fn(user, (entry) => entries.push(entry));

@@ -1,5 +1,6 @@
 import { recordActivity } from "@/lib/activity";
 import { getCurrentUser } from "@/lib/auth";
+import { canManageSite } from "@/lib/roles";
 import { saveUpload, UploadError, type SavedMedia, type UploadKind } from "@/lib/media";
 
 const MAX_FILES = 20;
@@ -13,6 +14,7 @@ const MAX_FILES = 20;
 export async function POST(req: Request) {
   const user = await getCurrentUser();
   if (!user) return Response.json({ error: "Oturumunuz sona erdi. Lütfen tekrar giriş yapın." }, { status: 401 });
+  if (!canManageSite(user.role)) return Response.json({ error: "Bu işlem için yetkiniz yok." }, { status: 403 });
 
   let form: FormData;
   try {

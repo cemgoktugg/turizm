@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
+  AppWindow,
   Award,
   BellRing,
   Building2,
@@ -71,6 +72,7 @@ const NAV_GROUPS: { title?: string; items: NavItem[] }[] = [
   {
     title: "Satış",
     items: [
+      { label: "Satış Programı", href: "/satis", icon: AppWindow },
       { label: "Satışlar", href: "/admin/satis", icon: Receipt },
       { label: "Turlar", href: "/admin/satis/turlar", icon: CalendarRange },
       { label: "Müşteriler", href: "/admin/satis/musteriler", icon: Contact },

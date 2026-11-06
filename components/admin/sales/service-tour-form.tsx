@@ -12,6 +12,7 @@ import { Input, Textarea, Select, Field } from "@/components/ui/form-controls";
 import { FormSection, CheckboxRow } from "../form-parts";
 import { useUnsavedChanges } from "../use-unsaved-changes";
 import { FormFooter } from "./form-footer";
+import { useSalesBase } from "./use-sales-base";
 
 type FormIn = z.input<typeof serviceTourSchema>;
 
@@ -35,6 +36,7 @@ export function ServiceTourForm({
   periods: string[];
 }) {
   const router = useRouter();
+  const base = useSalesBase();
   const {
     register,
     handleSubmit,
@@ -65,7 +67,7 @@ export function ServiceTourForm({
     if (!res.ok) return void toast.error(res.message);
     toast.success(res.message);
     reset(getValues());
-    router.push("/admin/satis/turlar");
+    router.push(`${base}/turlar`);
   }
 
   return (
@@ -136,7 +138,7 @@ export function ServiceTourForm({
           </Field>
         </div>
       </FormSection>
-      <FormFooter cancelHref="/admin/satis/turlar" submitting={isSubmitting} label={tourId ? "Kaydet" : "Tur Ekle"} />
+      <FormFooter cancelHref={`${base}/turlar`} submitting={isSubmitting} label={tourId ? "Kaydet" : "Tur Ekle"} />
     </form>
   );
 }

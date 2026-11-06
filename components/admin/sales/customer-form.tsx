@@ -11,12 +11,14 @@ import { Input, Textarea, Field } from "@/components/ui/form-controls";
 import { FormSection } from "../form-parts";
 import { useUnsavedChanges } from "../use-unsaved-changes";
 import { FormFooter } from "./form-footer";
+import { useSalesBase } from "./use-sales-base";
 
 export type CustomerFormIn = z.input<typeof customerSchema>;
 type FormIn = CustomerFormIn;
 
 export function CustomerForm({ customerId, defaultValues }: { customerId?: number; defaultValues?: Partial<FormIn> }) {
   const router = useRouter();
+  const base = useSalesBase();
   const {
     register,
     handleSubmit,
@@ -34,7 +36,7 @@ export function CustomerForm({ customerId, defaultValues }: { customerId?: numbe
     }
     toast.success(res.message);
     reset(values as FormIn);
-    router.push("/admin/satis/musteriler");
+    router.push(`${base}/musteriler`);
   }
 
   return (
@@ -42,7 +44,7 @@ export function CustomerForm({ customerId, defaultValues }: { customerId?: numbe
       <FormSection title="Müşteri Bilgileri">
         <CustomerFields register={register} errors={errors} />
       </FormSection>
-      <FormFooter cancelHref="/admin/satis/musteriler" submitting={isSubmitting} label={customerId ? "Kaydet" : "Müşteri Ekle"} />
+      <FormFooter cancelHref={`${base}/musteriler`} submitting={isSubmitting} label={customerId ? "Kaydet" : "Müşteri Ekle"} />
     </form>
   );
 }

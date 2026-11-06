@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { ADMIN_ONLY, adminAction, invalid, type ActionResult } from "@/lib/action";
+import { ADMIN_ONLY, salesAction, invalid, type ActionResult } from "@/lib/action";
 import { getCashPeople, getCashRows, money, shortDate } from "@/lib/sales";
 import {
   customerSchema,
@@ -37,7 +37,7 @@ function staffData(d: StaffInput) {
 }
 
 export async function createStaff(input: unknown): Promise<ActionResult> {
-  return adminAction(async (_me, audit) => {
+  return salesAction(async (_me, audit) => {
     const parsed = staffSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
     const s = await prisma.staff.create({ data: staffData(parsed.data) });
@@ -47,7 +47,7 @@ export async function createStaff(input: unknown): Promise<ActionResult> {
 }
 
 export async function updateStaff(id: string, input: unknown): Promise<ActionResult> {
-  return adminAction(async (_me, audit) => {
+  return salesAction(async (_me, audit) => {
     const staffId = toId(id);
     if (!staffId) return notFound;
     const parsed = staffSchema.safeParse(input);
@@ -59,7 +59,7 @@ export async function updateStaff(id: string, input: unknown): Promise<ActionRes
 }
 
 export async function deleteStaff(id: string): Promise<ActionResult> {
-  return adminAction(async (_me, audit) => {
+  return salesAction(async (_me, audit) => {
     const staffId = toId(id);
     if (!staffId) return notFound;
     const used = await prisma.serviceTour.count({ where: { OR: [{ guide1Id: staffId }, { guide2Id: staffId }] } });
@@ -86,7 +86,7 @@ async function tcTaken(tc: string, exceptId?: number) {
 }
 
 export async function createCustomer(input: unknown): Promise<ActionResult<CustomerOption>> {
-  return adminAction(async (_me, audit) => {
+  return salesAction(async (_me, audit) => {
     const parsed = customerSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
     const other = await tcTaken(parsed.data.tc);
@@ -103,7 +103,7 @@ export async function createCustomer(input: unknown): Promise<ActionResult<Custo
 }
 
 export async function updateCustomer(id: string, input: unknown): Promise<ActionResult> {
-  return adminAction(async (_me, audit) => {
+  return salesAction(async (_me, audit) => {
     const customerId = toId(id);
     if (!customerId) return notFound;
     const parsed = customerSchema.safeParse(input);
@@ -122,7 +122,7 @@ export async function updateCustomer(id: string, input: unknown): Promise<Action
 }
 
 export async function deleteCustomer(id: string): Promise<ActionResult> {
-  return adminAction(async (_me, audit) => {
+  return salesAction(async (_me, audit) => {
     const customerId = toId(id);
     if (!customerId) return notFound;
     const sales = await prisma.sale.count({ where: { customerId } });
@@ -135,7 +135,7 @@ export async function deleteCustomer(id: string): Promise<ActionResult> {
 
 /** Satış formundaki müşteri araması (ad, T.C., telefon veya müşteri no) */
 export async function searchCustomers(q: string): Promise<ActionResult<CustomerOption[]>> {
-  return adminAction(async () => {
+  return salesAction(async () => {
     const term = String(q ?? "").trim().slice(0, 50);
     if (term.length < 2 && !/^\d+$/.test(term)) return { ok: true, message: "", data: [] };
     const rows = await prisma.customer.findMany({
@@ -178,7 +178,7 @@ function tourData(d: ServiceTourInput) {
 }
 
 export async function createServiceTour(input: unknown): Promise<ActionResult> {
-  return adminAction(async (_me, audit) => {
+  return salesAction(async (_me, audit) => {
     const parsed = serviceTourSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
     const t = await prisma.serviceTour.create({ data: tourData(parsed.data) });
@@ -188,7 +188,7 @@ export async function createServiceTour(input: unknown): Promise<ActionResult> {
 }
 
 export async function updateServiceTour(id: string, input: unknown): Promise<ActionResult> {
-  return adminAction(async (_me, audit) => {
+  return salesAction(async (_me, audit) => {
     const tourId = toId(id);
     if (!tourId) return notFound;
     const parsed = serviceTourSchema.safeParse(input);
@@ -200,7 +200,7 @@ export async function updateServiceTour(id: string, input: unknown): Promise<Act
 }
 
 export async function deleteServiceTour(id: string): Promise<ActionResult> {
-  return adminAction(async (_me, audit) => {
+  return salesAction(async (_me, audit) => {
     const tourId = toId(id);
     if (!tourId) return notFound;
     const sales = await prisma.sale.count({ where: { tourId } });
@@ -212,7 +212,7 @@ export async function deleteServiceTour(id: string): Promise<ActionResult> {
 }
 
 export async function toggleServiceTour(id: string): Promise<ActionResult> {
-  return adminAction(async (_me, audit) => {
+  return salesAction(async (_me, audit) => {
     const tourId = toId(id);
     if (!tourId) return notFound;
     const tour = await prisma.serviceTour.findUnique({ where: { id: tourId }, select: { isActive: true, name: true } });
@@ -236,7 +236,7 @@ function saleChanges(rows: [string, string | number | null | undefined, string |
 }
 
 export async function createSale(input: unknown): Promise<ActionResult<{ id: number }>> {
-  return adminAction(async (me, audit) => {
+  return salesAction(async (me, audit) => {
     const parsed = saleSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
     const d = parsed.data;
@@ -280,7 +280,7 @@ export async function createSale(input: unknown): Promise<ActionResult<{ id: num
 }
 
 export async function updateSale(id: string, input: unknown): Promise<ActionResult> {
-  return adminAction(async (_me, audit) => {
+  return salesAction(async (_me, audit) => {
     const saleId = toId(id);
     if (!saleId) return notFound;
     const parsed = saleSchema.safeParse(input);
@@ -331,7 +331,7 @@ export async function updateSale(id: string, input: unknown): Promise<ActionResu
 
 /** İptal eder / iptali geri alır (iptal edilen satış toplamlara girmez) */
 export async function toggleSaleCancel(id: string): Promise<ActionResult> {
-  return adminAction(async (_me, audit) => {
+  return salesAction(async (_me, audit) => {
     const saleId = toId(id);
     if (!saleId) return notFound;
     const sale = await prisma.sale.findUnique({ where: { id: saleId }, select: { isCancelled: true } });
@@ -343,7 +343,7 @@ export async function toggleSaleCancel(id: string): Promise<ActionResult> {
 }
 
 export async function deleteSale(id: string): Promise<ActionResult> {
-  return adminAction(async (_me, audit) => {
+  return salesAction(async (_me, audit) => {
     const saleId = toId(id);
     if (!saleId) return notFound;
     const payments = await prisma.payment.count({ where: { saleId } });
@@ -362,7 +362,7 @@ export async function deleteSale(id: string): Promise<ActionResult> {
 /* ------------------------------------------------------------------ */
 
 export async function addPayment(saleId: string, input: unknown): Promise<ActionResult> {
-  return adminAction(async (me, audit) => {
+  return salesAction(async (me, audit) => {
     const id = toId(saleId);
     if (!id) return notFound;
     const parsed = paymentSchema.safeParse(input);
@@ -389,7 +389,7 @@ export async function addPayment(saleId: string, input: unknown): Promise<Action
 
 /** İptal edilen satışın parasını müşteriye iade eder (eksi tutarlı tahsilat olarak tutulur) */
 export async function addRefund(saleId: string, input: unknown): Promise<ActionResult> {
-  return adminAction(async (me, audit) => {
+  return salesAction(async (me, audit) => {
     const id = toId(saleId);
     if (!id) return notFound;
     const parsed = paymentSchema.safeParse(input);
@@ -415,7 +415,7 @@ export async function addRefund(saleId: string, input: unknown): Promise<ActionR
 }
 
 export async function deletePayment(id: string): Promise<ActionResult> {
-  return adminAction(async (me, audit) => {
+  return salesAction(async (me, audit) => {
     if (me.role !== "ADMIN") return ADMIN_ONLY;
     const paymentId = toId(id);
     if (!paymentId) return notFound;
@@ -437,7 +437,7 @@ export async function deletePayment(id: string): Promise<ActionResult> {
 /* ------------------------------------------------------------------ */
 
 export async function addHandover(input: unknown): Promise<ActionResult> {
-  return adminAction(async (me, audit) => {
+  return salesAction(async (me, audit) => {
     if (me.role !== "ADMIN") return ADMIN_ONLY;
     const parsed = handoverSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
@@ -458,7 +458,7 @@ export async function addHandover(input: unknown): Promise<ActionResult> {
 }
 
 export async function deleteHandover(id: string): Promise<ActionResult> {
-  return adminAction(async (me, audit) => {
+  return salesAction(async (me, audit) => {
     if (me.role !== "ADMIN") return ADMIN_ONLY;
     const handoverId = toId(id);
     if (!handoverId) return notFound;

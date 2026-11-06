@@ -14,6 +14,7 @@ import { useUnsavedChanges } from "../use-unsaved-changes";
 import { FormFooter } from "./form-footer";
 import { CustomerPicker } from "./customer-picker";
 import { currencySymbol, formatPrice } from "@/lib/utils";
+import { useSalesBase } from "./use-sales-base";
 
 type FormIn = z.input<typeof saleSchema>;
 
@@ -49,6 +50,7 @@ export function SaleForm({
   people?: string[];
 }) {
   const router = useRouter();
+  const base = useSalesBase();
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerOption | null>(customer ?? null);
   const {
     register,
@@ -91,7 +93,7 @@ export function SaleForm({
     toast.success(res.message);
     reset(getValues());
     const id = saleId ?? (res.data as { id: number } | undefined)?.id;
-    router.push(id ? `/admin/satis/${id}` : "/admin/satis");
+    router.push(id ? `${base}/${id}` : base);
   }
 
   return (
@@ -212,7 +214,7 @@ export function SaleForm({
         </FormSection>
       )}
 
-      <FormFooter cancelHref={saleId ? `/admin/satis/${saleId}` : "/admin/satis"} submitting={isSubmitting} label={saleId ? "Kaydet" : "Satışı Kaydet"} />
+      <FormFooter cancelHref={saleId ? `${base}/${saleId}` : base} submitting={isSubmitting} label={saleId ? "Kaydet" : "Satışı Kaydet"} />
     </form>
   );
 }

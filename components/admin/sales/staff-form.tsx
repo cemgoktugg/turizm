@@ -11,11 +11,13 @@ import { Input, Textarea, Field } from "@/components/ui/form-controls";
 import { FormSection } from "../form-parts";
 import { useUnsavedChanges } from "../use-unsaved-changes";
 import { FormFooter } from "./form-footer";
+import { useSalesBase } from "./use-sales-base";
 
 type FormIn = z.input<typeof staffSchema>;
 
 export function StaffForm({ staffId, defaultValues }: { staffId?: number; defaultValues?: Partial<FormIn> }) {
   const router = useRouter();
+  const base = useSalesBase();
   const {
     register,
     handleSubmit,
@@ -29,7 +31,7 @@ export function StaffForm({ staffId, defaultValues }: { staffId?: number; defaul
     if (!res.ok) return void toast.error(res.message);
     toast.success(res.message);
     reset(values as FormIn);
-    router.push("/admin/satis/gorevliler");
+    router.push(`${base}/gorevliler`);
   }
 
   return (
@@ -50,7 +52,7 @@ export function StaffForm({ staffId, defaultValues }: { staffId?: number; defaul
           </Field>
         </div>
       </FormSection>
-      <FormFooter cancelHref="/admin/satis/gorevliler" submitting={isSubmitting} label={staffId ? "Kaydet" : "Görevli Ekle"} />
+      <FormFooter cancelHref={`${base}/gorevliler`} submitting={isSubmitting} label={staffId ? "Kaydet" : "Görevli Ekle"} />
     </form>
   );
 }

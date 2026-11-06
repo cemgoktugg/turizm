@@ -13,7 +13,8 @@ import { Input, Field } from "@/components/ui/form-controls";
 
 /** Yalnızca panel içi yollara yönlendir (açık yönlendirme saldırısını önler) */
 function safeNext(value: string | null): string {
-  if (value && value.startsWith("/admin") && !value.startsWith("//") && !value.startsWith("/admin/login")) return value;
+  const inPanel = value?.startsWith("/admin") || value === "/satis" || value?.startsWith("/satis/");
+  if (value && inPanel && !value.startsWith("//") && !value.startsWith("/admin/login")) return value;
   return "/admin";
 }
 

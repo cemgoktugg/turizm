@@ -1,10 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySession } from "@/lib/session";
+import { SALES_BASE_HEADER, salesBaseOf } from "@/lib/sales-base";
 
 /**
- * /admin altını korur. Proxy JWT imzasını doğrular; kullanıcının hâlâ var
- * olup olmadığı ve şifre değişikliği (tokenVersion) kontrolü panel layout'unda
- * ve giriş sayfasında getCurrentUser ile yapılır.
+ * /admin ve /satis (Satış Programı) altını korur. Proxy JWT imzasını doğrular;
+ * kullanıcının hâlâ var olup olmadığı, şifre değişikliği (tokenVersion) ve rol
+ * kontrolü layout'larda ve giriş sayfasında getCurrentUser ile yapılır.
  *
  * Not: Giriş sayfası geçerli oturum görürse kendisi /admin'e yönlendirir.
  * Proxy'nin burada yönlendirme yapmaması, imzası geçerli ama iptal edilmiş
@@ -33,9 +34,13 @@ export default function proxy(req: NextRequest) {
     return res;
   }
 
-  return NextResponse.next();
+  // Satış sayfaları bağlantılarını hangi adresten (/satis veya eski /admin/satis)
+  // açıldıklarına göre kurar; istemcinin gönderdiği değer her zaman ezilir.
+  const headers = new Headers(req.headers);
+  headers.set(SALES_BASE_HEADER, salesBaseOf(pathname));
+  return NextResponse.next({ request: { headers } });
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/satis/:path*"],
 };

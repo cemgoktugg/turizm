@@ -6,7 +6,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Eye, EyeOff, KeyRound, Loader2, Save, UserPlus } from "lucide-react";
-import { changePassword, createUser, updateProfile } from "@/app/actions/account";
+import { changePassword, createUser, updateProfile, updateUserRole } from "@/app/actions/account";
+import { ASSIGNABLE_ROLES, ROLE_LABELS } from "@/lib/roles";
 import {
   passwordChangeSchema,
   profileSchema,
@@ -16,7 +17,7 @@ import {
   type UserCreateInput,
 } from "@/lib/validations";
 import { Button } from "@/components/ui/button";
-import { Field, Input } from "@/components/ui/form-controls";
+import { Field, Input, Select } from "@/components/ui/form-controls";
 import { FormSection } from "./form-parts";
 
 function PasswordInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
@@ -139,7 +140,7 @@ export function NewUserForm() {
     formState: { errors, isSubmitting },
   } = useForm<UserCreateInput>({
     resolver: zodResolver(userCreateSchema),
-    defaultValues: { name: "", email: "", password: "" },
+    defaultValues: { name: "", email: "", password: "", role: "SALES" },
   });
 
   async function onSubmit(values: UserCreateInput) {
@@ -166,10 +167,48 @@ export function NewUserForm() {
         <Field label="Geçici Şifre" required error={errors.password?.message}>
           <PasswordInput {...register("password")} />
         </Field>
+        <Field label="Yetki" required error={errors.role?.message}>
+          <Select {...register("role")}>
+            {ASSIGNABLE_ROLES.map((r) => (
+              <option key={r} value={r}>
+                {ROLE_LABELS[r]}
+              </option>
+            ))}
+          </Select>
+          <p className="mt-1.5 text-xs text-muted">Satış personeli yalnızca Satış Programı&apos;nı görür; siteyi düzenleyemez.</p>
+        </Field>
         <Button type="submit" className="w-full" disabled={isSubmitting}>
           {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <UserPlus className="size-4" />} Personel Ekle
         </Button>
       </form>
     </FormSection>
+  );
+}
+
+/** Kullanıcılar listesinde personelin yetkisini değiştirir */
+export function RoleSelect({ userId, role }: { userId: string; role: string }) {
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+
+  async function onChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    setPending(true);
+    const res = await updateUserRole(userId, e.target.value);
+    setPending(false);
+    if (res.ok) {
+      if (res.message) toast.success(res.message);
+      router.refresh();
+    } else {
+      toast.error(res.message);
+    }
+  }
+
+  return (
+    <Select defaultValue={role} onChange={onChange} disabled={pending} aria-label="Yetki" className="h-9 w-44 py-0 pl-3 text-xs">
+      {ASSIGNABLE_ROLES.map((r) => (
+        <option key={r} value={r}>
+          {ROLE_LABELS[r]}
+        </option>
+      ))}
+    </Select>
   );
 }

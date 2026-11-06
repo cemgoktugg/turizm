@@ -46,8 +46,13 @@ ADMIN_PASSWORD=<en az 10 karakter, harf + rakam>
 **Panel kullanıcıları (isteğe bağlı):** `ALPEREN_PASSWORD`, `OMER_PASSWORD`, `PERSONEL_PASSWORD`
 girilirse `alperen@`, `omer@` ve `personel@nemiraturizm.com` hesapları bu geçici şifrelerle açılır
 (en az 10 karakter, harf + rakam). Yapılan işlemler **Sistem › İşlem Geçmişi** sayfasında görünür.
-Bu hesaplar personel yetkisindedir: tahsilat silme, kasa teslimi ve kullanıcı işlemlerini yalnızca
-`ADMIN_EMAIL` hesabı yapar.
+Alperen ve Ömer personel yetkisindedir (site + satış); `personel@` hesabı **satış personelidir** ve
+yalnızca Satış Programı'nı (`https://<alan adı>/satis`) görür. Yetkiler yönetici hesabıyla
+**Sistem › Kullanıcılar** sayfasından değiştirilebilir. Tahsilat silme, kasa teslimi ve kullanıcı
+işlemlerini yalnızca `ADMIN_EMAIL` hesabı yapar.
+
+**Satış Programı:** Satış ekranları `/satis` adresinde, yönetim panelinden ayrı bir çerçevede açılır.
+Aynı ekranlar geçiş dönemi için yönetim panelinde (`/admin/satis`) de durur.
 
 **Yeni başvuru bildirimleri (isteğe bağlı):** `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`,
 `SMTP_PASS`, `SMTP_FROM`, `NOTIFY_EMAIL` girilirse her başvuruda size e-posta, e-posta

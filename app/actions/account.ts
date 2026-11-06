@@ -3,12 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { checkPassword, createSession, hashPassword } from "@/lib/auth";
-import { ADMIN_ONLY, adminAction, invalid, type ActionResult } from "@/lib/action";
+import { ADMIN_ONLY, adminAction, invalid, salesAction, type ActionResult } from "@/lib/action";
+import { ASSIGNABLE_ROLES, ROLE_LABELS } from "@/lib/roles";
 import { passwordChangeSchema, profileSchema, userCreateSchema } from "@/lib/validations";
 
 /** Kendi ad / e-posta bilgilerini günceller */
 export async function updateProfile(input: unknown): Promise<ActionResult> {
-  return adminAction(async (me, audit) => {
+  return salesAction(async (me, audit) => {
     const parsed = profileSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
     const taken = await prisma.user.findFirst({
@@ -18,6 +19,7 @@ export async function updateProfile(input: unknown): Promise<ActionResult> {
     if (taken) return { ok: false, message: "Bu e-posta başka bir kullanıcıya ait.", fieldErrors: { email: "Bu e-posta kullanılıyor" } };
     await prisma.user.update({ where: { id: me.id }, data: parsed.data });
     revalidatePath("/admin", "layout");
+    revalidatePath("/satis", "layout");
     audit({ detail: `Profil bilgilerini güncelledi (${parsed.data.name}, ${parsed.data.email})` });
     return { ok: true, message: "Profil bilgileriniz güncellendi." };
   });
@@ -28,7 +30,7 @@ export async function updateProfile(input: unknown): Promise<ActionResult> {
  * geçersiz olur; mevcut oturum yeni sürümle yeniden oluşturulur.
  */
 export async function changePassword(input: unknown): Promise<ActionResult> {
-  return adminAction(async (me, audit) => {
+  return salesAction(async (me, audit) => {
     const parsed = passwordChangeSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
     if (!(await checkPassword(me.id, parsed.data.currentPassword))) {
@@ -44,6 +46,7 @@ export async function changePassword(input: unknown): Promise<ActionResult> {
     });
     await createSession(user);
     revalidatePath("/admin", "layout");
+    revalidatePath("/satis", "layout");
     audit({ detail: "Şifresini değiştirdi" });
     return { ok: true, message: "Şifreniz değiştirildi. Diğer cihazlardaki oturumlar kapatıldı." };
   });
@@ -62,13 +65,13 @@ export async function createUser(input: unknown): Promise<ActionResult> {
         name: parsed.data.name,
         email: parsed.data.email,
         password: await hashPassword(parsed.data.password),
-        role: "STAFF",
+        role: parsed.data.role,
         // Yeni kullanıcı ilk girişte şifresini değiştirmeye yönlendirilir
         passwordChangedAt: null,
       },
     });
     revalidatePath("/admin/users");
-    audit({ detail: `Kullanıcı eklendi: ${parsed.data.name} (${parsed.data.email})` });
+    audit({ detail: `Kullanıcı eklendi: ${parsed.data.name} (${parsed.data.email}, ${ROLE_LABELS[parsed.data.role]})` });
     return { ok: true, message: "Kullanıcı eklendi. Geçici şifreyi kendisiyle güvenli bir yoldan paylaşın." };
   });
 }
@@ -84,5 +87,21 @@ export async function deleteUser(id: string): Promise<ActionResult> {
     revalidatePath("/admin/users");
     audit({ detail: `Kullanıcı silindi: ${deleted.name} (${deleted.email})` });
     return { ok: true, message: "Kullanıcı silindi; açık oturumları sonlandırıldı." };
+  });
+}
+
+/** Personelin yetkisini değiştirir (yönetici hesapları bu yolla değiştirilemez) */
+export async function updateUserRole(id: string, role: string): Promise<ActionResult> {
+  return adminAction(async (me, audit) => {
+    if (me.role !== "ADMIN") return ADMIN_ONLY;
+    if (!(ASSIGNABLE_ROLES as readonly string[]).includes(role)) return { ok: false, message: "Geçersiz yetki." };
+    const user = await prisma.user.findUnique({ where: { id }, select: { name: true, role: true } });
+    if (!user) return { ok: false, message: "Kullanıcı bulunamadı; silinmiş olabilir." };
+    if (user.role === "ADMIN") return { ok: false, message: "Yönetici hesabının yetkisi buradan değiştirilemez." };
+    if (user.role === role) return { ok: true, message: "" };
+    await prisma.user.update({ where: { id }, data: { role } });
+    revalidatePath("/admin/users");
+    audit({ entity: "User", entityId: id, detail: `${user.name} yetkisi değişti: ${ROLE_LABELS[user.role] ?? user.role} → ${ROLE_LABELS[role]}` });
+    return { ok: true, message: `${user.name} artık: ${ROLE_LABELS[role]}` };
   });
 }

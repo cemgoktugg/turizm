@@ -11,9 +11,10 @@ const password = process.env.ADMIN_PASSWORD ?? "";
 const prisma = new PrismaClient();
 
 const PANEL_USERS = [
-  { name: "Alperen", email: "alperen@nemiraturizm.com", password: process.env.ALPEREN_PASSWORD },
-  { name: "Ömer", email: "omer@nemiraturizm.com", password: process.env.OMER_PASSWORD },
-  { name: "Personel", email: "personel@nemiraturizm.com", password: process.env.PERSONEL_PASSWORD },
+  { name: "Alperen", email: "alperen@nemiraturizm.com", password: process.env.ALPEREN_PASSWORD, role: "STAFF" },
+  { name: "Ömer", email: "omer@nemiraturizm.com", password: process.env.OMER_PASSWORD, role: "STAFF" },
+  // SALES: yalnızca Satış Programı (/satis)
+  { name: "Personel", email: "personel@nemiraturizm.com", password: process.env.PERSONEL_PASSWORD, role: "SALES" },
 ];
 
 const isWeak = (p) => p.length < 10 || !/[A-Za-zÇĞİÖŞÜçğıöşü]/.test(p) || !/\d/.test(p);
@@ -55,7 +56,7 @@ try {
       continue;
     }
     // passwordChangedAt boş: panel ilk girişte şifresini değiştirmesini ister
-    await prisma.user.create({ data: { name: u.name, email: u.email, password: await bcrypt.hash(u.password, 12), role: "STAFF" } });
+    await prisma.user.create({ data: { name: u.name, email: u.email, password: await bcrypt.hash(u.password, 12), role: u.role } });
     console.log(`[yönetici] ${u.email} hesabı oluşturuldu.`);
   }
 } finally {

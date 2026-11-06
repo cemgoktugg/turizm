@@ -1,5 +1,6 @@
 import "server-only";
 import { formatDateTime } from "./utils";
+import { SALES_BASE } from "./sales-base";
 import {
   KASA,
   addMoney,
@@ -31,7 +32,8 @@ export type ReportTable = {
   summary?: { label: string; value: string; tone?: "green" | "red" }[];
 };
 
-export type ReportParams = { donem?: string; q?: string; bas?: string; bit?: string; durum?: string; personel?: string; referans?: string };
+/** base: satır bağlantılarının adresi (/satis veya eski /admin/satis) */
+export type ReportParams = { donem?: string; q?: string; bas?: string; bit?: string; durum?: string; personel?: string; referans?: string; base?: string };
 
 const m = (amount: number, currency: string): MoneyCell => ({ amount, currency });
 const R = "right" as const;
@@ -65,7 +67,7 @@ async function salesTable(p: ReportParams): Promise<ReportTable> {
       { label: "Kayıt Zamanı" },
     ],
     rows: sales.map((s) => ({
-      href: `/admin/satis/${s.id}`,
+      href: `${p.base ?? SALES_BASE}/${s.id}`,
       muted: s.isCancelled,
       cells: [
         s.id,
@@ -112,7 +114,7 @@ async function summaryTable(p: ReportParams): Promise<ReportTable> {
       { label: "Tahsilat Oranı", align: R },
     ],
     rows: rows.map((r) => ({
-      href: `/admin/satis?donem=${encodeURIComponent(r.period)}`,
+      href: `${p.base ?? SALES_BASE}?donem=${encodeURIComponent(r.period)}`,
       cells: [
         r.period,
         r.currency,
@@ -152,7 +154,7 @@ async function tourTable(p: ReportParams): Promise<ReportTable> {
       { label: "Kalan Alacak", align: R },
     ],
     rows: rows.map((r) => ({
-      href: `/admin/satis?donem=${encodeURIComponent(r.period)}&q=${encodeURIComponent(r.name)}`,
+      href: `${p.base ?? SALES_BASE}?donem=${encodeURIComponent(r.period)}&q=${encodeURIComponent(r.name)}`,
       muted: !r.isActive,
       cells: [
         r.id,
@@ -188,7 +190,7 @@ async function debtorTable(p: ReportParams): Promise<ReportTable> {
       { label: "Kalan Borç", align: R },
     ],
     rows: rows.map((r) => ({
-      href: `/admin/satis/musteriler/${r.customer.id}`,
+      href: `${p.base ?? SALES_BASE}/musteriler/${r.customer.id}`,
       cells: [r.customer.id, r.customer.fullName, r.customer.tc, r.customer.phone, r.count, m(r.balance, r.currency)],
     })),
     footer: ["Toplam", "", "", "", "", moneyList(total)],
@@ -225,7 +227,7 @@ async function paymentTable(p: ReportParams): Promise<ReportTable> {
       { label: "Tutar", align: R },
     ],
     rows: payments.map((x) => ({
-      href: `/admin/satis/${x.sale.id}`,
+      href: `${p.base ?? SALES_BASE}/${x.sale.id}`,
       cells: [
         x.id,
         shortDate(x.date),
@@ -270,7 +272,7 @@ async function personTable(p: ReportParams): Promise<ReportTable> {
       { label: "Net", align: R },
     ],
     rows: rows.map((r) => ({
-      href: `/admin/satis/raporlar?${new URLSearchParams({ rapor: "tahsilat", personel: r.person, donem: p.donem ?? "", bas: p.bas ?? "", bit: p.bit ?? "" })}`,
+      href: `${p.base ?? SALES_BASE}/raporlar?${new URLSearchParams({ rapor: "tahsilat", personel: r.person, donem: p.donem ?? "", bas: p.bas ?? "", bit: p.bit ?? "" })}`,
       cells: [
         r.person,
         r.count,
@@ -304,7 +306,7 @@ async function referenceTable(p: ReportParams): Promise<ReportTable> {
       { label: "Kalan", align: R },
     ],
     rows: rows.map((r) => ({
-      href: r.reference ? `/admin/satis?${new URLSearchParams({ referans: r.reference, donem: p.donem ?? "" })}` : undefined,
+      href: r.reference ? `${p.base ?? SALES_BASE}?${new URLSearchParams({ referans: r.reference, donem: p.donem ?? "" })}` : undefined,
       cells: [r.reference || "Referanssız", r.count, m(r.price, r.currency), m(r.paid, r.currency), m(r.balance, r.currency)],
     })),
     footer: ["Toplam", String(count), moneyList(t.price), moneyList(t.paid), moneyList(t.balance)],
