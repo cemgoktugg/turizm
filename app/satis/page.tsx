@@ -4,8 +4,13 @@ import { AdminPageHeader, AdminCard, EmptyState } from "@/components/admin/ui";
 import { EditLink } from "@/components/admin/row-actions";
 import { FilterBar, FilterSelect, StatBox, th, td, num, theadRow, qs } from "@/components/admin/sales/ui";
 import { SaleCancelButton } from "@/components/admin/sales/sale-cancel-button";
+import { NewSale } from "@/components/admin/sales/new-sale";
+import { SaleDetail } from "@/components/admin/sales/sale-detail";
+import { SidePanel } from "@/components/admin/sales/side-panel";
 import { Badge } from "@/components/ui/badge";
-import { SALE_STATUSES, getCashPeople, getPeriods, getReferences, loadSaleList, money, moneyList, shortDate, totalsOf } from "@/lib/sales";
+import { buttonVariants } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { SALE_STATUSES, getCashPeople, getPeriods, getReferences, getSale, loadSaleList, money, moneyList, shortDate, totalsOf } from "@/lib/sales";
 import { cn, formatDateTime } from "@/lib/utils";
 import { getSalesBase } from "@/lib/sales-base-server";
 
@@ -17,27 +22,35 @@ export const metadata = { title: "Satışlar" };
 export default async function SalesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ donem?: string; q?: string; durum?: string; personel?: string; referans?: string }>;
+  searchParams: Promise<{ donem?: string; q?: string; durum?: string; personel?: string; referans?: string; panel?: string }>;
 }) {
   const base = await getSalesBase();
-  const { donem = "", q = "", durum = "", personel = "", referans = "" } = await searchParams;
-  const [periods, sales, tourCount, people, references] = await Promise.all([
+  const { donem = "", q = "", durum = "", personel = "", referans = "", panel = "" } = await searchParams;
+  // Yan panel: ?panel=yeni (yeni satış) veya ?panel=12 (satış detayı); liste arkada kalır
+  const panelId = /^\d{1,9}$/.test(panel) ? Number(panel) : null;
+  const [periods, sales, tourCount, people, references, panelSale] = await Promise.all([
     getPeriods(),
     loadSaleList({ donem, q, durum, personel, referans }),
     prisma.serviceTour.count(),
     getCashPeople(),
     getReferences(),
+    panelId ? getSale(panelId) : null,
   ]);
   const totals = totalsOf(sales);
+  const filters = { donem, q, durum, personel, referans };
+  const listHref = `${base}${qs(filters)}`;
+  const panelHref = (value: string) => `${base}${qs({ ...filters, panel: value })}`;
 
   return (
     <div>
       <AdminPageHeader
         title="Satışlar"
-        description="Tur kayıtları ve alacak durumu. Ödenen ve kalan tutarlar tahsilatlardan hesaplanır."
-        actionLabel="Yeni Satış"
-        actionHref={`${base}/yeni`}
-      />
+        description="Tur kayıtları ve alacak durumu. Ödenen ve kalan tutarlar tahsilatlardan hesaplanır. Satıra tıklayınca ayrıntılar yanda açılır."
+      >
+        <Link href={panelHref("yeni")} scroll={false} className={buttonVariants({ variant: "primary" })}>
+          <Plus className="size-4" /> Yeni Satış
+        </Link>
+      </AdminPageHeader>
 
       <FilterBar
         action={base}
@@ -67,7 +80,7 @@ export default async function SalesPage({
             actionHref={`${base}/turlar/yeni`}
           />
         ) : (
-          <EmptyState title="Satış bulunamadı" actionLabel="Yeni Satış" actionHref={`${base}/yeni`} />
+          <EmptyState title="Satış bulunamadı" actionLabel="Yeni Satış" actionHref={panelHref("yeni")} />
         )
       ) : (
         <>
@@ -103,9 +116,16 @@ export default async function SalesPage({
                 </thead>
                 <tbody className="divide-y divide-border">
                   {sales.map((s) => (
-                    <tr key={s.id} className={cn("hover:bg-cream-50/60", s.isCancelled && "text-muted line-through decoration-slate-300")}>
+                    <tr
+                      key={s.id}
+                      className={cn(
+                        "hover:bg-cream-50/60",
+                        s.isCancelled && "text-muted line-through decoration-slate-300",
+                        panelId === s.id && "bg-gold-50 hover:bg-gold-50",
+                      )}
+                    >
                       <td className={td}>
-                        <Link href={`${base}/${s.id}`} className="font-bold text-brand-700 hover:text-gold-600">
+                        <Link href={panelHref(String(s.id))} scroll={false} className="font-bold text-brand-700 hover:text-gold-600">
                           {s.id}
                         </Link>
                       </td>
@@ -117,7 +137,7 @@ export default async function SalesPage({
                       </td>
                       <td className={td}>{s.customer.id}</td>
                       <td className={td}>
-                        <Link href={`${base}/${s.id}`} className="font-semibold text-brand-900 hover:text-brand-600">
+                        <Link href={panelHref(String(s.id))} scroll={false} className="font-semibold text-brand-900 hover:text-brand-600">
                           {s.customer.fullName}
                         </Link>
                         {s.isCancelled && (
@@ -171,6 +191,20 @@ export default async function SalesPage({
           </AdminCard>
         </>
       )}
+
+      {panel === "yeni" ? (
+        <SidePanel key="yeni" title="Yeni Satış" closeHref={listHref} fullHref={`${base}/yeni`}>
+          <NewSale base={base} listHref={listHref} />
+        </SidePanel>
+      ) : panelSale ? (
+        <SidePanel key={panelSale.id} title={`${panelSale.customer.fullName} · ${panelSale.tour.name}`} closeHref={listHref} fullHref={`${base}/${panelSale.id}`}>
+          <SaleDetail sale={panelSale} base={base} compact afterDeleteHref={listHref} />
+        </SidePanel>
+      ) : panelId ? (
+        <SidePanel key={panelId} title={`Satış #${panelId}`} closeHref={listHref}>
+          <EmptyState title="Satış bulunamadı" description="Silinmiş olabilir." />
+        </SidePanel>
+      ) : null}
     </div>
   );
 }

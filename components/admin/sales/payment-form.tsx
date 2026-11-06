@@ -55,41 +55,44 @@ export function PaymentForm({
     router.refresh();
   }
 
+  // Sütunlar ekrana değil formun genişliğine göre (tam sayfa / yan panel)
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate className="grid items-start gap-3 sm:grid-cols-2 lg:grid-cols-[150px_130px_140px_160px_1fr_auto]">
-      <Field label="Tarih" error={errors.date?.message}>
-        <Input type="date" {...register("date")} />
-      </Field>
-      <Field label={`Tutar (${currencyLabel})`} error={errors.amount?.message}>
-        <Input type="number" min={1} step={1} {...register("amount")} />
-      </Field>
-      <Field label="Ödeme Şekli" error={errors.method?.message}>
-        <Select {...register("method")}>
-          {PAYMENT_METHODS.map((m) => (
-            <option key={m} value={m}>
-              {m}
-            </option>
-          ))}
-        </Select>
-      </Field>
-      <Field label={refund ? "İadeyi Yapan" : "Parayı Alan"} error={errors.receivedBy?.message}>
-        <Select {...register("receivedBy")}>
-          {people.map((p) => (
-            <option key={p} value={p}>
-              {p}
-            </option>
-          ))}
-        </Select>
-      </Field>
-      <Field label="Açıklama" error={errors.note?.message}>
-        <Input placeholder="Dekont no, not..." {...register("note")} />
-      </Field>
-      <div className="sm:col-span-2 lg:col-span-1 lg:pt-[30px]">
-        <Button type="submit" disabled={isSubmitting} className="w-full lg:w-auto">
-          {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : refund ? <Undo2 className="size-4" /> : <Plus className="size-4" />}
-          {refund ? "İadeyi Kaydet" : "Tahsilat Ekle"}
-        </Button>
-      </div>
-    </form>
+    <div className="@container">
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="grid items-start gap-3 @md:grid-cols-2 @4xl:grid-cols-[150px_130px_140px_160px_1fr_auto]">
+        <Field label="Tarih" error={errors.date?.message}>
+          <Input type="date" {...register("date")} />
+        </Field>
+        <Field label={`Tutar (${currencyLabel})`} error={errors.amount?.message}>
+          <Input type="number" min={1} step={1} {...register("amount")} />
+        </Field>
+        <Field label="Ödeme Şekli" error={errors.method?.message}>
+          <Select {...register("method")}>
+            {PAYMENT_METHODS.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label={refund ? "İadeyi Yapan" : "Parayı Alan"} error={errors.receivedBy?.message}>
+          <Select {...register("receivedBy")}>
+            {people.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Açıklama" error={errors.note?.message}>
+          <Input placeholder="Dekont no, not..." {...register("note")} />
+        </Field>
+        <div className="@md:col-span-2 @4xl:col-span-1 @4xl:pt-[30px]">
+          <Button type="submit" disabled={isSubmitting} className="w-full @4xl:w-auto">
+            {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : refund ? <Undo2 className="size-4" /> : <Plus className="size-4" />}
+            {refund ? "İadeyi Kaydet" : "Tahsilat Ekle"}
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }

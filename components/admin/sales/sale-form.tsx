@@ -15,6 +15,7 @@ import { FormFooter } from "./form-footer";
 import { CustomerPicker } from "./customer-picker";
 import { currencySymbol, formatPrice } from "@/lib/utils";
 import { useSalesBase } from "./use-sales-base";
+import { withParam } from "./ui";
 
 type FormIn = z.input<typeof saleSchema>;
 
@@ -37,6 +38,7 @@ export function SaleForm({
   paid = 0,
   references,
   people = [],
+  listHref,
 }: {
   saleId?: number;
   tours: SaleTourOption[];
@@ -48,6 +50,8 @@ export function SaleForm({
   references: string[];
   /** Yeni satışta: peşinatı alabilecek kişiler */
   people?: string[];
+  /** Yan panelde (satış listesi): kayıttan sonra listede bu satışın paneli açılır, İptal listeye döner */
+  listHref?: string;
 }) {
   const router = useRouter();
   const base = useSalesBase();
@@ -93,14 +97,15 @@ export function SaleForm({
     toast.success(res.message);
     reset(getValues());
     const id = saleId ?? (res.data as { id: number } | undefined)?.id;
-    router.push(id ? `${base}/${id}` : base);
+    if (listHref && id) router.push(withParam(listHref, "panel", String(id)), { scroll: false });
+    else router.push(id ? `${base}/${id}` : base);
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit, () => toast.error("Lütfen işaretli alanları kontrol edin."))} className="space-y-6" noValidate>
+    <form onSubmit={handleSubmit(onSubmit, () => toast.error("Lütfen işaretli alanları kontrol edin."))} className="@container space-y-6" noValidate>
       <FormSection title="Satış Bilgileri">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Field label="Müşteri" required error={errors.customerId?.message} className="sm:col-span-2">
+        <div className="grid gap-4 @lg:grid-cols-2 @3xl:grid-cols-4">
+          <Field label="Müşteri" required error={errors.customerId?.message} className="@lg:col-span-2">
             <Controller
               control={control}
               name="customerId"
@@ -116,7 +121,7 @@ export function SaleForm({
               )}
             />
           </Field>
-          <Field label="Tur" required error={errors.tourId?.message} className="sm:col-span-2">
+          <Field label="Tur" required error={errors.tourId?.message} className="@lg:col-span-2">
             <Select
               {...register("tourId", {
                 onChange: (e) => {
@@ -175,7 +180,7 @@ export function SaleForm({
               ))}
             </datalist>
           </Field>
-          <Field label="Açıklama" error={errors.note?.message} className="sm:col-span-2 lg:col-span-4">
+          <Field label="Açıklama" error={errors.note?.message} className="@lg:col-span-2 @3xl:col-span-4">
             <Textarea rows={2} {...register("note")} />
           </Field>
         </div>
@@ -188,7 +193,7 @@ export function SaleForm({
 
       {!saleId && (
         <FormSection title="Peşinat" description="İsteğe bağlı. Girilirse satış tarihiyle ilk tahsilat olarak kaydedilir.">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 @lg:grid-cols-2 @3xl:grid-cols-4">
             <Field label={`Peşinat Tutarı${cur ? ` (${cur})` : ""}`} error={errors.downPayment?.message}>
               <Input type="number" min={0} step={1} {...register("downPayment")} />
             </Field>
@@ -214,7 +219,7 @@ export function SaleForm({
         </FormSection>
       )}
 
-      <FormFooter cancelHref={saleId ? `${base}/${saleId}` : base} submitting={isSubmitting} label={saleId ? "Kaydet" : "Satışı Kaydet"} />
+      <FormFooter cancelHref={listHref ?? (saleId ? `${base}/${saleId}` : base)} keepScroll={!!listHref} submitting={isSubmitting} label={saleId ? "Kaydet" : "Satışı Kaydet"} />
     </form>
   );
 }

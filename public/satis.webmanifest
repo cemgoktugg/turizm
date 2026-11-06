@@ -1,0 +1,21 @@
+{
+  "name": "Nemira Satış Programı",
+  "short_name": "Satış",
+  "description": "Satış, tahsilat ve kasa takibi",
+  "id": "/satis",
+  "start_url": "/satis",
+  "scope": "/satis",
+  "display": "standalone",
+  "orientation": "any",
+  "lang": "tr",
+  "background_color": "#f8f5ef",
+  "theme_color": "#000f20",
+  "icons": [
+    { "src": "/images/satis-app-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/images/satis-app-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Yeni Satış", "url": "/satis?panel=yeni" },
+    { "name": "Raporlar", "url": "/satis/raporlar" }
+  ]
+}

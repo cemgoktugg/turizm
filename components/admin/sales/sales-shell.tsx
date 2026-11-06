@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { AlertTriangle, CalendarRange, ChartColumn, Contact, LayoutDashboard, LogOut, Plus, Receipt, UserCheck, Wallet } from "lucide-react";
 import { logoutAction } from "@/app/actions/auth";
 import { SmartImage } from "@/components/ui/smart-image";
+import { InstallButton } from "./install-button";
 import { SALES_BASE } from "@/lib/sales-base";
 import { cn } from "@/lib/utils";
 
@@ -54,11 +55,13 @@ export function SalesShell({
 
           <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
             <Link
-              href={`${SALES_BASE}/yeni`}
+              href={`${SALES_BASE}?panel=yeni`}
+              scroll={false}
               className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-gold-400 px-3 text-sm font-bold text-brand-950 transition hover:bg-gold-300 sm:px-4"
             >
               <Plus className="size-4" /> <span>Yeni Satış</span>
             </Link>
+            <InstallButton />
             {user.canManageSite && (
               <Link
                 href="/admin"

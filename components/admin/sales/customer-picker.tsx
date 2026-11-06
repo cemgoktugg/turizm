@@ -83,7 +83,7 @@ export function CustomerPicker({
   const term = q.trim();
   return (
     <div className="relative">
-      <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
+      <Search className="absolute left-3 top-[22px] size-4 -translate-y-1/2 text-muted" />
       <input
         value={q}
         onChange={(e) => {
@@ -98,7 +98,7 @@ export function CustomerPicker({
           invalid ? "border-red-400" : "border-border",
         )}
       />
-      {searching && <Loader2 className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted" />}
+      {searching && <Loader2 className="absolute right-3 top-[22px] size-4 -translate-y-1/2 animate-spin text-muted" />}
       {open && term.length >= 2 && (
         <div className="absolute inset-x-0 top-full z-20 mt-1 overflow-hidden rounded-xl border border-border bg-white shadow-card">
           {results.map((c) => (

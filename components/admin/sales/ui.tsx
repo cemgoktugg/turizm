@@ -133,3 +133,11 @@ export function qs(params: Record<string, string | undefined>) {
   const s = p.toString();
   return s ? `?${s}` : "";
 }
+
+/** Adrese sorgu parametresi ekler / değiştirir (ör. listede yan paneli açmak için ?panel=12) */
+export function withParam(href: string, key: string, value: string) {
+  const [path, query = ""] = href.split("?");
+  const p = new URLSearchParams(query);
+  p.set(key, value);
+  return `${path}?${p}`;
+}
