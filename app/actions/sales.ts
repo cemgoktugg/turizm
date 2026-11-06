@@ -1,10 +1,17 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
+import { recordActivity, type AuditEntry } from "@/lib/activity";
+import type { CurrentUser } from "@/lib/auth";
+import { splitProportional } from "@/lib/split";
 import { ADMIN_ONLY, salesAction, invalid, type ActionResult } from "@/lib/action";
 import { getCashPeople, getCashRows, money, shortDate } from "@/lib/sales";
 import {
   customerSchema,
+  groupPaymentSchema,
+  groupSaleSchema,
+  groupSchema,
   handoverSchema,
   paymentSchema,
   saleSchema,
@@ -419,8 +426,10 @@ export async function deletePayment(id: string): Promise<ActionResult> {
     if (me.role !== "ADMIN") return ADMIN_ONLY;
     const paymentId = toId(id);
     if (!paymentId) return notFound;
-    const current = await prisma.payment.findUnique({ where: { id: paymentId }, select: { saleId: true, amount: true, sale: { select: { price: true, isCancelled: true } } } });
+    const current = await prisma.payment.findUnique({ where: { id: paymentId }, select: { saleId: true, amount: true, batchId: true, sale: { select: { price: true, isCancelled: true } } } });
     if (!current) return notFound;
+    // Grup tahsilatının bir parçası: bütün parçalar birlikte silinir
+    if (current.batchId) return deleteBatch(current.batchId, me, audit);
     // Silinince iade, alınan paradan fazla kalmamalı; iadesi silinen satış da ücretini aşmamalı
     const paidAfter = (await paidOf(current.saleId)) - current.amount;
     if (paidAfter < 0) return { ok: false, message: "Bu tahsilatın iadesi kayıtlı; önce iadeyi silin." };
@@ -466,4 +475,257 @@ export async function deleteHandover(id: string): Promise<ActionResult> {
     audit({ detail: `Kasa teslimi #${h.id} silindi: ${h.fromName}, ${money(h.amount, "USD")}` });
     return { ok: true, message: "Kasa teslimi silindi." };
   });
+}
+
+/* ------------------------------------------------------------------ */
+/* Aile / grup                                                          */
+/* ------------------------------------------------------------------ */
+
+type Audit = (entry: AuditEntry) => void;
+
+/** Grup işlemi her kişinin satış geçmişine de yazılır (asıl kayıt grubun geçmişinde) */
+async function logToSales(me: CurrentUser, entries: { saleId: number; detail: string }[]) {
+  for (const e of entries) await recordActivity(me, { entity: "Sale", entityId: e.saleId, detail: e.detail });
+}
+
+/** Aile / grup satışı: grup + her kişi için satış + (varsa) peşinatın ücretlere göre dağıtımı */
+export async function createGroupSale(input: unknown): Promise<ActionResult<{ groupId: number }>> {
+  return salesAction(async (me, audit) => {
+    const parsed = groupSaleSchema.safeParse(input);
+    if (!parsed.success) return invalid(parsed.error);
+    const d = parsed.data;
+    const [tour, customers, group] = await Promise.all([
+      prisma.serviceTour.findUnique({ where: { id: d.tourId }, select: { isActive: true, name: true, currency: true } }),
+      prisma.customer.findMany({ where: { id: { in: d.members.map((m) => m.customerId) } }, select: { id: true, fullName: true } }),
+      d.groupId ? prisma.saleGroup.findUnique({ where: { id: d.groupId }, select: { id: true, name: true } }) : null,
+    ]);
+    if (!tour) return { ok: false, message: "Tur bulunamadı.", fieldErrors: { tourId: "Tur seçiniz" } };
+    if (!tour.isActive) return { ok: false, message: "Seçilen tur pasif; yeni satış yapılamaz.", fieldErrors: { tourId: "Tur pasif" } };
+    if (customers.length !== d.members.length) return { ok: false, message: "Kişilerden biri bulunamadı; listeyi kontrol edin." };
+    if (d.groupId && !group) return { ok: false, message: "Grup bulunamadı; silinmiş olabilir." };
+    const totalPrice = d.members.reduce((t, m) => t + m.price, 0);
+    if (d.downPayment && d.downPayment > totalPrice)
+      return { ok: false, message: "Peşinat toplam ücretten fazla olamaz.", fieldErrors: { downPayment: "Toplam ücretten fazla olamaz" } };
+    if (d.downPayment && !(d.downPaymentBy && (await getCashPeople()).includes(d.downPaymentBy)))
+      return { ok: false, message: "Peşinatı alan kişiyi seçin.", fieldErrors: { downPaymentBy: "Kişi seçiniz" } };
+
+    const date = new Date(d.date);
+    const names = new Map(customers.map((c) => [c.id, c.fullName]));
+    const downParts = d.downPayment ? splitProportional(d.downPayment, d.members.map((m) => m.price)) : [];
+    const batchId = d.downPayment ? randomUUID() : null;
+    const method = d.downPaymentMethod ?? "Nakit";
+
+    const { groupId, groupName, saleIds } = await prisma.$transaction(async (tx) => {
+      const g = group ?? (await tx.saleGroup.create({ data: { name: d.groupName!, createdByName: me.name } }));
+      const ids: number[] = [];
+      for (const [i, m] of d.members.entries()) {
+        const sale = await tx.sale.create({
+          data: {
+            date,
+            tourId: d.tourId,
+            customerId: m.customerId,
+            groupId: g.id,
+            note: d.note || null,
+            reference: d.reference || null,
+            roomSize: d.roomSize ?? null,
+            price: m.price,
+            createdByName: me.name,
+            ...(downParts[i]
+              ? { payments: { create: { date, amount: downParts[i], method, note: "Peşinat (grup)", receivedByName: d.downPaymentBy, createdByName: me.name, batchId } } }
+              : {}),
+          },
+        });
+        ids.push(sale.id);
+      }
+      return { groupId: g.id, groupName: g.name, saleIds: ids };
+    });
+
+    await logToSales(
+      me,
+      d.members.map((m, i) => ({
+        saleId: saleIds[i],
+        detail:
+          `Satış #${saleIds[i]} eklendi (${groupName}): ${names.get(m.customerId)}, ${tour.name}, ${money(m.price, tour.currency)}` +
+          (downParts[i] ? `, peşinat payı ${money(downParts[i], tour.currency)}` : ""),
+      })),
+    );
+    audit({
+      entity: "SaleGroup",
+      entityId: groupId,
+      detail:
+        `${groupName}: ${d.members.length} kişilik satış (${saleIds.map((s) => `#${s}`).join(", ")}), ${tour.name}, toplam ${money(totalPrice, tour.currency)}` +
+        (d.downPayment ? `, peşinat ${money(d.downPayment, tour.currency)} (${method}, alan: ${d.downPaymentBy})` : ""),
+    });
+    return { ok: true, message: `${d.members.length} kişilik satış kaydedildi (${groupName}).`, data: { groupId } };
+  });
+}
+
+/** Seçilen satışları gruplar: groupId verilirse o gruba ekler, yoksa yeni grup açar */
+export async function groupSales(input: { saleIds: number[]; groupId?: number; name?: string }): Promise<ActionResult<{ groupId: number }>> {
+  return salesAction(async (me, audit) => {
+    const saleIds = [...new Set((input.saleIds ?? []).map(Number).filter((n) => Number.isInteger(n) && n > 0))];
+    if (saleIds.length === 0) return { ok: false, message: "Satış seçin." };
+    let group: { id: number; name: string } | null = null;
+    let newName = "";
+    if (input.groupId) {
+      group = await prisma.saleGroup.findUnique({ where: { id: Number(input.groupId) }, select: { id: true, name: true } });
+      if (!group) return { ok: false, message: "Grup bulunamadı; silinmiş olabilir." };
+    } else {
+      const parsed = groupSchema.safeParse({ name: input.name });
+      if (!parsed.success) return invalid(parsed.error);
+      if (saleIds.length < 2) return { ok: false, message: "Grup için en az iki satış seçin." };
+      newName = parsed.data.name;
+    }
+    const sales = await prisma.sale.findMany({ where: { id: { in: saleIds } }, select: { id: true, groupId: true, group: { select: { name: true } } } });
+    if (sales.length !== saleIds.length) return notFound;
+    const elsewhere = sales.filter((s) => s.groupId && s.groupId !== group?.id);
+    if (elsewhere.length) return { ok: false, message: `#${elsewhere[0].id} zaten "${elsewhere[0].group?.name}" grubunda; önce o gruptan çıkarın.` };
+
+    const g = group ?? (await prisma.saleGroup.create({ data: { name: newName, createdByName: me.name } }));
+    await prisma.sale.updateMany({ where: { id: { in: saleIds } }, data: { groupId: g.id } });
+    await logToSales(me, saleIds.map((id) => ({ saleId: id, detail: `Satış #${id} "${g.name}" grubuna eklendi` })));
+    audit({ entity: "SaleGroup", entityId: g.id, detail: `${g.name}: ${saleIds.map((s) => `#${s}`).join(", ")} gruba eklendi` });
+    return { ok: true, message: group ? `${saleIds.length} satış "${g.name}" grubuna eklendi.` : `"${g.name}" grubu oluşturuldu.`, data: { groupId: g.id } };
+  });
+}
+
+/** Grup seçim listesi (listeden "Gruba ekle" için; en yeni önce) */
+export async function listGroups(): Promise<ActionResult<{ id: number; name: string; count: number }[]>> {
+  return salesAction(async () => {
+    const groups = await prisma.saleGroup.findMany({ orderBy: { id: "desc" }, take: 200, select: { id: true, name: true, _count: { select: { sales: true } } } });
+    return { ok: true, message: "", data: groups.map((g) => ({ id: g.id, name: g.name, count: g._count.sales })) };
+  });
+}
+
+/** Satışı gruptan çıkarır (satış ve tahsilatları olduğu gibi kalır) */
+export async function removeFromGroup(saleId: string): Promise<ActionResult> {
+  return salesAction(async (me, audit) => {
+    const id = toId(saleId);
+    if (!id) return notFound;
+    const sale = await prisma.sale.findUnique({ where: { id }, select: { groupId: true, group: { select: { name: true } } } });
+    if (!sale?.groupId) return notFound;
+    await prisma.sale.update({ where: { id }, data: { groupId: null } });
+    await logToSales(me, [{ saleId: id, detail: `Satış #${id} "${sale.group?.name}" grubundan çıkarıldı` }]);
+    audit({ entity: "SaleGroup", entityId: sale.groupId, detail: `${sale.group?.name}: #${id} gruptan çıkarıldı` });
+    return { ok: true, message: "Satış gruptan çıkarıldı." };
+  });
+}
+
+export async function updateGroup(id: string, input: unknown): Promise<ActionResult> {
+  return salesAction(async (_me, audit) => {
+    const groupId = toId(id);
+    if (!groupId) return notFound;
+    const parsed = groupSchema.safeParse(input);
+    if (!parsed.success) return invalid(parsed.error);
+    const before = await prisma.saleGroup.findUnique({ where: { id: groupId }, select: { name: true } });
+    if (!before) return notFound;
+    await prisma.saleGroup.update({ where: { id: groupId }, data: { name: parsed.data.name, note: parsed.data.note || null } });
+    audit({
+      entity: "SaleGroup",
+      entityId: groupId,
+      detail: before.name === parsed.data.name ? `${parsed.data.name}: bilgiler güncellendi` : `Grup adı değişti: ${before.name} → ${parsed.data.name}`,
+    });
+    return { ok: true, message: "Grup güncellendi." };
+  });
+}
+
+/** Grubu dağıtır: satışlar ve tahsilatlar kalır, yalnızca gruplama kalkar */
+export async function deleteGroup(id: string): Promise<ActionResult> {
+  return salesAction(async (me, audit) => {
+    const groupId = toId(id);
+    if (!groupId) return notFound;
+    const g = await prisma.saleGroup.findUnique({ where: { id: groupId }, select: { name: true, sales: { select: { id: true } } } });
+    if (!g) return notFound;
+    await prisma.saleGroup.delete({ where: { id: groupId } });
+    await logToSales(me, g.sales.map((s) => ({ saleId: s.id, detail: `"${g.name}" grubu dağıtıldı; satış #${s.id} grupsuz kaldı` })));
+    audit({ entity: "SaleGroup", detail: `"${g.name}" grubu dağıtıldı (${g.sales.length} satış grupsuz kaldı)` });
+    return { ok: true, message: "Grup dağıtıldı; satışlar olduğu gibi duruyor." };
+  });
+}
+
+/** Grup tahsilatı: tek ödeme, kişilerin satışlarına dağıtılmış parçalarla (ortak batchId) */
+export async function addGroupPayment(groupId: string, input: unknown): Promise<ActionResult> {
+  return salesAction(async (me, audit) => {
+    const id = toId(groupId);
+    if (!id) return notFound;
+    const parsed = groupPaymentSchema.safeParse(input);
+    if (!parsed.success) return invalid(parsed.error);
+    const d = parsed.data;
+    const group = await prisma.saleGroup.findUnique({ where: { id }, select: { name: true } });
+    if (!group) return notFound;
+    if (!(await getCashPeople()).includes(d.receivedBy))
+      return { ok: false, message: "Parayı alan kişiyi listeden seçin.", fieldErrors: { receivedBy: "Kişi seçiniz" } };
+
+    const parts = d.parts.filter((p) => p.amount > 0);
+    if (new Set(parts.map((p) => p.saleId)).size !== parts.length) return { ok: false, message: "Aynı kişi iki kez yazılmış." };
+    const sales = await prisma.sale.findMany({
+      where: { id: { in: parts.map((p) => p.saleId) }, groupId: id },
+      select: { id: true, price: true, isCancelled: true, customer: { select: { fullName: true } }, tour: { select: { currency: true } }, payments: { select: { amount: true } } },
+    });
+    if (sales.length !== parts.length) return { ok: false, message: "Kişilerden biri artık bu grupta değil; sayfayı yenileyin." };
+    if (new Set(sales.map((s) => s.tour.currency)).size > 1)
+      return { ok: false, message: "Farklı para birimli satışlara tek tahsilat dağıtılamaz; ayrı ayrı girin." };
+    for (const p of parts) {
+      const s = sales.find((x) => x.id === p.saleId)!;
+      const balance = s.price - s.payments.reduce((t, x) => t + x.amount, 0);
+      if (s.isCancelled) return { ok: false, message: `${s.customer.fullName}: satış iptal edilmiş; ona tahsilat dağıtılamaz.` };
+      if (p.amount > balance) return { ok: false, message: `${s.customer.fullName}: pay (${p.amount}) kalan borçtan (${Math.max(balance, 0)}) fazla.` };
+    }
+
+    const currency = sales[0].tour.currency;
+    const total = parts.reduce((t, p) => t + p.amount, 0);
+    const batchId = randomUUID();
+    const date = new Date(d.date);
+    await prisma.$transaction(
+      parts.map((p) =>
+        prisma.payment.create({
+          data: { saleId: p.saleId, date, amount: p.amount, method: d.method, note: d.note || "Grup tahsilatı", receivedByName: d.receivedBy, createdByName: me.name, batchId },
+        }),
+      ),
+    );
+    const name = (saleId: number) => sales.find((s) => s.id === saleId)!.customer.fullName;
+    await logToSales(
+      me,
+      parts.map((p) => ({
+        saleId: p.saleId,
+        detail: `Satış #${p.saleId}: ${money(p.amount, currency)} tahsilat eklendi (${group.name} grup tahsilatından, ${d.method}, alan: ${d.receivedBy})`,
+      })),
+    );
+    audit({
+      entity: "SaleGroup",
+      entityId: id,
+      detail: `${group.name}: ${money(total, currency)} grup tahsilatı (${d.method}, alan: ${d.receivedBy}) — ${parts.map((p) => `${name(p.saleId)} ${money(p.amount, currency)}`).join(", ")}`,
+    });
+    return { ok: true, message: `${money(total, currency)} tahsilat ${parts.length} kişiye dağıtıldı.` };
+  });
+}
+
+/** Grup tahsilatını (bütün parçalarıyla) siler — yalnızca yönetici (deletePayment üzerinden) */
+async function deleteBatch(batchId: string, me: CurrentUser, audit: Audit): Promise<ActionResult> {
+  const parts = await prisma.payment.findMany({
+    where: { batchId },
+    select: {
+      id: true,
+      saleId: true,
+      amount: true,
+      method: true,
+      receivedByName: true,
+      sale: { select: { groupId: true, group: { select: { name: true } }, customer: { select: { fullName: true } }, tour: { select: { currency: true } } } },
+    },
+  });
+  if (parts.length === 0) return notFound;
+  for (const p of parts) {
+    if ((await paidOf(p.saleId)) - p.amount < 0) return { ok: false, message: `${p.sale.customer.fullName}: bu tahsilatın iadesi kayıtlı; önce iadeyi silin.` };
+  }
+  await prisma.payment.deleteMany({ where: { batchId } });
+  const currency = parts[0].sale.tour.currency;
+  const total = parts.reduce((t, p) => t + p.amount, 0);
+  const groupName = parts[0].sale.group?.name ?? "Grup";
+  await logToSales(me, parts.map((p) => ({ saleId: p.saleId, detail: `Satış #${p.saleId}: ${money(p.amount, currency)} tahsilat silindi (${groupName} grup tahsilatı)` })));
+  audit({
+    entity: parts[0].sale.groupId ? "SaleGroup" : "Sale",
+    entityId: parts[0].sale.groupId ?? parts[0].saleId,
+    detail: `${groupName}: ${money(total, currency)} grup tahsilatı silindi (${parts[0].method}, ${parts[0].receivedByName ?? "kişi yok"}; ${parts.length} parça)`,
+  });
+  return { ok: true, message: `Grup tahsilatı silindi (${parts.length} kişiden düşüldü).` };
 }

@@ -37,6 +37,7 @@ export function activityHref(entity: string | null, entityId: string | null) {
     Customer: "/admin/satis/musteriler",
     ServiceTour: "/admin/satis/turlar",
     Staff: "/admin/satis/gorevliler",
+    SaleGroup: "/admin/satis/gruplar",
   };
   return base[entity] ? `${base[entity]}/${entityId}` : null;
 }

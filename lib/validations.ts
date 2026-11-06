@@ -592,6 +592,58 @@ export const paymentSchema = z.object({
 });
 export type PaymentInput = z.infer<typeof paymentSchema>;
 
+/* ---- Aile / grup ---- */
+
+export const groupSchema = z.object({
+  name: z.string().trim().min(2, "Grup adı gerekli (ör. Yılmaz Ailesi)").max(100),
+  note: optionalText(1000),
+});
+export type GroupInput = z.infer<typeof groupSchema>;
+
+/** Aile / grup satışı: tur ve tarih bir kez, kişiler ayrı ayrı (her kişi bir satış olur) */
+export const groupSaleSchema = z
+  .object({
+    /** Boşsa yeni grup açılır (groupName zorunlu), doluysa kişiler bu gruba eklenir */
+    groupId: optionalNumber({ min: 1, int: true }),
+    groupName: optionalText(100),
+    date: requiredDate("Satış tarihi"),
+    tourId: requiredInt("Tur", { min: 1 }),
+    roomSize: optionalNumber({ min: 1, max: 10, int: true }),
+    reference: optionalText(100),
+    note: optionalText(1000),
+    members: z
+      .array(
+        z.object({
+          customerId: requiredInt("Müşteri", { min: 1 }),
+          price: requiredInt("Ücret", { min: 0, max: 100_000_000 }),
+        }),
+      )
+      .min(1, "En az bir kişi ekleyin")
+      .max(50, "Bir seferde en fazla 50 kişi"),
+    /** Grubun toplam peşinatı: kişilere ücretlerine göre orantılı dağıtılır */
+    downPayment: optionalNumber({ min: 1, max: 100_000_000, int: true }),
+    downPaymentMethod: z.enum(PAYMENT_METHODS).optional(),
+    downPaymentBy: optionalText(100),
+  })
+  .refine((d) => d.groupId || (d.groupName && d.groupName.length >= 2), { message: "Grup adı gerekli (ör. Yılmaz Ailesi)", path: ["groupName"] })
+  .refine((d) => new Set(d.members.map((m) => m.customerId)).size === d.members.length, {
+    message: "Aynı kişi iki kez eklenmiş",
+    path: ["members"],
+  });
+export type GroupSaleInput = z.infer<typeof groupSaleSchema>;
+
+/** Grup tahsilatı: tek ödeme, kişilere dağıtılmış parçalarla */
+export const groupPaymentSchema = z
+  .object({
+    date: requiredDate("Tarih"),
+    method: z.enum(PAYMENT_METHODS),
+    receivedBy: z.string({ error: "Kişi seçiniz" }).trim().min(1, "Kişi seçiniz").max(100),
+    note: optionalText(500),
+    parts: z.array(z.object({ saleId: requiredInt("Satış", { min: 1 }), amount: requiredInt("Tutar", { min: 0, max: 100_000_000 }) })).min(1),
+  })
+  .refine((d) => d.parts.some((p) => p.amount > 0), { message: "Dağıtılacak tutar girin", path: ["parts"] });
+export type GroupPaymentInput = z.infer<typeof groupPaymentSchema>;
+
 export const handoverSchema = z.object({
   date: requiredDate("Tarih"),
   fromName: z.string({ error: "Kişi seçiniz" }).trim().min(1, "Kişi seçiniz").max(100),

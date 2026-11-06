@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Pencil } from "lucide-react";
+import { Pencil, UsersRound } from "lucide-react";
 import { AdminCard } from "@/components/admin/ui";
 import { DeleteButton } from "@/components/admin/row-actions";
 import { StatBox, th, td, num, theadRow } from "@/components/admin/sales/ui";
@@ -10,7 +10,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { deletePayment, deleteSale } from "@/app/actions/sales";
 import { getActivityFor } from "@/lib/activity";
 import { getCurrentUser } from "@/lib/auth";
-import { getCashPeople, inputDate, money, shortDate, type getSale } from "@/lib/sales";
+import { getCashPeople, getGroup, inputDate, money, moneyList, shortDate, type getSale } from "@/lib/sales";
 import { cn, currencySymbol, formatDateTime } from "@/lib/utils";
 
 export type SaleDetailData = NonNullable<Awaited<ReturnType<typeof getSale>>>;
@@ -24,15 +24,23 @@ export async function SaleDetail({
   base,
   compact = false,
   afterDeleteHref,
+  groupHref,
 }: {
   sale: SaleDetailData;
   base: string;
   compact?: boolean;
   /** Satış silinince gidilecek adres */
   afterDeleteHref: string;
+  /** Satış bir aile / grupta ise grubun sayfası / paneli */
+  groupHref?: string;
 }) {
   const { tour, customer } = sale;
-  const [activity, me, people] = await Promise.all([getActivityFor("Sale", sale.id), getCurrentUser(), getCashPeople()]);
+  const [activity, me, people, group] = await Promise.all([
+    getActivityFor("Sale", sale.id),
+    getCurrentUser(),
+    getCashPeople(),
+    sale.group ? getGroup(sale.group.id) : null,
+  ]);
   const isAdmin = me?.role === "ADMIN";
   const currencyLabel = currencySymbol(sale.currency).trim() || sale.currency;
 
@@ -68,8 +76,12 @@ export async function SaleDetail({
     ["Kaydeden", `${sale.createdByName ?? "—"} · ${formatDateTime(sale.createdAt)}`],
   ];
 
-  const deleteLabel = (amount: number) =>
-    amount < 0 ? "Bu iadeyi silmek istediğinize emin misiniz?" : "Bu tahsilatı silmek istediğinize emin misiniz?";
+  const deleteLabel = (amount: number, batchId?: string | null) =>
+    batchId
+      ? "Bu grup tahsilatının parçası; silinirse gruptaki tüm kişilerden silinir. Emin misiniz?"
+      : amount < 0
+        ? "Bu iadeyi silmek istediğinize emin misiniz?"
+        : "Bu tahsilatı silmek istediğinize emin misiniz?";
 
   return (
     <div className={compact ? "space-y-4" : "space-y-6"}>
@@ -100,6 +112,25 @@ export async function SaleDetail({
           <StatBox label="Kalan" value={money(sale.balance, sale.currency)} tone={sale.balance > 0 ? "red" : "green"} />
         )}
       </div>
+
+      {group && (
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-brand-100 bg-brand-50/60 px-4 py-3 text-sm">
+          <UsersRound className="size-5 shrink-0 text-brand-700" />
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-brand-900">
+              {group.name} <span className="font-normal text-muted">· {group.sales.length} kişi</span>
+            </p>
+            <p className="text-xs text-muted">
+              Grubun toplam kalanı: <span className="font-semibold text-red-600">{moneyList(group.totals.balance)}</span> · Ödeme birlikte yapılıyorsa grup tahsilatını kullanın.
+            </p>
+          </div>
+          {groupHref && (
+            <Link href={groupHref} scroll={false} className={buttonVariants({ variant: "outline", size: "sm" })}>
+              Grubu aç
+            </Link>
+          )}
+        </div>
+      )}
 
       {/* Ödeme formu yan panelde en üstte: en sık yapılan iş */}
       {compact && <PaymentForms sale={sale} people={people} person={me?.name ?? ""} currencyLabel={currencyLabel} />}
@@ -133,6 +164,11 @@ export async function SaleDetail({
                         İade
                       </Badge>
                     )}
+                    {p.batchId && (
+                      <Badge variant="brand" size="sm" className="ml-2" title="Grup tahsilatından pay; silinirse tüm kişilerden silinir">
+                        Grup
+                      </Badge>
+                    )}
                     <span className="ml-2 font-normal text-muted">{p.method}</span>
                   </p>
                   <p className="truncate text-xs text-muted">
@@ -140,7 +176,7 @@ export async function SaleDetail({
                     {p.note ? ` · ${p.note}` : ""}
                   </p>
                 </div>
-                {isAdmin && <DeleteButton action={deletePayment} id={String(p.id)} label={deleteLabel(p.amount)} />}
+                {isAdmin && <DeleteButton action={deletePayment} id={String(p.id)} label={deleteLabel(p.amount, p.batchId)} />}
               </li>
             ))}
           </ul>
@@ -171,6 +207,11 @@ export async function SaleDetail({
                           İade
                         </Badge>
                       )}
+                      {p.batchId && (
+                        <Badge variant="brand" size="sm" className="ml-2" title="Grup tahsilatından pay; silinirse tüm kişilerden silinir">
+                          Grup
+                        </Badge>
+                      )}
                     </td>
                     <td className={td}>{p.method}</td>
                     <td className={cn(td, "font-semibold")}>{p.receivedByName ?? "—"}</td>
@@ -180,7 +221,7 @@ export async function SaleDetail({
                       <p className="text-xs text-muted tabular-nums">{formatDateTime(p.createdAt)}</p>
                     </td>
                     <td className={cn(td, "text-right")}>
-                      {isAdmin && <DeleteButton action={deletePayment} id={String(p.id)} label={deleteLabel(p.amount)} />}
+                      {isAdmin && <DeleteButton action={deletePayment} id={String(p.id)} label={deleteLabel(p.amount, p.batchId)} />}
                     </td>
                   </tr>
                 ))}

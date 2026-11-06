@@ -18,7 +18,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
   return (
     <div>
       <BackLink href={base} label="Satışlara Dön" />
-      <SaleDetail sale={sale} base={base} afterDeleteHref={base} />
+      <SaleDetail sale={sale} base={base} afterDeleteHref={base} groupHref={sale.group ? `${base}/gruplar/${sale.group.id}` : undefined} />
     </div>
   );
 }

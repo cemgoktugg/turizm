@@ -31,6 +31,7 @@ import {
   Tags,
   UserCheck,
   UserCog,
+  UsersRound,
   Users,
   Wallet,
 } from "lucide-react";
@@ -74,6 +75,7 @@ const NAV_GROUPS: { title?: string; items: NavItem[] }[] = [
     items: [
       { label: "Satış Programı", href: "/satis", icon: AppWindow },
       { label: "Satışlar", href: "/admin/satis", icon: Receipt },
+      { label: "Gruplar", href: "/admin/satis/gruplar", icon: UsersRound },
       { label: "Turlar", href: "/admin/satis/turlar", icon: CalendarRange },
       { label: "Müşteriler", href: "/admin/satis/musteriler", icon: Contact },
       { label: "Görevliler", href: "/admin/satis/gorevliler", icon: UserCheck },
@@ -110,6 +112,7 @@ const TITLES: Record<string, string> = {
   "/admin/satis/turlar": "Turlar (Satış)",
   "/admin/satis/musteriler": "Müşteriler",
   "/admin/satis/gorevliler": "Görevliler",
+  "/admin/satis/gruplar": "Aile / Gruplar",
   "/admin/satis/kasa": "Kasa",
   "/admin/satis/raporlar": "Satış Raporları",
   "/admin/settings": "Site Ayarları",

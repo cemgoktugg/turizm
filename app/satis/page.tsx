@@ -5,12 +5,14 @@ import { EditLink } from "@/components/admin/row-actions";
 import { FilterBar, FilterSelect, StatBox, th, td, num, theadRow, qs } from "@/components/admin/sales/ui";
 import { SaleCancelButton } from "@/components/admin/sales/sale-cancel-button";
 import { NewSale } from "@/components/admin/sales/new-sale";
+import { GroupDetail } from "@/components/admin/sales/group-detail";
+import { SaleSelection, SelectBox, SelectionBar } from "@/components/admin/sales/group-client";
 import { SaleDetail } from "@/components/admin/sales/sale-detail";
 import { SidePanel } from "@/components/admin/sales/side-panel";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import { SALE_STATUSES, getCashPeople, getPeriods, getReferences, getSale, loadSaleList, money, moneyList, shortDate, totalsOf } from "@/lib/sales";
+import { Plus, UsersRound } from "lucide-react";
+import { SALE_STATUSES, getCashPeople, getGroup, getPeriods, getReferences, getSale, loadSaleList, money, moneyList, shortDate, totalsOf } from "@/lib/sales";
 import { cn, formatDateTime } from "@/lib/utils";
 import { getSalesBase } from "@/lib/sales-base-server";
 
@@ -22,24 +24,27 @@ export const metadata = { title: "Satışlar" };
 export default async function SalesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ donem?: string; q?: string; durum?: string; personel?: string; referans?: string; panel?: string }>;
+  searchParams: Promise<{ donem?: string; q?: string; durum?: string; personel?: string; referans?: string; panel?: string; grup?: string; tip?: string }>;
 }) {
   const base = await getSalesBase();
-  const { donem = "", q = "", durum = "", personel = "", referans = "", panel = "" } = await searchParams;
-  // Yan panel: ?panel=yeni (yeni satış) veya ?panel=12 (satış detayı); liste arkada kalır
+  const { donem = "", q = "", durum = "", personel = "", referans = "", panel = "", grup = "", tip = "" } = await searchParams;
+  // Yan panel (liste arkada kalır): ?panel=yeni (yeni satış; &grup=3 o gruba kişi ekler, &tip=grup aile formuyla açar),
+  // ?panel=12 (satış detayı), ?panel=g3 (aile / grup)
   const panelId = /^\d{1,9}$/.test(panel) ? Number(panel) : null;
-  const [periods, sales, tourCount, people, references, panelSale] = await Promise.all([
+  const panelGroupId = /^g\d{1,9}$/.test(panel) ? Number(panel.slice(1)) : null;
+  const [periods, sales, tourCount, people, references, panelSale, panelGroup] = await Promise.all([
     getPeriods(),
     loadSaleList({ donem, q, durum, personel, referans }),
     prisma.serviceTour.count(),
     getCashPeople(),
     getReferences(),
     panelId ? getSale(panelId) : null,
+    panelGroupId ? getGroup(panelGroupId) : null,
   ]);
   const totals = totalsOf(sales);
   const filters = { donem, q, durum, personel, referans };
   const listHref = `${base}${qs(filters)}`;
-  const panelHref = (value: string) => `${base}${qs({ ...filters, panel: value })}`;
+  const panelHref = (value: string, extra: Record<string, string> = {}) => `${base}${qs({ ...filters, panel: value, ...extra })}`;
 
   return (
     <div>
@@ -92,11 +97,15 @@ export default async function SalesPage({
             {Object.keys(totals.refundDue).length > 0 && <StatBox label="İade bekleyen" value={moneyList(totals.refundDue)} tone="red" />}
           </div>
 
+          <SaleSelection>
           <AdminCard className="overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1400px] text-sm">
                 <thead>
                   <tr className={theadRow}>
+                    <th className={cn(th, "w-8 pr-0")} title="Aynı ailenin satırlarını seçip gruplayın">
+                      <UsersRound className="size-4" aria-label="Gruplamak için seç" />
+                    </th>
                     <th className={th}>Sıra No</th>
                     <th className={th}>Tarih</th>
                     <th className={th}>Dönem</th>
@@ -121,9 +130,12 @@ export default async function SalesPage({
                       className={cn(
                         "hover:bg-cream-50/60",
                         s.isCancelled && "text-muted line-through decoration-slate-300",
-                        panelId === s.id && "bg-gold-50 hover:bg-gold-50",
+                        (panelId === s.id || (panelGroupId != null && s.group?.id === panelGroupId)) && "bg-gold-50 hover:bg-gold-50",
                       )}
                     >
+                      <td className={cn(td, "pr-0")}>
+                        <SelectBox id={s.id} label={`#${s.id} ${s.customer.fullName}`} />
+                      </td>
                       <td className={td}>
                         <Link href={panelHref(String(s.id))} scroll={false} className="font-bold text-brand-700 hover:text-gold-600">
                           {s.id}
@@ -140,6 +152,16 @@ export default async function SalesPage({
                         <Link href={panelHref(String(s.id))} scroll={false} className="font-semibold text-brand-900 hover:text-brand-600">
                           {s.customer.fullName}
                         </Link>
+                        {s.group && (
+                          <Link
+                            href={panelHref(`g${s.group.id}`)}
+                            scroll={false}
+                            title="Aile / grup"
+                            className="ml-2 inline-flex items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-semibold text-brand-700 no-underline hover:bg-brand-100"
+                          >
+                            <UsersRound className="size-3" /> {s.group.name}
+                          </Link>
+                        )}
                         {s.isCancelled && (
                           <Badge variant="slate" size="sm" className="ml-2 no-underline">
                             İptal
@@ -176,7 +198,7 @@ export default async function SalesPage({
                 </tbody>
                 <tfoot>
                   <tr className="border-t-2 border-border bg-cream-50 font-bold text-brand-900">
-                    <td className={td} colSpan={10}>
+                    <td className={td} colSpan={11}>
                       Toplam ({totals.count} satış{sales.length > totals.count ? `, ${sales.length - totals.count} iptal hariç` : ""})
                     </td>
                     <td className={cn(td, num)}>{moneyList(totals.price)}</td>
@@ -189,20 +211,32 @@ export default async function SalesPage({
               </table>
             </div>
           </AdminCard>
+          <SelectionBar listHref={listHref} />
+          </SaleSelection>
         </>
       )}
 
       {panel === "yeni" ? (
-        <SidePanel key="yeni" title="Yeni Satış" closeHref={listHref} fullHref={`${base}/yeni`}>
-          <NewSale base={base} listHref={listHref} />
+        <SidePanel key="yeni" title="Yeni Satış" closeHref={listHref} fullHref={`${base}/yeni${qs({ grup, tip })}`}>
+          <NewSale base={base} listHref={listHref} groupId={Number(grup)} initialMode={tip === "grup" ? "group" : "single"} />
+        </SidePanel>
+      ) : panelGroup ? (
+        <SidePanel key={`g${panelGroup.id}`} title={panelGroup.name} closeHref={listHref} fullHref={`${base}/gruplar/${panelGroup.id}`}>
+          <GroupDetail
+            group={panelGroup}
+            base={base}
+            saleHref={(saleId) => panelHref(String(saleId))}
+            addHref={panelHref("yeni", { grup: String(panelGroup.id) })}
+            afterDeleteHref={listHref}
+          />
         </SidePanel>
       ) : panelSale ? (
         <SidePanel key={panelSale.id} title={`${panelSale.customer.fullName} · ${panelSale.tour.name}`} closeHref={listHref} fullHref={`${base}/${panelSale.id}`}>
-          <SaleDetail sale={panelSale} base={base} compact afterDeleteHref={listHref} />
+          <SaleDetail sale={panelSale} base={base} compact afterDeleteHref={listHref} groupHref={panelSale.group ? panelHref(`g${panelSale.group.id}`) : undefined} />
         </SidePanel>
-      ) : panelId ? (
-        <SidePanel key={panelId} title={`Satış #${panelId}`} closeHref={listHref}>
-          <EmptyState title="Satış bulunamadı" description="Silinmiş olabilir." />
+      ) : panelId || panelGroupId ? (
+        <SidePanel key={panel} title={panelId ? `Satış #${panelId}` : "Grup"} closeHref={listHref}>
+          <EmptyState title={panelId ? "Satış bulunamadı" : "Grup bulunamadı"} description="Silinmiş olabilir." />
         </SidePanel>
       ) : null}
     </div>

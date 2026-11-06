@@ -4,15 +4,15 @@ import { getSalesBase } from "@/lib/sales-base-server";
 
 export const metadata = { title: "Yeni Satış" };
 
-export default async function NewSalePage({ searchParams }: { searchParams: Promise<{ musteri?: string }> }) {
+export default async function NewSalePage({ searchParams }: { searchParams: Promise<{ musteri?: string; grup?: string; tip?: string }> }) {
   const base = await getSalesBase();
-  const { musteri } = await searchParams;
+  const { musteri, grup, tip } = await searchParams;
 
   return (
     <div>
-      <BackLink href={base} label="Satışlara Dön" />
+      <BackLink href={grup ? `${base}/gruplar/${grup}` : base} label={grup ? "Gruba Dön" : "Satışlara Dön"} />
       <h2 className="mb-6 font-serif text-2xl font-bold text-brand-900">Yeni Satış</h2>
-      <NewSale base={base} customerId={Number(musteri)} />
+      <NewSale base={base} customerId={Number(musteri)} groupId={Number(grup)} initialMode={tip === "grup" ? "group" : "single"} />
     </div>
   );
 }

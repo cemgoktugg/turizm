@@ -79,6 +79,7 @@ export function buildSaleWhere({ donem, q, personel }: SaleFilter): Prisma.SaleW
     { customer: { phone: { contains: term } } },
     { tour: { name: { contains: term } } },
     { reference: { contains: term } },
+    { group: { name: { contains: term } } },
   ];
   if (/^\d{1,9}$/.test(term)) or.push({ id: Number(term) });
   return {
@@ -91,6 +92,7 @@ export function buildSaleWhere({ donem, q, personel }: SaleFilter): Prisma.SaleW
 const saleInclude = {
   tour: { select: { id: true, name: true, period: true, currency: true, departureDate: true, returnDate: true } },
   customer: { select: { id: true, fullName: true, tc: true, phone: true } },
+  group: { select: { id: true, name: true } },
   payments: { select: { amount: true } },
 } satisfies Prisma.SaleInclude;
 
@@ -148,12 +150,54 @@ export async function getSale(id: number) {
     include: {
       tour: { include: { guide1: { select: { fullName: true } }, guide2: { select: { fullName: true } } } },
       customer: true,
+      group: { select: { id: true, name: true, _count: { select: { sales: true } } } },
       payments: { orderBy: [{ date: "asc" }, { id: "asc" }] },
     },
   });
   if (!sale) return null;
   const paid = sale.payments.reduce((t, p) => t + p.amount, 0);
   return { ...sale, currency: sale.tour.currency, paid, balance: sale.isCancelled ? 0 : sale.price - paid, refundDue: sale.isCancelled ? Math.max(paid, 0) : 0 };
+}
+
+/* ------------------------------------------------------------------ */
+/* Aile / grup                                                          */
+/* ------------------------------------------------------------------ */
+
+/** Grup: kişilerin satışları (ekleniş sırasıyla), toplamlar ve grup tahsilatları */
+export async function getGroup(id: number) {
+  const group = await prisma.saleGroup.findUnique({ where: { id } });
+  if (!group) return null;
+  const sales = (await loadSales({ groupId: id })).sort((a, b) => a.id - b.id);
+  return { ...group, sales, totals: totalsOf(sales) };
+}
+export type GroupData = NonNullable<Awaited<ReturnType<typeof getGroup>>>;
+
+/** Grup tahsilatları: aynı batchId'li parçalar tek satır (en yeni önce) */
+export async function getGroupBatches(groupId: number) {
+  const parts = await prisma.payment.findMany({
+    where: { batchId: { not: null }, sale: { groupId } },
+    orderBy: [{ date: "desc" }, { id: "desc" }],
+    include: { sale: { select: { id: true, customer: { select: { fullName: true } }, tour: { select: { currency: true } } } } },
+  });
+  const map = new Map<string, { batchId: string; paymentId: number; date: Date; method: string; receivedByName: string | null; note: string | null; createdByName: string | null; currency: string; total: number; parts: { saleId: number; name: string; amount: number }[] }>();
+  for (const p of parts) {
+    const b = map.get(p.batchId!) ?? {
+      batchId: p.batchId!,
+      paymentId: p.id,
+      date: p.date,
+      method: p.method,
+      receivedByName: p.receivedByName,
+      note: p.note,
+      createdByName: p.createdByName,
+      currency: p.sale.tour.currency,
+      total: 0,
+      parts: [],
+    };
+    b.total += p.amount;
+    b.parts.push({ saleId: p.sale.id, name: p.sale.customer.fullName, amount: p.amount });
+    map.set(p.batchId!, b);
+  }
+  return [...map.values()];
 }
 
 /* ------------------------------------------------------------------ */

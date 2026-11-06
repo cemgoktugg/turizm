@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AlertTriangle, CalendarRange, ChartColumn, Contact, LayoutDashboard, LogOut, Plus, Receipt, UserCheck, Wallet } from "lucide-react";
+import { AlertTriangle, CalendarRange, ChartColumn, Contact, LayoutDashboard, LogOut, Plus, Receipt, UserCheck, UsersRound, Wallet } from "lucide-react";
 import { logoutAction } from "@/app/actions/auth";
 import { SmartImage } from "@/components/ui/smart-image";
 import { InstallButton } from "./install-button";
@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 
 const TABS = [
   { label: "Satışlar", href: SALES_BASE, icon: Receipt },
+  { label: "Gruplar", href: `${SALES_BASE}/gruplar`, icon: UsersRound },
   { label: "Turlar", href: `${SALES_BASE}/turlar`, icon: CalendarRange },
   { label: "Müşteriler", href: `${SALES_BASE}/musteriler`, icon: Contact },
   { label: "Görevliler", href: `${SALES_BASE}/gorevliler`, icon: UserCheck },

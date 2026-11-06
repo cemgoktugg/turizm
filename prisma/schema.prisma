@@ -412,12 +412,29 @@ model Sale {
   isCancelled Boolean     @default(false)
   /// Kaydı yapan kullanıcının adı (kullanıcı silinse de kalır; eski kayıtlarda boş)
   createdByName String?
+  /// Aile / grup (birlikte kayıt olup birlikte ödeyenler); grup silinirse satış kalır
+  groupId     Int?
+  group       SaleGroup?  @relation(fields: [groupId], references: [id], onDelete: SetNull)
   payments    Payment[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
   @@index([tourId])
   @@index([customerId])
+  @@index([groupId])
+}
+
+/// Aile / grup: birlikte kayıt olan ve birlikte ödeyen kişiler. Her kişinin satışı
+/// (ücret, iptal, bakiye) ayrıdır; grup yalnızca bunları bir araya getirir.
+model SaleGroup {
+  id            Int      @id @default(autoincrement())
+  /// Ör. "Yılmaz Ailesi"
+  name          String
+  note          String?
+  createdByName String?
+  sales         Sale[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 /// Tahsilat (satışa yapılan ödeme). Eksi tutar, iptal edilen satışın iadesidir.
@@ -434,10 +451,14 @@ model Payment {
   receivedByName String?
   /// Kaydı yapan kullanıcının adı (kullanıcı silinse de kalır; eski kayıtlarda boş)
   createdByName String?
+  /// Grup tahsilatı: tek ödemenin kişilere dağıtılan parçaları aynı kimliği taşır
+  /// (birlikte silinir); tek kişilik tahsilatta boş
+  batchId   String?
   createdAt DateTime @default(now())
 
   @@index([saleId])
   @@index([date])
+  @@index([batchId])
 }
 
 /// Personelin elindeki nakdi kasaya teslim etmesi (yalnızca yönetici kaydeder; tutar dolar)
