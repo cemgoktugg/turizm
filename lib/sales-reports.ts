@@ -1,6 +1,7 @@
 import "server-only";
 import { formatDateTime } from "./utils";
 import { SALES_BASE } from "./sales-base";
+import { DISCOUNT_WARN_RATE, discountOf, percent } from "./sale-pricing";
 import {
   KASA,
   addMoney,
@@ -59,6 +60,8 @@ async function salesTable(p: ReportParams): Promise<ReportTable> {
       { label: "Açıklama" },
       { label: "Referans" },
       { label: "Oda Kişi Sayısı", align: C },
+      { label: "Liste Fiyatı", align: R },
+      { label: "İndirim", align: R },
       { label: "Ücret", align: R },
       { label: "Ödenen", align: R },
       { label: "Kalan", align: R },
@@ -80,6 +83,8 @@ async function salesTable(p: ReportParams): Promise<ReportTable> {
         s.note,
         s.reference,
         s.roomSize,
+        s.listPrice == null ? null : m(s.listPrice, s.currency),
+        s.listPrice == null ? null : m(discountOf(s.listPrice, s.price)?.amount ?? 0, s.currency),
         m(s.price, s.currency),
         m(s.paid, s.currency),
         m(s.balance, s.currency),
@@ -88,7 +93,7 @@ async function salesTable(p: ReportParams): Promise<ReportTable> {
         formatDateTime(s.createdAt),
       ],
     })),
-    footer: [`Toplam (${t.count} satış)`, "", "", "", "", "", "", "", "", "", moneyList(t.price), moneyList(t.paid), moneyList(t.balance), "", "", ""],
+    footer: [`Toplam (${t.count} satış)`, "", "", "", "", "", "", "", "", "", "", "", moneyList(t.price), moneyList(t.paid), moneyList(t.balance), "", "", ""],
   };
 }
 
@@ -313,6 +318,71 @@ async function referenceTable(p: ReportParams): Promise<ReportTable> {
   };
 }
 
+/**
+ * Pazarlık / indirim raporu: satışı kaydeden kişi bazında liste fiyatı ile
+ * anlaşılan ücret farkı. Liste fiyatı kayıtlı olmayan (eski) satışlar dahil edilmez.
+ */
+async function discountTable(p: ReportParams): Promise<ReportTable> {
+  const sales = (await loadSales(p.donem ? { tour: { period: p.donem } } : {})).filter((s) => !s.isCancelled && s.listPrice != null);
+  type Row = { person: string; currency: string; count: number; discounted: number; warned: number; list: number; price: number; discount: number };
+  const map = new Map<string, Row>();
+  const total = { discount: {} as Money, discounted: 0, warned: 0 };
+  for (const s of sales) {
+    const person = s.createdByName || "Belirtilmemiş";
+    const key = `${person}|${s.currency}`;
+    const r = map.get(key) ?? { person, currency: s.currency, count: 0, discounted: 0, warned: 0, list: 0, price: 0, discount: 0 };
+    const d = discountOf(s.listPrice, s.price);
+    r.count++;
+    r.list += s.listPrice!;
+    r.price += s.price;
+    if (d) {
+      r.discounted++;
+      r.discount += d.amount;
+      total.discounted++;
+      addMoney(total.discount, s.currency, d.amount);
+      if (d.warn) {
+        r.warned++;
+        total.warned++;
+      }
+    }
+    map.set(key, r);
+  }
+  const rows = [...map.values()].sort((a, b) => b.discount - a.discount);
+  return {
+    summary: [
+      { label: "Liste fiyatlı satış", value: String(sales.length) },
+      { label: "İndirimli satış", value: String(total.discounted) },
+      { label: "Toplam indirim", value: moneyList(total.discount), tone: "red" },
+      { label: `%${DISCOUNT_WARN_RATE * 100} üstü indirim`, value: String(total.warned), tone: total.warned ? "red" : undefined },
+    ],
+    columns: [
+      { label: "Satışı Kaydeden" },
+      { label: "Para Birimi" },
+      { label: "Satış Adedi", align: C },
+      { label: "İndirimli", align: C },
+      { label: `%${DISCOUNT_WARN_RATE * 100} Üstü`, align: C },
+      { label: "Liste Toplamı", align: R },
+      { label: "Anlaşılan Toplam", align: R },
+      { label: "Toplam İndirim", align: R },
+      { label: "Ort. İndirim", align: R },
+    ],
+    rows: rows.map((r) => ({
+      cells: [
+        r.person,
+        r.currency,
+        r.count,
+        r.discounted,
+        r.warned,
+        m(r.list, r.currency),
+        m(r.price, r.currency),
+        m(r.discount, r.currency),
+        r.list ? percent(r.discount / r.list) : "—",
+      ],
+    })),
+    footer: ["Toplam", "", String(sales.length), String(total.discounted), String(total.warned), "", "", moneyList(total.discount), ""],
+  };
+}
+
 /** Kişilerin elindeki nakit (Kasa sayfası ve Excel) */
 async function cashTable(): Promise<ReportTable> {
   const rows = (await getCashRows()).filter((r) => r.person !== KASA);
@@ -338,6 +408,7 @@ export const REPORT_BUILDERS = {
   tahsilat: paymentTable,
   personel: personTable,
   referans: referenceTable,
+  indirim: discountTable,
   kasa: cashTable,
 } as const;
 export type ReportName = keyof typeof REPORT_BUILDERS;

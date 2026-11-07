@@ -407,6 +407,9 @@ model Sale {
   reference   String?
   /// Oda kişi sayısı (2-4) — seçilince turun o oda tipindeki fiyatı önerilir
   roomSize    Int?
+  /// Satış anındaki tur liste fiyatı (kişi başı); tur fiyatı sonradan değişse de korunur. Eski kayıtlarda boş
+  listPrice   Int?
+  /// Anlaşılan (pazarlıklı) ücret; bakiye bunun üzerinden hesaplanır
   price       Int
   /// İptal edilen satışlar toplamlara ve bakiyeye girmez
   isCancelled Boolean     @default(false)

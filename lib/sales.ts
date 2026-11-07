@@ -211,6 +211,7 @@ export const REPORTS = {
   tahsilat: "Tahsilat Listesi",
   personel: "Personel",
   referans: "Referans",
+  indirim: "İndirimler",
 } as const;
 export type ReportKey = keyof typeof REPORTS;
 

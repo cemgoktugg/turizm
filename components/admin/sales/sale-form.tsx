@@ -16,6 +16,8 @@ import { CustomerPicker } from "./customer-picker";
 import { currencySymbol, formatPrice } from "@/lib/utils";
 import { useSalesBase } from "./use-sales-base";
 import { withParam } from "./ui";
+import { DiscountHint } from "./discount-hint";
+import { discountOf, listPriceOf, percent } from "@/lib/sale-pricing";
 
 type FormIn = z.input<typeof saleSchema>;
 
@@ -36,6 +38,7 @@ export function SaleForm({
   customer,
   defaultValues,
   paid = 0,
+  listPrice: savedListPrice = null,
   references,
   people = [],
   listHref,
@@ -46,6 +49,8 @@ export function SaleForm({
   defaultValues?: Partial<FormIn>;
   /** Düzenlemede: şimdiye kadar tahsil edilen */
   paid?: number;
+  /** Düzenlemede: satış anında kaydedilen liste fiyatı (tur / oda değişmedikçe bu kullanılır) */
+  listPrice?: number | null;
   /** Referans alanındaki öneriler (daha önce girilenler) */
   references: string[];
   /** Yeni satışta: peşinatı alabilecek kişiler */
@@ -72,9 +77,15 @@ export function SaleForm({
   // Ücret elle yazıldıysa tur değişince üzerine yazılmaz
   const [priceEdited, setPriceEdited] = useState(false);
 
-  const [tourId, roomSize] = useWatch({ control, name: ["tourId", "roomSize"] });
+  const [tourId, roomSize, price] = useWatch({ control, name: ["tourId", "roomSize", "price"] });
   const tour = tours.find((t) => String(t.id) === String(tourId ?? ""));
   const cur = tour ? currencySymbol(tour.currency).trim() : "";
+
+  // Liste fiyatı: düzenlemede tur ve oda değişmediyse kayıttaki değer, aksi halde turun güncel fiyatı (sunucuyla aynı kural)
+  const sameRoom =
+    !!saleId && String(tourId ?? "") === String(defaultValues?.tourId ?? "") && String(roomSize ?? "") === String(defaultValues?.roomSize ?? "");
+  const listPrice = sameRoom ? savedListPrice : tour ? listPriceOf(tour.prices, Number(roomSize) || null) : null;
+  const priceNum = price === "" || price == null ? null : Number(price);
 
   // Oda seçenekleri: turun fiyatı girilmiş oda tipleri (+ kayıtlı satışın eski değeri)
   const roomSizes = tour ? Object.keys(tour.prices).map(Number) : [2, 3, 4];
@@ -95,6 +106,8 @@ export function SaleForm({
     const res = saleId ? await updateSale(String(saleId), values) : await createSale(values);
     if (!res.ok) return void toast.error(res.message);
     toast.success(res.message);
+    const d = discountOf(listPrice, values.price);
+    if (d?.warn) toast.warning(`Dikkat: liste fiyatından ${percent(d.rate)} indirimle kaydedildi.`);
     reset(getValues());
     const id = saleId ?? (res.data as { id: number } | undefined)?.id;
     if (listHref && id) router.push(withParam(listHref, "panel", String(id)), { scroll: false });
@@ -169,8 +182,9 @@ export function SaleForm({
               ))}
             </Select>
           </Field>
-          <Field label={`Ücret${cur ? ` (${cur})` : ""}`} required error={errors.price?.message}>
+          <Field label={`Anlaşılan Ücret${cur ? ` (${cur})` : ""}`} required error={errors.price?.message}>
             <Input type="number" min={0} step={1} {...register("price", { onChange: () => setPriceEdited(true) })} />
+            {tour && <DiscountHint listPrice={listPrice} price={priceNum} currency={tour.currency} />}
           </Field>
           <Field label="Referans" error={errors.reference?.message}>
             <Input list="referanslar" placeholder="Kim yönlendirdi?" autoComplete="off" {...register("reference")} />

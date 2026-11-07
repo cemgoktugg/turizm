@@ -16,6 +16,8 @@ import { CustomerPicker } from "./customer-picker";
 import type { SaleTourOption } from "./sale-form";
 import { useSalesBase } from "./use-sales-base";
 import { withParam } from "./ui";
+import { DiscountHint } from "./discount-hint";
+import { DISCOUNT_WARN_RATE, discountOf, listPriceOf } from "@/lib/sale-pricing";
 
 type Member = { key: number; customer: CustomerOption | null; price: string; priceEdited: boolean };
 
@@ -85,6 +87,11 @@ export function GroupSaleForm({
   const totalPrice = prices.reduce((a, b) => a + b, 0);
   const downNum = Number(down.amount) || 0;
   const downParts = downNum ? splitProportional(downNum, prices) : [];
+  // Liste fiyatı sunucudakiyle aynı kuralla: seçili oda tipinin kişi başı ücreti
+  const listPrice = tour ? listPriceOf(tour.prices, Number(roomSize) || null) : null;
+  const memberDiscounts = filled.map((m) => (m.price === "" ? null : discountOf(listPrice, Number(m.price))));
+  const totalDiscount = memberDiscounts.reduce((t, d) => t + (d?.amount ?? 0), 0);
+  const warnCount = memberDiscounts.filter((d) => d?.warn).length;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -119,6 +126,7 @@ export function GroupSaleForm({
       return void toast.error(res.message);
     }
     toast.success(res.message);
+    if (warnCount) toast.warning(`Dikkat: ${warnCount} kişide liste fiyatından %${DISCOUNT_WARN_RATE * 100} üzeri indirim var.`);
     setDirty(false);
     const gid = res.data.groupId;
     if (listHref) router.push(withParam(listHref, "panel", `g${gid}`), { scroll: false });
@@ -221,6 +229,9 @@ export function GroupSaleForm({
               >
                 <Trash2 className="size-4" />
               </button>
+              {tour && m.price !== "" && (
+                <DiscountHint listPrice={listPrice} price={Number(m.price)} currency={tour.currency} className="-mt-2 @lg:col-span-3 @lg:text-right @lg:pr-14" />
+              )}
             </div>
           ))}
           {errors.members && <p className="text-sm font-semibold text-red-600">{errors.members}</p>}
@@ -234,6 +245,11 @@ export function GroupSaleForm({
             </button>
             <p className="text-sm text-muted">
               Toplam ücret: <span className="font-bold text-brand-900 tabular-nums">{fmt(totalPrice)}</span>
+              {totalDiscount > 0 && (
+                <>
+                  {" · "}Toplam indirim: <span className="font-semibold tabular-nums">{fmt(totalDiscount)}</span>
+                </>
+              )}
             </p>
           </div>
         </div>

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { recordActivity, type AuditEntry } from "@/lib/activity";
 import type { CurrentUser } from "@/lib/auth";
 import { splitProportional } from "@/lib/split";
+import { discountOf, listPriceOf, percent, tourPriceMap } from "@/lib/sale-pricing";
 import { ADMIN_ONLY, salesAction, invalid, type ActionResult } from "@/lib/action";
 import { getCashPeople, getCashRows, money, shortDate } from "@/lib/sales";
 import {
@@ -243,13 +244,21 @@ function saleChanges(rows: [string, string | number | null | undefined, string |
     .join("; ");
 }
 
+const tourPriceSelect = { price2: true, price3: true, price4: true } as const;
+
+/** İşlem geçmişi için ", liste $1.690, indirim $140 (%8,3)" */
+function discountNote(listPrice: number | null, price: number, currency: string) {
+  const d = discountOf(listPrice, price);
+  return d ? `, liste ${money(listPrice!, currency)}, indirim ${money(d.amount, currency)} (${percent(d.rate)})` : "";
+}
+
 export async function createSale(input: unknown): Promise<ActionResult<{ id: number }>> {
   return salesAction(async (me, audit) => {
     const parsed = saleSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
     const d = parsed.data;
     const [tour, customer] = await Promise.all([
-      prisma.serviceTour.findUnique({ where: { id: d.tourId }, select: { isActive: true, name: true, currency: true } }),
+      prisma.serviceTour.findUnique({ where: { id: d.tourId }, select: { isActive: true, name: true, currency: true, ...tourPriceSelect } }),
       prisma.customer.findUnique({ where: { id: d.customerId }, select: { id: true, fullName: true } }),
     ]);
     if (!tour) return { ok: false, message: "Tur bulunamadı.", fieldErrors: { tourId: "Tur seçiniz" } };
@@ -261,6 +270,7 @@ export async function createSale(input: unknown): Promise<ActionResult<{ id: num
       return { ok: false, message: "Peşinatı alan kişiyi seçin.", fieldErrors: { downPaymentBy: "Kişi seçiniz" } };
 
     const date = new Date(d.date);
+    const listPrice = listPriceOf(tourPriceMap(tour), d.roomSize);
     const sale = await prisma.sale.create({
       data: {
         date,
@@ -269,6 +279,7 @@ export async function createSale(input: unknown): Promise<ActionResult<{ id: num
         note: d.note || null,
         reference: d.reference || null,
         roomSize: d.roomSize ?? null,
+        listPrice,
         price: d.price,
         createdByName: me.name,
         ...(d.downPayment
@@ -281,6 +292,7 @@ export async function createSale(input: unknown): Promise<ActionResult<{ id: num
       entityId: sale.id,
       detail:
         `Satış #${sale.id} eklendi: ${customer.fullName}, ${tour.name}, ${money(d.price, tour.currency)}` +
+        discountNote(listPrice, d.price, tour.currency) +
         (d.downPayment ? `, peşinat ${money(d.downPayment, tour.currency)} (${d.downPaymentMethod ?? "Nakit"}, alan: ${d.downPaymentBy})` : ""),
     });
     return { ok: true, message: `Satış kaydedildi (No: ${sale.id}).`, data: { id: sale.id } };
@@ -300,7 +312,7 @@ export async function updateSale(id: string, input: unknown): Promise<ActionResu
     });
     if (!current) return notFound;
     const [tour, customer, paid] = await Promise.all([
-      prisma.serviceTour.findUnique({ where: { id: d.tourId }, select: { name: true, currency: true } }),
+      prisma.serviceTour.findUnique({ where: { id: d.tourId }, select: { name: true, currency: true, ...tourPriceSelect } }),
       prisma.customer.findUnique({ where: { id: d.customerId }, select: { id: true, fullName: true } }),
       paidOf(saleId),
     ]);
@@ -311,6 +323,9 @@ export async function updateSale(id: string, input: unknown): Promise<ActionResu
     if (d.price < paid)
       return { ok: false, message: `Ücret, tahsil edilen tutardan (${paid}) az olamaz.`, fieldErrors: { price: "Tahsil edilenden az olamaz" } };
 
+    // Tur ve oda aynı kaldıysa satış anındaki liste fiyatı korunur; değiştiyse turun güncel fiyatı alınır
+    const sameRoom = d.tourId === current.tourId && (d.roomSize ?? null) === current.roomSize;
+    const listPrice = sameRoom ? current.listPrice : listPriceOf(tourPriceMap(tour), d.roomSize);
     await prisma.sale.update({
       where: { id: saleId },
       data: {
@@ -320,11 +335,17 @@ export async function updateSale(id: string, input: unknown): Promise<ActionResu
         note: d.note || null,
         reference: d.reference || null,
         roomSize: d.roomSize ?? null,
+        listPrice,
         price: d.price,
       },
     });
     const changes = saleChanges([
       ["Ücret", money(current.price, current.tour.currency), money(d.price, tour.currency)],
+      [
+        "Liste fiyatı",
+        current.listPrice == null ? null : money(current.listPrice, current.tour.currency),
+        listPrice == null ? null : money(listPrice, tour.currency),
+      ],
       ["Tarih", shortDate(current.date), shortDate(d.date)],
       ["Müşteri", current.customer.fullName, customer.fullName],
       ["Tur", current.tour.name, tour.name],
@@ -496,7 +517,7 @@ export async function createGroupSale(input: unknown): Promise<ActionResult<{ gr
     if (!parsed.success) return invalid(parsed.error);
     const d = parsed.data;
     const [tour, customers, group] = await Promise.all([
-      prisma.serviceTour.findUnique({ where: { id: d.tourId }, select: { isActive: true, name: true, currency: true } }),
+      prisma.serviceTour.findUnique({ where: { id: d.tourId }, select: { isActive: true, name: true, currency: true, ...tourPriceSelect } }),
       prisma.customer.findMany({ where: { id: { in: d.members.map((m) => m.customerId) } }, select: { id: true, fullName: true } }),
       d.groupId ? prisma.saleGroup.findUnique({ where: { id: d.groupId }, select: { id: true, name: true } }) : null,
     ]);
@@ -515,6 +536,7 @@ export async function createGroupSale(input: unknown): Promise<ActionResult<{ gr
     const downParts = d.downPayment ? splitProportional(d.downPayment, d.members.map((m) => m.price)) : [];
     const batchId = d.downPayment ? randomUUID() : null;
     const method = d.downPaymentMethod ?? "Nakit";
+    const listPrice = listPriceOf(tourPriceMap(tour), d.roomSize);
 
     const { groupId, groupName, saleIds } = await prisma.$transaction(async (tx) => {
       const g = group ?? (await tx.saleGroup.create({ data: { name: d.groupName!, createdByName: me.name } }));
@@ -529,6 +551,7 @@ export async function createGroupSale(input: unknown): Promise<ActionResult<{ gr
             note: d.note || null,
             reference: d.reference || null,
             roomSize: d.roomSize ?? null,
+            listPrice,
             price: m.price,
             createdByName: me.name,
             ...(downParts[i]
@@ -547,6 +570,7 @@ export async function createGroupSale(input: unknown): Promise<ActionResult<{ gr
         saleId: saleIds[i],
         detail:
           `Satış #${saleIds[i]} eklendi (${groupName}): ${names.get(m.customerId)}, ${tour.name}, ${money(m.price, tour.currency)}` +
+          discountNote(listPrice, m.price, tour.currency) +
           (downParts[i] ? `, peşinat payı ${money(downParts[i], tour.currency)}` : ""),
       })),
     );

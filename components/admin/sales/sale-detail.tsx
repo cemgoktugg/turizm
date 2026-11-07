@@ -12,6 +12,7 @@ import { getActivityFor } from "@/lib/activity";
 import { getCurrentUser } from "@/lib/auth";
 import { getCashPeople, getGroup, inputDate, money, moneyList, shortDate, type getSale } from "@/lib/sales";
 import { cn, currencySymbol, formatDateTime } from "@/lib/utils";
+import { discountOf, percent } from "@/lib/sale-pricing";
 
 export type SaleDetailData = NonNullable<Awaited<ReturnType<typeof getSale>>>;
 
@@ -43,6 +44,7 @@ export async function SaleDetail({
   ]);
   const isAdmin = me?.role === "ADMIN";
   const currencyLabel = currencySymbol(sale.currency).trim() || sale.currency;
+  const discount = discountOf(sale.listPrice, sale.price);
 
   const info: [string, React.ReactNode][] = [
     [
@@ -76,6 +78,23 @@ export async function SaleDetail({
     ["Görevliler", [tour.guide1.fullName, tour.guide2?.fullName].filter(Boolean).join(", ")],
     ["Satış Tarihi", shortDate(sale.date)],
     ["Oda Kişi Sayısı", sale.roomSize ? `${sale.roomSize} kişilik oda` : "—"],
+    [
+      "Liste Fiyatı",
+      sale.listPrice == null ? (
+        "—"
+      ) : (
+        <span key="lp">
+          {money(sale.listPrice, sale.currency)}
+          {discount ? (
+            <span className={cn("ml-2 text-xs font-semibold", discount.warn ? "text-amber-700" : "text-muted")}>
+              İndirim {money(discount.amount, sale.currency)} ({percent(discount.rate)})
+            </span>
+          ) : (
+            <span className="ml-2 text-xs text-muted">İndirim yok</span>
+          )}
+        </span>
+      ),
+    ],
     ["Referans", sale.reference || "—"],
     ["Açıklama", sale.note || "—"],
     ["Kaydeden", `${sale.createdByName ?? "—"} · ${formatDateTime(sale.createdAt)}`],
@@ -109,7 +128,7 @@ export async function SaleDetail({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <StatBox label="Ücret" value={money(sale.price, sale.currency)} />
+        <StatBox label={discount ? "Anlaşılan Ücret" : "Ücret"} value={money(sale.price, sale.currency)} />
         <StatBox label="Ödenen" value={money(sale.paid, sale.currency)} tone="green" />
         {sale.isCancelled ? (
           <StatBox label="İade bekleyen" value={money(sale.refundDue, sale.currency)} tone={sale.refundDue > 0 ? "red" : "green"} />

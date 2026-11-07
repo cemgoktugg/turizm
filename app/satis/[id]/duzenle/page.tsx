@@ -24,6 +24,7 @@ export default async function EditSalePage({ params }: { params: Promise<{ id: s
         saleId={sale.id}
         tours={tours}
         paid={sale.paid}
+        listPrice={sale.listPrice}
         references={references}
         customer={{ id: sale.customer.id, fullName: sale.customer.fullName, tc: sale.customer.tc, phone: sale.customer.phone }}
         defaultValues={{
