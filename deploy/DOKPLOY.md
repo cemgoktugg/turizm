@@ -43,10 +43,13 @@ ADMIN_EMAIL=<panel e-postanız>
 ADMIN_PASSWORD=<en az 10 karakter, harf + rakam>
 ```
 
-**Panel kullanıcıları (isteğe bağlı):** `ALPEREN_PASSWORD`, `OMER_PASSWORD`, `PERSONEL_PASSWORD`
-girilirse `alperen@`, `omer@` ve `personel@nemiraturizm.com` hesapları bu geçici şifrelerle açılır
-(en az 10 karakter, harf + rakam). Yapılan işlemler **Sistem › İşlem Geçmişi** sayfasında görünür.
-Alperen ve Ömer personel yetkisindedir (site + satış); `personel@` hesabı **satış personelidir** ve
+**Panel kullanıcıları (isteğe bağlı):** `OMER_PASSWORD`, `ALPEREN_PASSWORD`, `OFIS_PASSWORD`
+(ve eski `PERSONEL_PASSWORD`) girilirse `omer@` (Ömer Ali Gültekin), `alperen@` (Alperen Gültekin),
+`ofis@` (Ofis) ve `personel@nemiraturizm.com` hesapları bu **geçici** şifrelerle açılır (en az 10
+karakter, harf + rakam). Kullanıcı ilk girişte kendi şifresini belirlemeden panele giremez; belirledikten
+sonra hesaba dokunulmaz ve değişken silinebilir. Kullanıcı henüz kendi şifresini belirlemediyse değişkeni
+değiştirip Redeploy yapmak geçici şifreyi yeniler. Yapılan işlemler **Sistem › İşlem Geçmişi** sayfasında görünür.
+Ömer ve Alperen personel yetkisindedir (site + satış); `ofis@` ve `personel@` hesapları **satış personelidir** ve
 yalnızca Satış Programı'nı (`https://<alan adı>/satis`) görür. Yetkiler yönetici hesabıyla
 **Sistem › Kullanıcılar** sayfasından değiştirilebilir. Tahsilat silme, kasa teslimi ve kullanıcı
 işlemlerini yalnızca `ADMIN_EMAIL` hesabı yapar.

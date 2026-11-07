@@ -11,9 +11,10 @@ const password = process.env.ADMIN_PASSWORD ?? "";
 const prisma = new PrismaClient();
 
 const PANEL_USERS = [
-  { name: "Alperen", email: "alperen@nemiraturizm.com", password: process.env.ALPEREN_PASSWORD, role: "STAFF" },
-  { name: "Ömer", email: "omer@nemiraturizm.com", password: process.env.OMER_PASSWORD, role: "STAFF" },
+  { name: "Ömer Ali Gültekin", email: "omer@nemiraturizm.com", password: process.env.OMER_PASSWORD, role: "STAFF" },
+  { name: "Alperen Gültekin", email: "alperen@nemiraturizm.com", password: process.env.ALPEREN_PASSWORD, role: "STAFF" },
   // SALES: yalnızca Satış Programı (/satis)
+  { name: "Ofis", email: "ofis@nemiraturizm.com", password: process.env.OFIS_PASSWORD, role: "SALES" },
   { name: "Personel", email: "personel@nemiraturizm.com", password: process.env.PERSONEL_PASSWORD, role: "SALES" },
 ];
 
@@ -49,15 +50,32 @@ try {
     }
   }
 
+  // passwordChangedAt boş = geçici şifre: panel ilk girişte kendi şifresini belirlemeden içeri almaz.
+  // Hesap henüz geçici şifredeyse (kullanıcı kendi şifresini belirlemediyse) ad ve geçici şifre
+  // buradaki değerlere eşitlenir; kullanıcı kendi şifresini belirledikten sonra hesaba hiç dokunulmaz.
   for (const u of PANEL_USERS) {
-    if (!u.password || (await prisma.user.findUnique({ where: { email: u.email } }))) continue;
+    if (!u.password) continue;
     if (isWeak(u.password)) {
-      console.warn(`[yönetici] ${u.name} şifresi en az 10 karakter olmalı, harf ve rakam içermeli; hesap oluşturulmadı.`);
+      console.warn(`[yönetici] ${u.name} şifresi en az 10 karakter olmalı, harf ve rakam içermeli; hesap değiştirilmedi.`);
       continue;
     }
-    // passwordChangedAt boş: panel ilk girişte şifresini değiştirmesini ister
-    await prisma.user.create({ data: { name: u.name, email: u.email, password: await bcrypt.hash(u.password, 12), role: u.role } });
-    console.log(`[yönetici] ${u.email} hesabı oluşturuldu.`);
+    const existing = await prisma.user.findUnique({ where: { email: u.email } });
+    if (!existing) {
+      await prisma.user.create({ data: { name: u.name, email: u.email, password: await bcrypt.hash(u.password, 12), role: u.role } });
+      console.log(`[yönetici] ${u.email} hesabı geçici şifreyle oluşturuldu.`);
+      continue;
+    }
+    if (existing.passwordChangedAt) continue; // kendi şifresini belirlemiş
+    const samePassword = await bcrypt.compare(u.password, existing.password);
+    if (samePassword && existing.name === u.name) continue;
+    await prisma.user.update({
+      where: { id: existing.id },
+      data: {
+        name: u.name,
+        ...(samePassword ? {} : { password: await bcrypt.hash(u.password, 12), tokenVersion: { increment: 1 } }),
+      },
+    });
+    console.log(`[yönetici] ${u.email} hesabı güncellendi (${samePassword ? "ad" : "geçici şifre"}).`);
   }
 } finally {
   await prisma.$disconnect();

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getCurrentUser, SESSION_COOKIE } from "@/lib/auth";
+import { getCurrentUser, requireOwnPassword, SESSION_COOKIE } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { prisma } from "@/lib/prisma";
 import { canManageSite } from "@/lib/roles";
@@ -24,6 +24,8 @@ export default async function AdminPanelLayout({ children }: { children: React.R
   }
   // Satış personeli yönetim paneline (site içeriği) giremez; Satış Programı'nda çalışır
   if (!canManageSite(user.role)) redirect(SALES_BASE);
+  // Geçici şifreyle giren kullanıcı önce kendi şifresini belirler
+  await requireOwnPassword(user, "/admin/profile");
 
   const [settings, newLeads, pendingReviews] = await Promise.all([
     getSettings(),

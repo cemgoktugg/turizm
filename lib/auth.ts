@@ -1,11 +1,14 @@
 import "server-only";
 import bcrypt from "bcryptjs";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { cache } from "react";
 import { prisma } from "./prisma";
 import {
+  PATHNAME_HEADER,
   SESSION_COOKIE,
   SESSION_MAX_AGE,
+  isProfilePath,
   signSession,
   verifySession,
 } from "./session";
@@ -48,8 +51,9 @@ export async function checkPassword(userId: string, password: string): Promise<b
 }
 
 /** Oturum çerezini oluşturur */
-export async function createSession(user: { id: string; tokenVersion: number }) {
-  const token = signSession({ sub: user.id, ver: user.tokenVersion });
+export async function createSession(user: { id: string; tokenVersion: number; passwordChangedAt: Date | null }) {
+  // Geçici şifreyle açılan oturum işaretlenir; proxy kullanıcıyı Hesabım'a yönlendirir
+  const token = signSession({ sub: user.id, ver: user.tokenVersion, ...(user.passwordChangedAt === null ? { tmp: true } : {}) });
   const store = await cookies();
   store.set(SESSION_COOKIE, token, {
     httpOnly: true,
@@ -102,4 +106,14 @@ export async function requireAdmin(): Promise<CurrentUser> {
   const user = await getCurrentUser();
   if (!user) throw new Error("Yetkisiz erişim. Lütfen tekrar giriş yapın.");
   return user;
+}
+
+/**
+ * Geçici (ilk verilen) şifreyle giren kullanıcı, kendi şifresini belirleyene kadar
+ * yalnızca Hesabım sayfasını açabilir; diğer sayfalar oraya yönlendirir.
+ */
+export async function requireOwnPassword(user: CurrentUser, profileHref: string) {
+  if (!user.mustChangePassword) return;
+  const pathname = (await headers()).get(PATHNAME_HEADER);
+  if (pathname && !isProfilePath(pathname)) redirect(profileHref);
 }

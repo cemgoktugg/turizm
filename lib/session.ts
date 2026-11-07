@@ -6,6 +6,14 @@ import jwt from "jsonwebtoken";
  */
 
 export const SESSION_COOKIE = "admin_session";
+
+/** Proxy'nin istenen sayfa yolunu layout'lara ilettiği başlık (istemcinin gönderdiği değer ezilir) */
+export const PATHNAME_HEADER = "x-pathname";
+
+/** Geçici şifreli kullanıcı yalnızca Hesabım sayfasına girebilir (/admin/profile, /satis/hesabim) */
+export function isProfilePath(pathname: string) {
+  return /^\/(admin\/profile|satis\/hesabim)\/?$/.test(pathname);
+}
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 gün
 
 const DEV_FALLBACK_SECRET = "dev-only-insecure-secret-do-not-use-in-production";
@@ -34,6 +42,8 @@ export type SessionPayload = {
   sub: string;
   /** Kullanıcının tokenVersion değeri — şifre değişince eski oturumlar düşer */
   ver: number;
+  /** Geçici (ilk verilen) şifreyle açılan oturum: proxy yalnızca Hesabım sayfasına izin verir */
+  tmp?: boolean;
 };
 
 export function signSession(payload: SessionPayload): string {
@@ -49,7 +59,7 @@ export function verifySession(token: string | undefined | null): SessionPayload 
       typeof decoded.sub === "string" &&
       typeof (decoded as { ver?: unknown }).ver === "number"
     ) {
-      return { sub: decoded.sub, ver: (decoded as { ver: number }).ver };
+      return { sub: decoded.sub, ver: (decoded as { ver: number }).ver, tmp: (decoded as { tmp?: unknown }).tmp === true };
     }
     return null;
   } catch {

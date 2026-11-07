@@ -94,7 +94,9 @@ export function PasswordForm({ mustChange }: { mustChange: boolean }) {
     if (res.ok) {
       toast.success(res.message);
       reset();
-      router.refresh();
+      // İlk girişte şifre belirlendiyse programın ana sayfasına geç (Hesabım'a kilit kalktı)
+      if (mustChange) router.replace(window.location.pathname.startsWith("/satis") ? "/satis" : "/admin");
+      else router.refresh();
     } else {
       if (res.fieldErrors?.currentPassword) setError("currentPassword", { message: res.fieldErrors.currentPassword });
       toast.error(res.message);
