@@ -50,7 +50,7 @@ export function CustomerPicker({
             <span className="text-muted">#{value.id}</span> {value.fullName}
           </p>
           <p className="text-xs text-muted">
-            T.C. {value.tc} · {value.phone}
+            {[value.tc && `T.C. ${value.tc}`, value.phone].filter(Boolean).join(" · ") || "T.C. / telefon girilmedi"}
           </p>
         </div>
         <button
@@ -117,7 +117,7 @@ export function CustomerPicker({
                 <span className="text-muted">#{c.id}</span> {c.fullName}
               </span>
               <span className="text-xs text-muted">
-                {c.tc} · {c.phone}
+                {[c.tc, c.phone].filter(Boolean).join(" · ")}
               </span>
             </button>
           ))}

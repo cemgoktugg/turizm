@@ -81,13 +81,14 @@ export async function deleteStaff(id: string): Promise<ActionResult> {
 /* Müşteriler                                                           */
 /* ------------------------------------------------------------------ */
 
-export type CustomerOption = { id: number; fullName: string; tc: string; phone: string };
+export type CustomerOption = { id: number; fullName: string; tc: string | null; phone: string | null };
 
 function customerData(d: CustomerInput) {
-  return { fullName: d.fullName, tc: d.tc, phone: d.phone, note: d.note || null };
+  return { fullName: d.fullName, tc: d.tc || null, phone: d.phone || null, note: d.note || null };
 }
 
-async function tcTaken(tc: string, exceptId?: number) {
+async function tcTaken(tc: string | undefined, exceptId?: number) {
+  if (!tc) return null;
   const other = await prisma.customer.findUnique({ where: { tc }, select: { id: true, fullName: true } });
   return other && other.id !== exceptId ? other : null;
 }

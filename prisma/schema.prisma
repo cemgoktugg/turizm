@@ -388,8 +388,8 @@ model ServiceTour {
 model Customer {
   id        Int      @id @default(autoincrement())
   fullName  String
-  tc        String   @unique
-  phone     String
+  tc        String?  @unique // opsiyonel; boşsa NULL (SQLite'ta birden çok NULL unique'i bozmaz)
+  phone     String? // opsiyonel
   note      String?
   sales     Sale[]
   createdAt DateTime @default(now())

@@ -191,7 +191,7 @@ async function debtorTable(p: ReportParams): Promise<ReportTable> {
     ],
     rows: rows.map((r) => ({
       href: `${p.base ?? SALES_BASE}/musteriler/${r.customer.id}`,
-      cells: [r.customer.id, r.customer.fullName, r.customer.tc, r.customer.phone, r.count, m(r.balance, r.currency)],
+      cells: [r.customer.id, r.customer.fullName, r.customer.tc ?? "—", r.customer.phone ?? "—", r.count, m(r.balance, r.currency)],
     })),
     footer: ["Toplam", "", "", "", "", moneyList(total)],
   };

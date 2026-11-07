@@ -54,10 +54,15 @@ export async function SaleDetail({
     [
       "T.C. / Telefon",
       <span key="p">
-        {customer.tc} ·{" "}
-        <a href={`tel:${customer.phone.replace(/\s/g, "")}`} className="hover:text-brand-600">
-          {customer.phone}
-        </a>
+        {customer.tc ?? "—"}
+        {" · "}
+        {customer.phone ? (
+          <a href={`tel:${customer.phone.replace(/\s/g, "")}`} className="hover:text-brand-600">
+            {customer.phone}
+          </a>
+        ) : (
+          "—"
+        )}
       </span>,
     ],
     [

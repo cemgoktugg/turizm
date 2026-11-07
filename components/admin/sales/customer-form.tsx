@@ -64,10 +64,10 @@ export function CustomerFields({
       <Field label="Ad Soyad" required error={errors.fullName?.message}>
         <Input {...register("fullName")} autoFocus />
       </Field>
-      <Field label="T.C. Kimlik No" required error={errors.tc?.message}>
+      <Field label="T.C. Kimlik No" error={errors.tc?.message}>
         <Input inputMode="numeric" maxLength={11} {...register("tc")} />
       </Field>
-      <Field label="Telefon" required error={errors.phone?.message}>
+      <Field label="Telefon" error={errors.phone?.message}>
         <Input type="tel" placeholder="05xx xxx xx xx" {...register("phone")} />
       </Field>
       {!compact && (

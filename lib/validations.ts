@@ -490,7 +490,12 @@ export function isValidTc(tc: string): boolean {
   return d.slice(0, 10).reduce((a, b) => a + b, 0) % 10 === d[10];
 }
 
-const tcField = z.string().trim().refine(isValidTc, "Geçerli bir T.C. kimlik numarası giriniz");
+/** Opsiyonel T.C.: boş bırakılabilir, doluysa algoritma kontrolünden geçmeli */
+const tcField = z
+  .string()
+  .trim()
+  .refine((v) => v === "" || isValidTc(v), "Geçerli bir T.C. kimlik numarası giriniz")
+  .optional();
 
 const salesPhone = z
   .string()
@@ -520,20 +525,24 @@ const requiredDate = (label: string) =>
 
 export const staffSchema = z.object({
   fullName: z.string().trim().min(3, "Ad soyad gerekli").max(100),
-  tc: z
-    .string()
-    .trim()
-    .refine((v) => v === "" || isValidTc(v), "Geçerli bir T.C. kimlik numarası giriniz")
-    .optional(),
+  tc: tcField,
   phone: salesPhone,
   note: optionalText(1000),
 });
 export type StaffInput = z.infer<typeof staffSchema>;
 
+/** Müşteri telefonu opsiyonel: boş bırakılabilir, doluysa en az 7 rakam */
+const optionalSalesPhone = z
+  .string()
+  .trim()
+  .max(30)
+  .refine((v) => v === "" || (v.match(/\d/g) ?? []).length >= 7, "Geçerli bir telefon numarası giriniz")
+  .optional();
+
 export const customerSchema = z.object({
   fullName: z.string().trim().min(3, "Ad soyad gerekli").max(100),
   tc: tcField,
-  phone: salesPhone,
+  phone: optionalSalesPhone,
   note: optionalText(1000),
 });
 export type CustomerInput = z.infer<typeof customerSchema>;

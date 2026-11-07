@@ -93,11 +93,15 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                           {c.fullName}
                         </Link>
                       </td>
-                      <td className={td}>{c.tc}</td>
+                      <td className={td}>{c.tc ?? "—"}</td>
                       <td className={td}>
-                        <a href={`tel:${c.phone.replace(/\s/g, "")}`} className="hover:text-brand-600">
-                          {c.phone}
-                        </a>
+                        {c.phone ? (
+                          <a href={`tel:${c.phone.replace(/\s/g, "")}`} className="hover:text-brand-600">
+                            {c.phone}
+                          </a>
+                        ) : (
+                          "—"
+                        )}
                       </td>
                       <td className={cn(td, "text-center")}>{saleCounts.get(c.id) ?? 0}</td>
                       <td className={cn(td, num, "font-semibold", balance ? "text-red-600" : "text-muted")}>{balance ? moneyList(balance) : "—"}</td>
