@@ -134,21 +134,21 @@ export function SaleRowMenu({
               {isCancelled ? "İptali Geri Al" : "İptal Et"}
             </button>
             <div className="my-1 border-t border-border" />
-            {hasPayments ? (
-              <p className="flex items-start gap-2.5 px-3.5 py-2 text-xs text-muted" role="menuitem" aria-disabled>
-                <Trash2 className="mt-0.5 size-4 shrink-0 opacity-50" />
-                Tahsilatı olduğu için silinemez; iptal edebilirsiniz.
-              </p>
-            ) : (
-              <button
-                type="button"
-                role="menuitem"
-                className={cn(item, "text-red-600 hover:bg-red-50")}
-                onClick={() => run(deleteSale, `Satış #${id} kalıcı olarak silinsin mi? Bu işlem geri alınamaz.`)}
-              >
-                <Trash2 className="size-4" /> Sil
-              </button>
-            )}
+            {/* Sil her zaman görünür; tahsilatı olan satışta pasif ve sebebi yazılı */}
+            <button
+              type="button"
+              role="menuitem"
+              disabled={hasPayments}
+              title={hasPayments ? "Tahsilatı olan satış silinemez; iptal edebilirsiniz." : undefined}
+              className={cn(item, "items-start text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:text-red-300 disabled:hover:bg-transparent")}
+              onClick={() => run(deleteSale, `Satış #${id} kalıcı olarak silinsin mi? Bu işlem geri alınamaz.`)}
+            >
+              <Trash2 className="mt-0.5 size-4 shrink-0" />
+              <span>
+                Sil
+                {hasPayments && <span className="block text-xs font-normal text-muted">Tahsilatı var; silinemez, iptal edebilirsiniz.</span>}
+              </span>
+            </button>
           </div>,
           document.body,
         )}
