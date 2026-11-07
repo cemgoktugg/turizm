@@ -101,7 +101,15 @@ export async function loadSales(where: Prisma.SaleWhereInput = {}) {
   const sales = await prisma.sale.findMany({ where, include: saleInclude, orderBy: { id: "desc" } });
   return sales.map(({ payments, ...s }) => {
     const paid = payments.reduce((t, p) => t + p.amount, 0);
-    return { ...s, currency: s.tour.currency, paid, balance: s.isCancelled ? 0 : s.price - paid, refundDue: s.isCancelled ? Math.max(paid, 0) : 0 };
+    return {
+      ...s,
+      currency: s.tour.currency,
+      paid,
+      // Tahsilat / iade kaydı sayısı: kaydı olan satış silinemez
+      paymentCount: payments.length,
+      balance: s.isCancelled ? 0 : s.price - paid,
+      refundDue: s.isCancelled ? Math.max(paid, 0) : 0,
+    };
   });
 }
 export type SaleRow = Awaited<ReturnType<typeof loadSales>>[number];

@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { AdminPageHeader, AdminCard, EmptyState } from "@/components/admin/ui";
-import { EditLink } from "@/components/admin/row-actions";
 import { FilterBar, FilterSelect, StatBox, th, td, num, theadRow, qs } from "@/components/admin/sales/ui";
-import { SaleCancelButton } from "@/components/admin/sales/sale-cancel-button";
+import { SaleRowMenu } from "@/components/admin/sales/sale-row-menu";
 import { NewSale } from "@/components/admin/sales/new-sale";
 import { GroupDetail } from "@/components/admin/sales/group-detail";
 import { SaleSelection, SelectBox, SelectionBar } from "@/components/admin/sales/group-client";
@@ -188,9 +187,14 @@ export default async function SalesPage({
                         <p className="text-xs text-muted tabular-nums">{formatDateTime(s.createdAt)}</p>
                       </td>
                       <td className={cn(td, stickyEnd, "bg-white")}>
-                        <div className="flex items-center justify-end gap-2">
-                          <EditLink href={`${base}/${s.id}/duzenle`} />
-                          <SaleCancelButton id={s.id} isCancelled={s.isCancelled} short />
+                        <div className="flex justify-end">
+                          <SaleRowMenu
+                            id={s.id}
+                            isCancelled={s.isCancelled}
+                            hasPayments={s.paymentCount > 0}
+                            detailHref={panelHref(String(s.id))}
+                            editHref={`${base}/${s.id}/duzenle`}
+                          />
                         </div>
                       </td>
                     </tr>
