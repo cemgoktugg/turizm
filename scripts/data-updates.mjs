@@ -4,8 +4,10 @@
 // Hata olursa güncelleme geri alınır, site yine de açılır (bir sonraki açılışta yeniden denenir).
 import { PrismaClient } from "@prisma/client";
 import { umreSeferleri202627 } from "./data/umre-seferleri-2026-27.mjs";
+import { gercekFotograflar } from "./data/gercek-fotograflar.mjs";
 
-const UPDATES = [umreSeferleri202627];
+// Sırayla uygulanır (yeni seferler önce eklenir, fotoğraflar sonra onların kapaklarını da günceller)
+const UPDATES = [umreSeferleri202627, gercekFotograflar];
 
 const prisma = new PrismaClient();
 try {
