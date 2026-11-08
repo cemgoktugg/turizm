@@ -93,7 +93,7 @@ const saleInclude = {
   tour: { select: { id: true, name: true, period: true, currency: true, departureDate: true, returnDate: true } },
   customer: { select: { id: true, fullName: true, tc: true, phone: true } },
   group: { select: { id: true, name: true } },
-  payments: { select: { amount: true } },
+  payments: { select: { id: true, date: true, amount: true }, orderBy: { id: "asc" } },
 } satisfies Prisma.SaleInclude;
 
 /** Satışları ödenen / kalan hesaplanmış olarak getirir (iptal edilenlerde kalan 0) */
@@ -107,6 +107,8 @@ export async function loadSales(where: Prisma.SaleWhereInput = {}) {
       paid,
       // Tahsilat / iade kaydı sayısı: kaydı olan satış silinemez
       paymentCount: payments.length,
+      /** Makbuz menüsü için tahsilat / iade kayıtları (eskiden yeniye) */
+      payments,
       balance: s.isCancelled ? 0 : s.price - paid,
       refundDue: s.isCancelled ? Math.max(paid, 0) : 0,
     };

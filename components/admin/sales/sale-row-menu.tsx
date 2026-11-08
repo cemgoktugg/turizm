@@ -5,14 +5,17 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Ban, Eye, Loader2, MoreHorizontal, Pencil, RotateCcw, Trash2 } from "lucide-react";
+import { Ban, Eye, Loader2, MoreHorizontal, Pencil, ReceiptText, RotateCcw, Trash2 } from "lucide-react";
 import { deleteSale, toggleSaleCancel } from "@/app/actions/sales";
+import { receiptHref } from "@/lib/sales-base";
 import { cn } from "@/lib/utils";
 
-const MENU_WIDTH = 208;
+const MENU_WIDTH = 240;
+/** Menüde gösterilen en fazla makbuz (en yeniler); fazlası satış detayında */
+const MAX_RECEIPTS = 4;
 
 /**
- * Satış listesindeki "⋯" menüsü: Detay, Düzenle, İptal Et / Geri Al, Sil.
+ * Satış listesindeki "⋯" menüsü: Detay, Makbuzlar, Düzenle, İptal Et / Geri Al, Sil.
  * Tablo yatay kaydırmalı ve sütun sabit (sticky) olduğundan menü body'ye
  * açılır ve konumu butona göre hesaplanır; kaydırınca kapanır.
  */
@@ -20,6 +23,7 @@ export function SaleRowMenu({
   id,
   isCancelled,
   hasPayments,
+  receipts,
   detailHref,
   editHref,
 }: {
@@ -27,6 +31,8 @@ export function SaleRowMenu({
   isCancelled: boolean;
   /** Tahsilatı olan satış silinemez (yalnızca iptal edilebilir) */
   hasPayments: boolean;
+  /** Tahsilat / iade kayıtları (eskiden yeniye); her biri için makbuz bağlantısı */
+  receipts: { id: number; label: string; date: string }[];
   detailHref: string;
   editHref: string;
 }) {
@@ -83,6 +89,7 @@ export function SaleRowMenu({
     });
   }
 
+  const shown = receipts.slice(-MAX_RECEIPTS).reverse();
   const item = "flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm font-medium text-brand-900 hover:bg-cream-50";
 
   return (
@@ -114,6 +121,24 @@ export function SaleRowMenu({
             <Link href={detailHref} scroll={false} role="menuitem" className={item} onClick={() => setOpen(false)}>
               <Eye className="size-4 text-muted" /> Detay / Tahsilat
             </Link>
+            {shown.length > 0 && (
+              <>
+                <div className="my-1 border-t border-border" />
+                {shown.map((r) => (
+                  <Link key={r.id} href={receiptHref(r.id)} role="menuitem" className={cn(item, "items-start")} onClick={() => setOpen(false)}>
+                    <ReceiptText className="mt-0.5 size-4 shrink-0 text-brand-600" />
+                    <span className="min-w-0">
+                      {r.label}
+                      <span className="block text-xs font-normal text-muted tabular-nums">{r.date}</span>
+                    </span>
+                  </Link>
+                ))}
+                {receipts.length > MAX_RECEIPTS && (
+                  <p className="px-3.5 pb-1 text-xs text-muted">Diğer {receipts.length - MAX_RECEIPTS} makbuz satış detayında.</p>
+                )}
+                <div className="my-1 border-t border-border" />
+              </>
+            )}
             <Link href={editHref} role="menuitem" className={item} onClick={() => setOpen(false)}>
               <Pencil className="size-4 text-muted" /> Düzenle
             </Link>

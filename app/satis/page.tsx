@@ -192,6 +192,11 @@ export default async function SalesPage({
                             id={s.id}
                             isCancelled={s.isCancelled}
                             hasPayments={s.paymentCount > 0}
+                            receipts={s.payments.map((p) => ({
+                              id: p.id,
+                              label: `${p.amount < 0 ? "İade makbuzu" : "Makbuz"} · ${money(Math.abs(p.amount), s.currency)}`,
+                              date: shortDate(p.date),
+                            }))}
                             detailHref={panelHref(String(s.id))}
                             editHref={`${base}/${s.id}/duzenle`}
                           />
