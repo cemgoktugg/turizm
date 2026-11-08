@@ -4,6 +4,7 @@ import { AdminCard } from "@/components/admin/ui";
 import { DeleteButton } from "@/components/admin/row-actions";
 import { StatBox } from "@/components/admin/sales/ui";
 import { ActionButton, GroupEditForm, GroupPaymentForm } from "@/components/admin/sales/group-client";
+import { ReceiptLink } from "@/components/admin/sales/sale-detail";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { deleteGroup, deletePayment, removeFromGroup } from "@/app/actions/sales";
@@ -156,6 +157,7 @@ export async function GroupDetail({
                   </p>
                   <p className="mt-0.5 text-xs text-muted">{b.parts.map((p) => `${p.name} ${money(p.amount, b.currency)}`).join(" · ")}</p>
                 </div>
+                <ReceiptLink paymentId={b.paymentId} />
                 {isAdmin && <DeleteButton action={deletePayment} id={String(b.paymentId)} label="Bu grup tahsilatı tüm kişilerden silinsin mi?" />}
               </li>
             ))}

@@ -16,6 +16,7 @@ import { CustomerPicker } from "./customer-picker";
 import type { SaleTourOption } from "./sale-form";
 import { useSalesBase } from "./use-sales-base";
 import { withParam } from "./ui";
+import { toastWithReceipt } from "./receipt-toolbar";
 import { DiscountHint } from "./discount-hint";
 import { DISCOUNT_WARN_RATE, discountOf, listPriceOf } from "@/lib/sale-pricing";
 
@@ -125,7 +126,7 @@ export function GroupSaleForm({
       setErrors(res.fieldErrors ?? {});
       return void toast.error(res.message);
     }
-    toast.success(res.message);
+    toastWithReceipt(res.message, res.data.paymentId, (href) => router.push(href));
     if (warnCount) toast.warning(`Dikkat: ${warnCount} kişide liste fiyatından %${DISCOUNT_WARN_RATE * 100} üzeri indirim var.`);
     setDirty(false);
     const gid = res.data.groupId;

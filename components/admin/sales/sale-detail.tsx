@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Pencil, UsersRound } from "lucide-react";
+import { Pencil, ReceiptText, UsersRound } from "lucide-react";
 import { AdminCard } from "@/components/admin/ui";
 import { DeleteButton } from "@/components/admin/row-actions";
 import { StatBox, th, td, num, theadRow } from "@/components/admin/sales/ui";
@@ -13,6 +13,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getCashPeople, getGroup, inputDate, money, moneyList, shortDate, type getSale } from "@/lib/sales";
 import { cn, currencySymbol, formatDateTime } from "@/lib/utils";
 import { discountOf, percent } from "@/lib/sale-pricing";
+import { receiptHref } from "@/lib/sales-base";
 
 export type SaleDetailData = NonNullable<Awaited<ReturnType<typeof getSale>>>;
 
@@ -200,6 +201,7 @@ export async function SaleDetail({
                     {p.note ? ` · ${p.note}` : ""}
                   </p>
                 </div>
+                <ReceiptLink paymentId={p.id} refund={p.amount < 0} />
                 {isAdmin && <DeleteButton action={deletePayment} id={String(p.id)} label={deleteLabel(p.amount, p.batchId)} />}
               </li>
             ))}
@@ -245,7 +247,10 @@ export async function SaleDetail({
                       <p className="text-xs text-muted tabular-nums">{formatDateTime(p.createdAt)}</p>
                     </td>
                     <td className={cn(td, "text-right")}>
-                      {isAdmin && <DeleteButton action={deletePayment} id={String(p.id)} label={deleteLabel(p.amount, p.batchId)} />}
+                      <div className="flex items-center justify-end gap-2">
+                        <ReceiptLink paymentId={p.id} refund={p.amount < 0} />
+                        {isAdmin && <DeleteButton action={deletePayment} id={String(p.id)} label={deleteLabel(p.amount, p.batchId)} />}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -278,6 +283,19 @@ export async function SaleDetail({
         )}
       </AdminCard>
     </div>
+  );
+}
+
+/** Tahsilatın / iadenin yazdırılabilir makbuzu */
+export function ReceiptLink({ paymentId, refund = false }: { paymentId: number; refund?: boolean }) {
+  return (
+    <Link
+      href={receiptHref(paymentId)}
+      title={refund ? "İade makbuzunu aç / yazdır" : "Tahsilat makbuzunu aç / yazdır"}
+      className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-border px-2.5 text-xs font-semibold text-brand-700 transition hover:bg-brand-50"
+    >
+      <ReceiptText className="size-4" /> Makbuz
+    </Link>
   );
 }
 

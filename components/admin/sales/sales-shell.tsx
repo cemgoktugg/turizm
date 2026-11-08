@@ -44,8 +44,9 @@ export function SalesShell({
   );
 
   return (
-    <div className="min-h-dvh bg-cream-100">
-      <div className="sticky top-0 z-30 shadow-sm">
+    <div className="min-h-dvh bg-cream-100 print:min-h-0 print:bg-white">
+      {/* Yazdırırken (ör. makbuz) yalnızca sayfa içeriği basılır */}
+      <div className="sticky top-0 z-30 shadow-sm print:hidden">
         <header className="flex h-14 items-center gap-3 bg-brand-950 px-4 lg:px-8">
           <Link href={SALES_BASE} className="flex min-w-0 items-center gap-3" aria-label={`${brand.siteName} Satış Programı`}>
             <SmartImage src={brand.logo} alt={brand.siteName} loading="eager" className="h-8 w-auto max-w-28 object-contain object-left" />
@@ -121,7 +122,7 @@ export function SalesShell({
       </div>
 
       {user.mustChangePassword && !pathname.startsWith(PROFILE_HREF) && (
-        <div className="flex flex-wrap items-center gap-3 border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 lg:px-8">
+        <div className="flex flex-wrap items-center gap-3 border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 lg:px-8 print:hidden">
           <AlertTriangle className="size-5 shrink-0" />
           <span className="flex-1">
             <strong>Güvenlik uyarısı:</strong> Hesabınız hâlâ ilk verilen şifreyle kullanılıyor. Lütfen şifrenizi değiştirin.
@@ -132,7 +133,7 @@ export function SalesShell({
         </div>
       )}
 
-      <main className="p-4 lg:p-8">{children}</main>
+      <main className="p-4 lg:p-8 print:p-0">{children}</main>
     </div>
   );
 }

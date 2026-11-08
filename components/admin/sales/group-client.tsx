@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/form-controls";
 import { cn, formatPrice } from "@/lib/utils";
 import { withParam } from "./ui";
+import { toastWithReceipt } from "./receipt-toolbar";
 
 /* ------------------------------------------------------------------ */
 /* Onaylı işlem düğmesi (gruptan çıkar, grubu dağıt…)                   */
@@ -166,7 +167,7 @@ export function GroupPaymentForm({
         start(async () => {
           const res = await addGroupPayment(String(groupId), { ...form, parts: members.map((m, i) => ({ saleId: m.saleId, amount: nums[i] })) });
           if (!res.ok) return void toast.error(res.message);
-          toast.success(res.message);
+          toastWithReceipt(res.message, res.data?.paymentId, (href) => router.push(href));
           router.refresh();
         });
       }}

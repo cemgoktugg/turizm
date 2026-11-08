@@ -16,6 +16,7 @@ import { CustomerPicker } from "./customer-picker";
 import { currencySymbol, formatPrice } from "@/lib/utils";
 import { useSalesBase } from "./use-sales-base";
 import { withParam } from "./ui";
+import { toastWithReceipt } from "./receipt-toolbar";
 import { DiscountHint } from "./discount-hint";
 import { discountOf, listPriceOf, percent } from "@/lib/sale-pricing";
 
@@ -105,7 +106,7 @@ export function SaleForm({
   async function onSubmit(values: SaleInput) {
     const res = saleId ? await updateSale(String(saleId), values) : await createSale(values);
     if (!res.ok) return void toast.error(res.message);
-    toast.success(res.message);
+    toastWithReceipt(res.message, (res.data as { paymentId?: number } | undefined)?.paymentId, (href) => router.push(href));
     const d = discountOf(listPrice, values.price);
     if (d?.warn) toast.warning(`Dikkat: liste fiyatından ${percent(d.rate)} indirimle kaydedildi.`);
     reset(getValues());

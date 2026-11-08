@@ -9,6 +9,7 @@ import { Loader2, Plus, Undo2 } from "lucide-react";
 import { paymentSchema, PAYMENT_METHODS, type PaymentInput } from "@/lib/validations";
 import { addPayment, addRefund } from "@/app/actions/sales";
 import { Button } from "@/components/ui/button";
+import { toastWithReceipt } from "./receipt-toolbar";
 import { Input, Select, Field } from "@/components/ui/form-controls";
 
 type FormIn = z.input<typeof paymentSchema>;
@@ -50,7 +51,7 @@ export function PaymentForm({
       if (res.fieldErrors?.receivedBy) setError("receivedBy", { message: res.fieldErrors.receivedBy });
       return void toast.error(res.message);
     }
-    toast.success(res.message);
+    toastWithReceipt(res.message, res.data?.paymentId, (href) => router.push(href));
     // Sayfa yenilenince form, yeni kalan tutarla baştan kurulur (key={paid})
     router.refresh();
   }
