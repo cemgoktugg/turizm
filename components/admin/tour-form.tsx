@@ -441,7 +441,7 @@ export function TourForm({ categories, hotels, tourId, slug, defaultValues }: Pr
                       <Input placeholder="https://youtu.be/..." {...register(`hotels.${i}.videoUrl`)} />
                     </Field>
                     <Field label="Detay Bağlantısı (otel sitesi)" error={e?.link?.message} className="lg:col-span-2">
-                      <Input placeholder="Boşsa 'Haritada göster' çıkar" {...register(`hotels.${i}.link`)} />
+                      <Input placeholder="Boşsa buton gösterilmez" {...register(`hotels.${i}.link`)} />
                     </Field>
                   </div>
                 </div>

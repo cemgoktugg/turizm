@@ -28,7 +28,7 @@ import { FAQAccordion } from "@/components/site/faq-accordion";
 import { Prose } from "@/components/site/prose";
 import { TourBookingProvider } from "@/components/site/tour-detail/booking-dialog";
 import { TourGallery } from "@/components/site/tour-detail/gallery";
-import { HotelCards, mapSearchUrl } from "@/components/site/tour-detail/hotel-cards";
+import { HotelCards } from "@/components/site/tour-detail/hotel-cards";
 import { FlightLegs } from "@/components/site/tour-detail/flight-legs";
 import { TourSidebar } from "@/components/site/tour-detail/tour-sidebar";
 import { SectionNav, type SectionKey } from "@/components/site/tour-detail/section-nav";
@@ -97,8 +97,6 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
   const galleryImages = [tour.coverImage, ...tour.images.map((i) => i.url)].filter(
     (v, i, arr): v is string => Boolean(v) && arr.indexOf(v) === i,
   );
-  const firstHotel = tour.hotels[0];
-  const mapUrl = firstHotel ? mapSearchUrl(firstHotel.name, firstHotel.city) : null;
 
   const included = splitLines(tour.includedServices);
   const excluded = splitLines(tour.excludedServices);
@@ -241,7 +239,7 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
           {/* Galeri + fiyat kutusu + oteller + uçuşlar */}
           <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:grid-rows-[auto_1fr]">
             <div className="lg:col-start-1 lg:row-start-1">
-              <TourGallery images={galleryImages} title={tour.title} videoUrl={tour.videoUrl} mapUrl={mapUrl} labels={d} />
+              <TourGallery images={galleryImages} title={tour.title} videoUrl={tour.videoUrl} labels={d} />
             </div>
 
             <aside className="lg:col-start-2 lg:row-span-2 lg:row-start-1">

@@ -26,10 +26,6 @@ export type HotelLabels = {
   mapButton: string;
 };
 
-export function mapSearchUrl(name: string, city: string) {
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${name} ${city}`)}`;
-}
-
 /** Mekke / Medine otel kartları: görsel, gece sayısı, yıldız, mesafe, video ve detay */
 export function HotelCards({ hotels, labels }: { hotels: HotelCardData[]; labels: HotelLabels }) {
   if (!hotels.length) return null;
@@ -71,6 +67,7 @@ export function HotelCards({ hotels, labels }: { hotels: HotelCardData[]; labels
               </InfoRow>
             )}
 
+            {(h.videoUrl || h.link) && (
             <div className="mt-auto flex flex-wrap gap-2 pt-1">
               {h.videoUrl && (
                 <VideoButton
@@ -80,16 +77,19 @@ export function HotelCards({ hotels, labels }: { hotels: HotelCardData[]; labels
                   <Play className="size-3.5 fill-current" /> {labels.videoButton}
                 </VideoButton>
               )}
-              <a
-                href={h.link || mapSearchUrl(h.name, h.city)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-bold text-brand-800 transition hover:bg-cream-50"
-              >
-                {h.link ? <ExternalLink className="size-3.5" /> : <MapPin className="size-3.5" />}
-                {h.link ? labels.hotelDetail : labels.mapButton}
-              </a>
+              {/* Yalnızca panelden otel bağlantısı girildiyse; harita bağlantısı gösterilmez */}
+              {h.link && (
+                <a
+                  href={h.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-bold text-brand-800 transition hover:bg-cream-50"
+                >
+                  <ExternalLink className="size-3.5" /> {labels.hotelDetail}
+                </a>
+              )}
             </div>
+            )}
           </div>
         </article>
       ))}
