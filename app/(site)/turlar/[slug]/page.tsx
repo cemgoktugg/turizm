@@ -2,19 +2,24 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
+  Baby,
   CalendarDays,
   CalendarX2,
   Check,
   ChevronRight,
   CircleHelp,
   Clock,
+  FileCheck,
   FileText,
   Hash,
   House,
+  Info,
   ListChecks,
   MapPin,
   Megaphone,
   Plane,
+  ReceiptText,
+  ScrollText,
   Star,
   X,
 } from "lucide-react";
@@ -62,6 +67,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 /** "İstanbul – Medine · 13:20" */
+/** Değerlendirmeler yerine umre bilgi bölümlerinin gösterildiği kategoriler */
+const UMRE_CATEGORIES = new Set(["umre", "luks-umre", "ramazan-umresi"]);
+
 function routeText(leg?: { fromCity: string | null; toCity: string | null; time: string | null }) {
   if (!leg) return null;
   const route = [leg.fromCity, leg.toCity].filter(Boolean).join(" – ");
@@ -74,7 +82,7 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
   if (!tour) notFound();
 
   const past = isPastTour(tour.departureDate);
-  const [settings, booking, ui, turlarPage, general, wa, dates, nearest, rates] = await Promise.all([
+  const [settings, booking, ui, turlarPage, general, wa, dates, nearest, rates, umreTabs] = await Promise.all([
     getSettings(),
     getContent("shared.booking"),
     getContent("ui.tours"),
@@ -89,6 +97,7 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
       take: 3,
     }),
     getTryRates(),
+    getContent("umre.tourTabs"),
   ]);
 
   const { detail: d, sidebar: sb, sections: s, reviews: rv } = ui;
@@ -101,6 +110,21 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
   const included = splitLines(tour.includedServices);
   const excluded = splitLines(tour.excludedServices);
   const documents = splitLines(tour.requiredDocuments);
+
+  // Umre turlarında değerlendirmeler yerine bilgi bölümleri (Gerekli Evraklar, Çocuk Ücretleri…); metni boş olan gösterilmez
+  const isUmre = UMRE_CATEGORIES.has(tour.category?.slug ?? "");
+  const childPrices = tour.prices.filter((p) => /yaş/i.test(p.roomType));
+  const umreSections = isUmre
+    ? (
+        [
+          { id: "gerekli-evraklar", key: "documents", data: umreTabs.documents, icon: FileCheck, show: documents.length > 0 },
+          { id: "odeme-ve-iptal", key: "payment", data: umreTabs.payment, icon: ReceiptText, show: false },
+          { id: "cocuk-ucretleri", key: "children", data: umreTabs.children, icon: Baby, show: childPrices.length > 0 },
+          { id: "onemli-notlar", key: "notes", data: umreTabs.notes, icon: Info, show: false },
+          { id: "umre-sozlesmesi", key: "contract", data: umreTabs.contract, icon: ScrollText, show: false },
+        ] as const
+      ).filter((t) => t.data.title.trim() && (t.data.content.trim() || t.show))
+    : [];
 
   const facts = [
     { icon: Hash, label: d.factCode, value: tour.code },
@@ -134,10 +158,11 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
   const nav: { id: string; key: SectionKey; label: string; show: boolean }[] = [
     { id: "genel-bakis", key: "overview", label: s.navOverview, show: Boolean(tour.description) },
     { id: "tarihler", key: "dates", label: s.navDates, show: showDates },
-    { id: "hizmetler", key: "services", label: s.navServices, show: included.length + excluded.length + documents.length > 0 },
+    { id: "hizmetler", key: "services", label: s.navServices, show: included.length + excluded.length + (isUmre ? 0 : documents.length) > 0 },
     { id: "program", key: "program", label: s.navProgram, show: tour.dayPrograms.length > 0 },
     { id: "sss", key: "faq", label: s.navFaq, show: tour.faqs.length > 0 },
-    { id: "degerlendirmeler", key: "reviews", label: s.navReviews, show: true },
+    ...umreSections.map((t) => ({ id: t.id, key: t.key as SectionKey, label: t.data.title, show: true })),
+    { id: "degerlendirmeler", key: "reviews", label: s.navReviews, show: !isUmre },
   ];
   const navItems = nav.filter((n) => n.show).map(({ id, key, label }) => ({ id, key, label }));
 
@@ -303,7 +328,7 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
               </Section>
             )}
 
-            {included.length + excluded.length + documents.length > 0 && (
+            {included.length + excluded.length + (isUmre ? 0 : documents.length) > 0 && (
               <Section id="hizmetler" title={s.servicesTitle} icon={<ListChecks className="size-5" />}>
                 <div className="grid gap-8 md:grid-cols-2">
                   {included.length > 0 && (
@@ -313,19 +338,13 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
                     <ServiceList title={s.excludedTitle} items={excluded} kind="out" />
                   )}
                 </div>
-                {documents.length > 0 && (
+                {!isUmre && documents.length > 0 && (
                   <div className="mt-8">
                     <h3 className="mb-3 flex items-center gap-2 font-semibold text-brand-900">
                       {s.docsTitle}
                       <span className="rounded-full bg-cream-200 px-2 py-0.5 text-[11px] font-bold text-brand-700">{documents.length}</span>
                     </h3>
-                    <ul className="grid gap-3 sm:grid-cols-2">
-                      {documents.map((doc, i) => (
-                        <li key={i} className="flex items-start gap-3 rounded-2xl border border-border bg-cream-50 p-4 text-sm text-brand-800">
-                          <FileText className="mt-0.5 size-5 shrink-0 text-gold-500" /> {doc}
-                        </li>
-                      ))}
-                    </ul>
+                    <DocumentList items={documents} />
                   </div>
                 )}
               </Section>
@@ -346,6 +365,28 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
               </Section>
             )}
 
+            {umreSections.map(({ id, key, data, icon: Icon }) => (
+              <Section key={id} id={id} title={data.title} icon={<Icon className="size-5" />}>
+                {key === "documents" && documents.length > 0 && <DocumentList items={documents} />}
+                {key === "children" && childPrices.length > 0 && (
+                  <ul className="mb-5 grid gap-3 sm:grid-cols-3">
+                    {childPrices.map((p) => (
+                      <li key={p.id} className="rounded-2xl border border-border bg-cream-50 p-4">
+                        <p className="text-sm text-muted">{p.roomType}</p>
+                        <p className="mt-1 font-serif text-2xl font-bold text-brand-900">{formatPrice(p.price, p.currency, "")}</p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {data.content.trim() && (
+                  <div className={cn(key === "documents" && documents.length > 0 && "mt-6")}>
+                    <Prose content={data.content} />
+                  </div>
+                )}
+              </Section>
+            ))}
+
+            {!isUmre && (
             <Section
               id="degerlendirmeler"
               title={rv.title}
@@ -383,6 +424,7 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
                 <ReviewForm tourId={tour.id} labels={rv} />
               </div>
             </Section>
+            )}
           </div>
         </div>
       </div>
@@ -433,6 +475,18 @@ function Section({
       </div>
       {children}
     </section>
+  );
+}
+
+function DocumentList({ items }: { items: string[] }) {
+  return (
+    <ul className="grid gap-3 sm:grid-cols-2">
+      {items.map((doc, i) => (
+        <li key={i} className="flex items-start gap-3 rounded-2xl border border-border bg-cream-50 p-4 text-sm text-brand-800">
+          <FileText className="mt-0.5 size-5 shrink-0 text-gold-500" /> {doc}
+        </li>
+      ))}
+    </ul>
   );
 }
 

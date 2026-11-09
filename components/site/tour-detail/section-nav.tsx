@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CalendarDays, CircleHelp, Clock, FileText, ListChecks, Star } from "lucide-react";
+import { Baby, CalendarDays, CircleHelp, Clock, FileCheck, FileText, Info, ListChecks, ReceiptText, ScrollText, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ICONS = {
@@ -11,6 +11,11 @@ const ICONS = {
   program: Clock,
   faq: CircleHelp,
   reviews: Star,
+  documents: FileCheck,
+  payment: ReceiptText,
+  children: Baby,
+  notes: Info,
+  contract: ScrollText,
 } as const;
 
 export type SectionKey = keyof typeof ICONS;

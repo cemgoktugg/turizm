@@ -564,6 +564,91 @@ export const CONTENT_BLOCKS = {
     },
   }),
 
+  "umre.tourTabs": block({
+    group: "umre",
+    title: "Umre Turları — Bilgi Sekmeleri",
+    description:
+      "Umre, Lüks Umre ve Ramazan Umresi tur sayfalarında menüde ve sayfa altında görünen bilgi bölümleri (Gerekli Evraklar, Ödeme ve İptal Şartları, Çocuk Ücretleri, Önemli Notlar, Umre Sözleşmesi). Metni boş bırakılan bölüm sitede gösterilmez.",
+    path: "/umre",
+    fields: [
+      ...(
+        [
+          ["documents", "Gerekli Evraklar", "Turun kendi 'Gerekli Belgeler' listesi bu metnin üstünde gösterilir."],
+          ["payment", "Ödeme ve İptal Şartları", ""],
+          ["children", "Çocuk Ücretleri", "Turun çocuk ücretleri (fiyat tablosundaki 'yaş' içeren satırlar) bu metnin üstünde otomatik gösterilir."],
+          ["notes", "Önemli Notlar", ""],
+          ["contract", "Umre Sözleşmesi", ""],
+        ] as const
+      ).map(
+        ([name, label, help]): FieldSpec => ({
+          type: "group",
+          name,
+          label,
+          fields: [
+            { type: "text", name: "title", label: "Bölüm / menü başlığı" },
+            {
+              type: "textarea",
+              name: "content",
+              label: "Metin",
+              rows: name === "contract" ? 20 : 10,
+              max: 50000,
+              help: `${help ? `${help} ` : ""}Boş bırakılırsa bölüm gösterilmez. Biçim: "## Başlık", "- madde", **kalın**, [bağlantı](/adres).`,
+            },
+          ],
+        }),
+      ),
+    ],
+    defaults: {
+      documents: {
+        title: "Gerekli Evraklar",
+        content: [
+          "## Pasaport",
+          "- Pasaportunuzun **gidiş tarihinden itibaren en az 6 ay** geçerli olması gerekir. Sayfadaki \"Pasaport geçerlilik kontrolü\" ile hemen kontrol edebilirsiniz.",
+          "- Pasaportunuzu kayıt sırasında veya vize işlemleri için size bildirilen tarihe kadar ofisimize teslim etmeniz gerekir.",
+          "- Pasaportunuz yoksa e-Devlet veya Alo 199 üzerinden randevu alarak nüfus müdürlüğüne başvurabilirsiniz. Güncel harç ve defter bedellerini [nvi.gov.tr](https://www.nvi.gov.tr) adresinde bulabilirsiniz.",
+          "- 18 yaşından küçükler için pasaport başvurusunda anne ve babanın izni gerekir.",
+          "## Aşı",
+          "- Suudi Arabistan, umre ziyaretçilerinden meningokok (ACWY) aşısı istemektedir. Aşınızı yolculuktan en az 10 gün önce yaptırmanızı öneririz.",
+          "Evraklarınızla ilgili sorularınız için bizi arayabilir veya WhatsApp'tan yazabilirsiniz.",
+        ].join("\n\n"),
+      },
+      payment: {
+        title: "Ödeme ve İptal Şartları",
+        content: [
+          "## İptal ve iade",
+          "- Tur başlangıç tarihinden **30 gün öncesine kadar** yapılan iptallerde ödemenizin tamamı iade edilir.",
+          "- Son 30 gün içinde yapılan iptallerde, o tarihe kadar yapılmış vize ve uçak bileti masrafları kesilerek kalan tutar iade edilir.",
+          "- Tur başladıktan sonra yapılan iptallerde ve erken dönüşlerde ücret iadesi yapılmaz.",
+          "- Turun firmamız tarafından iptal edilmesi halinde ödemenizin tamamı iade edilir.",
+          "- İadeler, ödemenin yapıldığı yönteme uygun olarak en geç 14 gün içinde yapılır.",
+          "Ayrıntılı bilgi için [İptal ve İade Koşulları](/iptal-ve-iade) sayfamızı inceleyebilirsiniz.",
+        ].join("\n\n"),
+      },
+      children: {
+        title: "Çocuk Ücretleri",
+        content: [
+          "- Çocuk ücretleri, çocuğun anne ve babasıyla **aynı odada ve ayrı yatak verilmeden** konaklaması için geçerlidir.",
+          "- Çocuğunuz için ayrı yatak isterseniz yetişkin ücreti uygulanır.",
+          "- 11 yaşını doldurmuş çocuklar yetişkin ücretine tabidir.",
+        ].join("\n\n"),
+      },
+      notes: {
+        title: "Önemli Notlar",
+        content: [
+          "- Bagaj hakkı havayolu şirketine ve bilet tipine göre değişir; yolculuk öncesinde size bildirilir. Bagaj hakkını aşan ücretler yolcuya aittir.",
+          "- Havayolu şirketlerinin uçuş saatlerinde yapacağı değişiklikler size en kısa sürede bildirilir.",
+          "- Dış hat uçuşlarında havalimanında kalkıştan en az 3 saat önce hazır bulunmanızı rica ederiz.",
+          "- Otellere giriş ve çıkış saatleri otellerin kurallarına göre belirlenir.",
+          "- Otel mesafeleri yaklaşık değerlerdir.",
+          "- Düzenli kullandığınız ilaçları ve reçetelerinizi yanınıza almayı unutmayın.",
+          "- Program akışı, Suudi Arabistan makamlarının uygulamalarına göre değişebilir.",
+        ].join("\n\n"),
+      },
+      // Firmanın kendi sözleşme metni panelden girilene kadar bölüm gösterilmez
+      contract: { title: "Umre Sözleşmesi", content: "" },
+    },
+  }),
+
   /* ============================== TUR / OTEL / BLOG ============================== */
   "page.turlar": block({
     group: "catalog",
