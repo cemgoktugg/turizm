@@ -35,7 +35,7 @@ import { TourBookingProvider } from "@/components/site/tour-detail/booking-dialo
 import { TourGallery } from "@/components/site/tour-detail/gallery";
 import { HotelCards } from "@/components/site/tour-detail/hotel-cards";
 import { FlightLegs } from "@/components/site/tour-detail/flight-legs";
-import { TourSidebar } from "@/components/site/tour-detail/tour-sidebar";
+import { TourSidebar, TourSidebarExtras } from "@/components/site/tour-detail/tour-sidebar";
 import { SectionNav, type SectionKey } from "@/components/site/tour-detail/section-nav";
 import { TourDates, type DateRow } from "@/components/site/tour-detail/tour-dates";
 import { DayProgram } from "@/components/site/tour-detail/day-program";
@@ -295,137 +295,149 @@ export default async function TourDetailPage({ params }: { params: Promise<{ slu
               </div>
             </aside>
 
-            {(tour.hotels.length > 0 || tour.legs.length > 0) && (
-              <div className="space-y-6 lg:col-start-1 lg:row-start-2">
-                <HotelCards hotels={tour.hotels} labels={d} />
-                <FlightLegs
-                  labels={d}
-                  legs={tour.legs.map((l) => ({
-                    ...l,
-                    carrier: l.carrier || (l.type === "flight" ? tour.airline : null),
-                    date: l.date ? formatDate(l.date) : null,
-                  }))}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Bölümler */}
-          <div className="mt-8 space-y-6">
-            <SectionNav items={navItems} />
-
-            {tour.description && (
-              <Section id="genel-bakis" title={s.overviewTitle} icon={<FileText className="size-5" />}>
-                <ReadMore moreLabel={s.readMore} lessLabel={s.readLess}>
-                  <Prose content={tour.description} />
-                </ReadMore>
-              </Section>
-            )}
-
-            {showDates && (
-              <Section id="tarihler" title={s.datesTitle} icon={<CalendarDays className="size-5" />}>
-                <TourDates rows={dateRows} currentId={tour.id} labels={{ ...s, seatsLeftFormat: sb.seatsLeftFormat }} />
-              </Section>
-            )}
-
-            {included.length + excluded.length + (isUmre ? 0 : documents.length) > 0 && (
-              <Section id="hizmetler" title={s.servicesTitle} icon={<ListChecks className="size-5" />}>
-                <div className="grid gap-8 md:grid-cols-2">
-                  {included.length > 0 && (
-                    <ServiceList title={s.includedTitle} items={included} kind="in" />
-                  )}
-                  {excluded.length > 0 && (
-                    <ServiceList title={s.excludedTitle} items={excluded} kind="out" />
-                  )}
+            {/* Sol sütun: oteller, uçuşlar ve hemen altında bölümler (fiyat kutusu yanda sabit kalır) */}
+            <div className="min-w-0 space-y-8 lg:col-start-1 lg:row-start-2">
+              {(tour.hotels.length > 0 || tour.legs.length > 0) && (
+                <div className="space-y-6">
+                  <HotelCards hotels={tour.hotels} labels={d} />
+                  <FlightLegs
+                    labels={d}
+                    legs={tour.legs.map((l) => ({
+                      ...l,
+                      carrier: l.carrier || (l.type === "flight" ? tour.airline : null),
+                      date: l.date ? formatDate(l.date) : null,
+                    }))}
+                  />
                 </div>
-                {!isUmre && documents.length > 0 && (
-                  <div className="mt-8">
-                    <h3 className="mb-3 flex items-center gap-2 font-semibold text-brand-900">
-                      {s.docsTitle}
-                      <span className="rounded-full bg-cream-200 px-2 py-0.5 text-[11px] font-bold text-brand-700">{documents.length}</span>
-                    </h3>
-                    <DocumentList items={documents} />
-                  </div>
-                )}
-              </Section>
-            )}
-
-            {tour.dayPrograms.length > 0 && (
-              <Section id="program" title={s.programTitle} icon={<Clock className="size-5" />} description={s.programIntro}>
-                <DayProgram
-                  days={tour.dayPrograms.map((day) => ({ ...day, dateLabel: formatTourDay(tour.departureDate, day.dayNumber) }))}
-                  dayFormat={s.dayFormat}
-                />
-              </Section>
-            )}
-
-            {tour.faqs.length > 0 && (
-              <Section id="sss" title={s.faqTitle} icon={<CircleHelp className="size-5" />}>
-                <FAQAccordion items={tour.faqs} />
-              </Section>
-            )}
-
-            {umreSections.map(({ id, key, data, icon: Icon }) => (
-              <Section key={id} id={id} title={data.title} icon={<Icon className="size-5" />}>
-                {key === "documents" && documents.length > 0 && <DocumentList items={documents} />}
-                {key === "children" && childPrices.length > 0 && (
-                  <ul className="mb-5 grid gap-3 sm:grid-cols-3">
-                    {childPrices.map((p) => (
-                      <li key={p.id} className="rounded-2xl border border-border bg-cream-50 p-4">
-                        <p className="text-sm text-muted">{p.roomType}</p>
-                        <p className="mt-1 font-serif text-2xl font-bold text-brand-900">{formatPrice(p.price, p.currency, "")}</p>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {data.content.trim() && (
-                  <div className={cn(key === "documents" && documents.length > 0 && "mt-6")}>
-                    <Prose content={data.content} />
-                  </div>
-                )}
-              </Section>
-            ))}
-
-            {!isUmre && (
-            <Section
-              id="degerlendirmeler"
-              title={rv.title}
-              icon={<Star className="size-5" />}
-              action={
-                reviewCount > 0 && (
-                  <span className="flex items-center gap-2 text-sm">
-                    <span className="font-serif text-2xl font-bold text-brand-900">{reviewAvg.toFixed(1).replace(".", ",")}</span>
-                    <span>
-                      <Stars value={reviewAvg} />
-                      <span className="block text-xs text-muted">{fill(rv.summaryFormat, { sayi: reviewCount })}</span>
-                    </span>
-                  </span>
-                )
-              }
-            >
-              {reviewCount === 0 ? (
-                <p className="rounded-2xl border border-dashed border-border bg-cream-50 p-5 text-sm text-muted">{rv.empty}</p>
-              ) : (
-                <ul className="grid gap-4 md:grid-cols-2">
-                  {tour.reviews.map((r) => (
-                    <li key={r.id} className="rounded-2xl border border-border p-5">
-                      <div className="flex items-center justify-between gap-3">
-                        <Stars value={r.rating} />
-                        <span className="text-xs text-muted">{formatDate(r.createdAt)}</span>
-                      </div>
-                      {r.title && <p className="mt-2 font-semibold text-brand-900">{r.title}</p>}
-                      <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-brand-800/90">{r.comment}</p>
-                      <p className="mt-3 text-xs font-semibold text-brand-700">{r.fullName}</p>
-                    </li>
-                  ))}
-                </ul>
               )}
-              <div className="mt-6">
-                <ReviewForm tourId={tour.id} labels={rv} />
+
+              {/* Bölümler */}
+              <div className="space-y-6">
+                <SectionNav items={navItems} />
+
+                {tour.description && (
+                  <Section id="genel-bakis" title={s.overviewTitle} icon={<FileText className="size-5" />}>
+                    <ReadMore moreLabel={s.readMore} lessLabel={s.readLess}>
+                      <Prose content={tour.description} />
+                    </ReadMore>
+                  </Section>
+                )}
+
+                {showDates && (
+                  <Section id="tarihler" title={s.datesTitle} icon={<CalendarDays className="size-5" />}>
+                    <TourDates rows={dateRows} currentId={tour.id} labels={{ ...s, seatsLeftFormat: sb.seatsLeftFormat }} />
+                  </Section>
+                )}
+
+                {included.length + excluded.length + (isUmre ? 0 : documents.length) > 0 && (
+                  <Section id="hizmetler" title={s.servicesTitle} icon={<ListChecks className="size-5" />}>
+                    <div className="grid gap-8 md:grid-cols-2">
+                      {included.length > 0 && (
+                        <ServiceList title={s.includedTitle} items={included} kind="in" />
+                      )}
+                      {excluded.length > 0 && (
+                        <ServiceList title={s.excludedTitle} items={excluded} kind="out" />
+                      )}
+                    </div>
+                    {!isUmre && documents.length > 0 && (
+                      <div className="mt-8">
+                        <h3 className="mb-3 flex items-center gap-2 font-semibold text-brand-900">
+                          {s.docsTitle}
+                          <span className="rounded-full bg-cream-200 px-2 py-0.5 text-[11px] font-bold text-brand-700">{documents.length}</span>
+                        </h3>
+                        <DocumentList items={documents} />
+                      </div>
+                    )}
+                  </Section>
+                )}
+
+                {tour.dayPrograms.length > 0 && (
+                  <Section id="program" title={s.programTitle} icon={<Clock className="size-5" />} description={s.programIntro}>
+                    <DayProgram
+                      days={tour.dayPrograms.map((day) => ({ ...day, dateLabel: formatTourDay(tour.departureDate, day.dayNumber) }))}
+                      dayFormat={s.dayFormat}
+                    />
+                  </Section>
+                )}
+
+                {tour.faqs.length > 0 && (
+                  <Section id="sss" title={s.faqTitle} icon={<CircleHelp className="size-5" />}>
+                    <FAQAccordion items={tour.faqs} />
+                  </Section>
+                )}
+
+                {umreSections.map(({ id, key, data, icon: Icon }) => (
+                  <Section key={id} id={id} title={data.title} icon={<Icon className="size-5" />}>
+                    {key === "documents" && documents.length > 0 && <DocumentList items={documents} />}
+                    {key === "children" && childPrices.length > 0 && (
+                      <ul className="mb-5 grid gap-3 sm:grid-cols-3">
+                        {childPrices.map((p) => (
+                          <li key={p.id} className="rounded-2xl border border-border bg-cream-50 p-4">
+                            <p className="text-sm text-muted">{p.roomType}</p>
+                            <p className="mt-1 font-serif text-2xl font-bold text-brand-900">{formatPrice(p.price, p.currency, "")}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {data.content.trim() && (
+                      <div className={cn(key === "documents" && documents.length > 0 && "mt-6")}>
+                        <Prose content={data.content} />
+                      </div>
+                    )}
+                  </Section>
+                ))}
+
+                {!isUmre && (
+                <Section
+                  id="degerlendirmeler"
+                  title={rv.title}
+                  icon={<Star className="size-5" />}
+                  action={
+                    reviewCount > 0 && (
+                      <span className="flex items-center gap-2 text-sm">
+                        <span className="font-serif text-2xl font-bold text-brand-900">{reviewAvg.toFixed(1).replace(".", ",")}</span>
+                        <span>
+                          <Stars value={reviewAvg} />
+                          <span className="block text-xs text-muted">{fill(rv.summaryFormat, { sayi: reviewCount })}</span>
+                        </span>
+                      </span>
+                    )
+                  }
+                >
+                  {reviewCount === 0 ? (
+                    <p className="rounded-2xl border border-dashed border-border bg-cream-50 p-5 text-sm text-muted">{rv.empty}</p>
+                  ) : (
+                    <ul className="grid gap-4 md:grid-cols-2">
+                      {tour.reviews.map((r) => (
+                        <li key={r.id} className="rounded-2xl border border-border p-5">
+                          <div className="flex items-center justify-between gap-3">
+                            <Stars value={r.rating} />
+                            <span className="text-xs text-muted">{formatDate(r.createdAt)}</span>
+                          </div>
+                          {r.title && <p className="mt-2 font-semibold text-brand-900">{r.title}</p>}
+                          <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-brand-800/90">{r.comment}</p>
+                          <p className="mt-3 text-xs font-semibold text-brand-700">{r.fullName}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className="mt-6">
+                    <ReviewForm tourId={tour.id} labels={rv} />
+                  </div>
+                </Section>
+                )}
               </div>
-            </Section>
-            )}
+            </div>
           </div>
+
+          {/* Grup talebi, yardım hattı ve pasaport kontrolü: bölümlerin altında yan yana */}
+          <TourSidebarExtras
+            className="mt-8"
+            tour={{ title: tour.title, departureDate: tour.departureDate ? tour.departureDate.toISOString().slice(0, 10) : null }}
+            past={past}
+            labels={sb}
+            phone={settings.phone}
+          />
         </div>
       </div>
 

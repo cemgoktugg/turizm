@@ -60,11 +60,10 @@ export function TourSidebar({
   /** Yazdırılabilir program sayfası (etiketi boşsa gösterilmez) */
   program?: { href: string; label: string } | null;
 }) {
-  const months = Number.parseInt(labels.passportMonths, 10);
   const priceTry = formatTry(tour.startingPrice, tour.currency, rates, tlFormat);
 
   return (
-    <div className="space-y-4">
+    <div>
       {/* Fiyat ve başvuru */}
       <div className="rounded-3xl border border-border bg-white p-5 shadow-card sm:p-6">
         <div className="flex items-center justify-between gap-3">
@@ -160,12 +159,35 @@ export function TourSidebar({
           </div>
         )}
       </div>
+    </div>
+  );
+}
 
+/**
+ * Grup talebi, yardım hattı ve pasaport kontrolü. Tur sayfasında fiyat kutusunun
+ * altında değil, sayfa bölümlerinin altında yan yana gösterilir (yan sütun kısa kalsın).
+ */
+export function TourSidebarExtras({
+  tour,
+  past,
+  labels,
+  phone,
+  className,
+}: {
+  tour: { title: string; departureDate: string | null };
+  past: boolean;
+  labels: SidebarLabels;
+  phone: string;
+  className?: string;
+}) {
+  const months = Number.parseInt(labels.passportMonths, 10);
+  return (
+    <div className={cn("grid items-stretch gap-4 md:grid-cols-3", className)}>
       {/* Grup talebi */}
       {!past && (
         <BookingTrigger
           message={fill(labels.groupMessage, { tur: tour.title })}
-          className="group flex w-full items-center gap-3 rounded-3xl border border-border bg-white p-5 text-left shadow-soft transition hover:border-brand-300"
+          className="group flex h-full w-full items-center gap-3 rounded-3xl border border-border bg-white p-5 text-left shadow-soft transition hover:border-brand-300"
         >
           <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-gold-50 text-gold-600">
             <Users className="size-5" />
@@ -183,7 +205,7 @@ export function TourSidebar({
       {/* Yardım */}
       <a
         href={telLink(phone)}
-        className="flex items-center gap-3 rounded-3xl border border-border bg-brand-800 p-5 text-white shadow-soft transition hover:bg-brand-900"
+        className="flex h-full items-center gap-3 rounded-3xl border border-border bg-brand-800 p-5 text-white shadow-soft transition hover:bg-brand-900"
       >
         <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white/10">
           <Phone className="size-5" />
