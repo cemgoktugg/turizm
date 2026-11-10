@@ -6,19 +6,22 @@ import { toast } from "sonner";
 import { ArrowLeft, Copy, Printer } from "lucide-react";
 import { receiptHref } from "@/lib/sales-base";
 
-/** Makbuz sayfasının üst çubuğu (çıktıda görünmez) */
+/** Makbuz ve sözleşme sayfalarının üst çubuğu (çıktıda görünmez) */
 export function ReceiptToolbar({
   backHref,
   backLabel,
   copiesHref,
   single,
+  docName = "makbuzu",
   autoPrint,
 }: {
   backHref: string;
   backLabel: string;
-  /** Tek nüsha ↔ iki nüsha geçişi */
-  copiesHref: string;
-  single: boolean;
+  /** Tek nüsha ↔ iki nüsha geçişi (yalnızca makbuzda) */
+  copiesHref?: string;
+  single?: boolean;
+  /** Yazdırma ipucunda geçen belge adı */
+  docName?: string;
   autoPrint?: boolean;
 }) {
   useEffect(() => {
@@ -34,14 +37,16 @@ export function ReceiptToolbar({
         <ArrowLeft className="size-4" /> {backLabel}
       </Link>
       <div className="flex flex-wrap gap-2">
-        <Link
-          href={copiesHref}
-          replace
-          scroll={false}
-          className="inline-flex h-10 items-center gap-1.5 rounded-full border border-border bg-white px-4 text-sm font-semibold text-brand-800 transition hover:bg-brand-50"
-        >
-          <Copy className="size-4" /> {single ? "İki nüsha yap" : "Tek nüsha yap"}
-        </Link>
+        {copiesHref && (
+          <Link
+            href={copiesHref}
+            replace
+            scroll={false}
+            className="inline-flex h-10 items-center gap-1.5 rounded-full border border-border bg-white px-4 text-sm font-semibold text-brand-800 transition hover:bg-brand-50"
+          >
+            <Copy className="size-4" /> {single ? "İki nüsha yap" : "Tek nüsha yap"}
+          </Link>
+        )}
         <button
           type="button"
           onClick={() => window.print()}
@@ -51,7 +56,7 @@ export function ReceiptToolbar({
         </button>
       </div>
       <p className="w-full text-xs text-muted">
-        Yazdırma penceresinde hedef olarak &quot;PDF olarak kaydet&quot;i seçerseniz makbuzu müşteriye WhatsApp&apos;tan da gönderebilirsiniz.
+        Yazdırma penceresinde hedef olarak &quot;PDF olarak kaydet&quot;i seçerseniz {docName} müşteriye WhatsApp&apos;tan da gönderebilirsiniz.
       </p>
     </div>
   );

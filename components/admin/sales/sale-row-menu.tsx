@@ -5,9 +5,9 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Ban, Eye, Loader2, MoreHorizontal, Pencil, ReceiptText, RotateCcw, Trash2 } from "lucide-react";
+import { Ban, Eye, FileText, Loader2, MoreHorizontal, Pencil, ReceiptText, RotateCcw, Trash2 } from "lucide-react";
 import { deleteSale, toggleSaleCancel } from "@/app/actions/sales";
-import { receiptHref } from "@/lib/sales-base";
+import { contractHref, receiptHref } from "@/lib/sales-base";
 import { cn } from "@/lib/utils";
 
 const MENU_WIDTH = 240;
@@ -15,7 +15,7 @@ const MENU_WIDTH = 240;
 const MAX_RECEIPTS = 4;
 
 /**
- * Satış listesindeki "⋯" menüsü: Detay, Makbuzlar, Düzenle, İptal Et / Geri Al, Sil.
+ * Satış listesindeki "⋯" menüsü: Detay, Sözleşme, Makbuzlar, Düzenle, İptal Et / Geri Al, Sil.
  * Tablo yatay kaydırmalı ve sütun sabit (sticky) olduğundan menü body'ye
  * açılır ve konumu butona göre hesaplanır; kaydırınca kapanır.
  */
@@ -120,6 +120,9 @@ export function SaleRowMenu({
           >
             <Link href={detailHref} scroll={false} role="menuitem" className={item} onClick={() => setOpen(false)}>
               <Eye className="size-4 text-muted" /> Detay / Tahsilat
+            </Link>
+            <Link href={contractHref(id)} role="menuitem" className={item} onClick={() => setOpen(false)}>
+              <FileText className="size-4 text-brand-600" /> Sözleşme
             </Link>
             {shown.length > 0 && (
               <>

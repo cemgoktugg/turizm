@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Pencil, ReceiptText, UsersRound } from "lucide-react";
+import { FileText, Pencil, ReceiptText, UsersRound } from "lucide-react";
 import { AdminCard } from "@/components/admin/ui";
 import { DeleteButton } from "@/components/admin/row-actions";
 import { StatBox, th, td, num, theadRow } from "@/components/admin/sales/ui";
@@ -13,7 +13,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getCashPeople, getGroup, inputDate, money, moneyList, shortDate, type getSale } from "@/lib/sales";
 import { cn, currencySymbol, formatDateTime } from "@/lib/utils";
 import { discountOf, percent } from "@/lib/sale-pricing";
-import { receiptHref } from "@/lib/sales-base";
+import { contractHref, receiptHref } from "@/lib/sales-base";
 
 export type SaleDetailData = NonNullable<Awaited<ReturnType<typeof getSale>>>;
 
@@ -120,6 +120,9 @@ export async function SaleDetail({
         <div className="flex flex-wrap items-center gap-2">
           <Link href={`${base}/${sale.id}/duzenle`} className={buttonVariants({ variant: "outline", size: "sm" })}>
             <Pencil className="size-4" /> Düzenle
+          </Link>
+          <Link href={contractHref(sale.id)} className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <FileText className="size-4" /> Sözleşme
           </Link>
           <SaleCancelButton id={sale.id} isCancelled={sale.isCancelled} />
           {sale.payments.length === 0 && (

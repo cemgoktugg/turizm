@@ -20,6 +20,11 @@ export function receiptHref(paymentId: number, print = false) {
   return `${SALES_BASE}/makbuz/${paymentId}${print ? "?yazdir=1" : ""}`;
 }
 
+/** Satışın yazdırılabilir umre sözleşmesi (makbuz gibi yalnızca Satış Programı adresinde) */
+export function contractHref(saleId: number) {
+  return `${SALES_BASE}/sozlesme/${saleId}`;
+}
+
 export function salesBaseOf(pathname: string): SalesBase {
   return pathname === LEGACY_SALES_BASE || pathname.startsWith(`${LEGACY_SALES_BASE}/`) ? LEGACY_SALES_BASE : SALES_BASE;
 }

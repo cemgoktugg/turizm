@@ -5,10 +5,28 @@ import { money, shortDate } from "@/lib/sales";
 import type { SiteSettings } from "@/lib/settings";
 import { cn, formatDateTime } from "@/lib/utils";
 
-type Company = Pick<SiteSettings, "siteName" | "companyTitle" | "logo" | "address" | "phone" | "email" | "tursabNo">;
+export type Company = Pick<SiteSettings, "siteName" | "companyTitle" | "logo" | "address" | "phone" | "email" | "tursabNo">;
 
 /** Makbuz numarası: 000123 */
 export const receiptNo = (no: number) => String(no).padStart(6, "0");
+
+/** Belge başlığındaki logo ve firma bilgisi (makbuz ve sözleşmede ortak) */
+export function CompanyBlock({ company }: { company: Company }) {
+  return (
+    <div className="min-w-0">
+      <SmartImage src={company.logo} alt={company.siteName} loading="eager" className="h-[13mm] w-auto max-w-[60mm] object-contain object-left" />
+      <div className="mt-[2mm] space-y-px text-[9.5px] text-slate-600">
+        {company.companyTitle && <p className="font-semibold text-brand-900">{company.companyTitle}</p>}
+        <p>{company.address}</p>
+        <p>
+          Tel: {company.phone}
+          {company.email && ` · ${company.email}`}
+          {company.tursabNo && ` · TÜRSAB Belge No: ${company.tursabNo}`}
+        </p>
+      </div>
+    </div>
+  );
+}
 
 /**
  * Tek makbuz nüshası. A4'e iki nüsha (müşteri + acente) sığacak boyutta;
@@ -25,18 +43,7 @@ export function ReceiptCopy({ r, company, copyLabel }: { r: ReceiptData; company
     <section className="receipt-copy avoid-break print-exact rounded-xl border-[1.5px] border-brand-900/70 px-[6mm] py-[5mm] text-[11px] leading-snug text-brand-900">
       {/* Başlık: logo ve firma bilgisi | makbuz türü, no, tarih */}
       <header className="flex items-start justify-between gap-6 border-b border-brand-900/20 pb-[3mm]">
-        <div className="min-w-0">
-          <SmartImage src={company.logo} alt={company.siteName} loading="eager" className="h-[13mm] w-auto max-w-[60mm] object-contain object-left" />
-          <div className="mt-[2mm] space-y-px text-[9.5px] text-slate-600">
-            {company.companyTitle && <p className="font-semibold text-brand-900">{company.companyTitle}</p>}
-            <p>{company.address}</p>
-            <p>
-              Tel: {company.phone}
-              {company.email && ` · ${company.email}`}
-              {company.tursabNo && ` · TÜRSAB Belge No: ${company.tursabNo}`}
-            </p>
-          </div>
-        </div>
+        <CompanyBlock company={company} />
         <div className="shrink-0 text-right">
           <p className="font-serif text-[17px] font-bold tracking-wide">{refund ? "İADE MAKBUZU" : "TAHSİLAT MAKBUZU"}</p>
           <dl className="mt-[1.5mm] grid grid-cols-[auto_auto] justify-end gap-x-2 text-[11px]">
