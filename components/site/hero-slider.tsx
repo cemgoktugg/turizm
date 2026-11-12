@@ -42,7 +42,7 @@ export function HeroSlider({
           transition={{ duration: 1.2, ease: "easeInOut" }}
           className="absolute inset-0"
         >
-          <SmartImage src={slide.image} alt={slide.title} loading="eager" className="size-full" fallback="/images/hero-1.svg" />
+          <SmartImage src={slide.image} alt={slide.title} loading="eager" className="size-full" fallback="/images/foto/slider-kabe.webp" />
         </motion.div>
       </AnimatePresence>
 

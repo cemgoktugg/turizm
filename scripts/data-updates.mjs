@@ -7,9 +7,10 @@ import { umreSeferleri202627 } from "./data/umre-seferleri-2026-27.mjs";
 import { gercekFotograflar } from "./data/gercek-fotograflar.mjs";
 import { medineOteliGrandAlshahba } from "./data/medine-oteli-grand-alshahba.mjs";
 import { otelFotograflari } from "./data/otel-fotograflari.mjs";
+import { sliderFotograflari } from "./data/slider-fotograflari.mjs";
 
 // Sırayla uygulanır (yeni seferler önce eklenir, fotoğraflar sonra onların kapaklarını da günceller)
-const UPDATES = [umreSeferleri202627, gercekFotograflar, medineOteliGrandAlshahba, otelFotograflari];
+const UPDATES = [umreSeferleri202627, gercekFotograflar, medineOteliGrandAlshahba, otelFotograflari, sliderFotograflari];
 
 const prisma = new PrismaClient();
 try {

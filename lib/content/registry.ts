@@ -107,17 +107,17 @@ export const CONTENT_BLOCKS = {
       badge: "TÜRSAB & Diyanet Yetki Belgeli",
       slides: [
         {
-          image: "/images/hero-1.svg",
+          image: "/images/foto/slider-kabe.webp",
           title: "En Güzele, En İyiyle",
           subtitle: "Yetkili acenta güvencesiyle, manevi ve konforlu hac & umre yolculukları.",
         },
         {
-          image: "/images/hero-2.svg",
+          image: "/images/foto/slider-medine.webp",
           title: "Kutsal Topraklara",
           subtitle: "Harem'e sıfır oteller, tecrübeli rehberlik ve unutulmaz bir manevi deneyim.",
         },
         {
-          image: "/images/hero-3.svg",
+          image: "/images/foto/slider-harem-gece.webp",
           title: "Huzurun Adresi",
           subtitle: "2026-2027 umre sezonu ve 2027 hac programlarında kayıtlar başladı.",
         },
