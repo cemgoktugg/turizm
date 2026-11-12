@@ -19,6 +19,8 @@ import { withParam } from "./ui";
 import { toastWithReceipt } from "./receipt-toolbar";
 import { DiscountHint } from "./discount-hint";
 import { discountOf, listPriceOf, percent } from "@/lib/sale-pricing";
+import { seatLabel, seatsLeft } from "@/lib/capacity";
+import { SeatHint } from "./seat-hint";
 
 type FormIn = z.input<typeof saleSchema>;
 
@@ -31,6 +33,9 @@ export type SaleTourOption = {
   currency: string;
   departure: string;
   isActive: boolean;
+  /** Kişi kontenjanı (null: sınır yok) ve dolu yer (iptal edilmemiş satışlar) */
+  capacity: number | null;
+  sold: number;
 };
 
 export function SaleForm({
@@ -86,6 +91,8 @@ export function SaleForm({
   const sameRoom =
     !!saleId && String(tourId ?? "") === String(defaultValues?.tourId ?? "") && String(roomSize ?? "") === String(defaultValues?.roomSize ?? "");
   const listPrice = sameRoom ? savedListPrice : tour ? listPriceOf(tour.prices, Number(roomSize) || null) : null;
+  // Düzenlemede satışın kendi turu: satış zaten yer kaplıyor, ek yer gerekmez
+  const sameTour = !!saleId && String(tourId ?? "") === String(defaultValues?.tourId ?? "");
   const priceNum = price === "" || price == null ? null : Number(price);
 
   // Oda seçenekleri: turun fiyatı girilmiş oda tipleri (+ kayıtlı satışın eski değeri)
@@ -151,15 +158,21 @@ export function SaleForm({
               <option value="">Tur seçiniz</option>
               {Object.entries(groups).map(([period, list]) => (
                 <optgroup key={period} label={period}>
-                  {list.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      #{t.id} {t.name} · {t.departure}
-                      {t.isActive ? "" : " (pasif)"}
-                    </option>
-                  ))}
+                  {list.map((t) => {
+                    // Yeni satışta dolu tur seçilemez; düzenlemede sunucu karar verir
+                    const full = !saleId && (seatsLeft(t.capacity, t.sold) ?? 1) <= 0;
+                    return (
+                      <option key={t.id} value={t.id} disabled={full}>
+                        #{t.id} {t.name} · {t.departure}
+                        {seatLabel(t.capacity, t.sold)}
+                        {t.isActive ? "" : " (pasif)"}
+                      </option>
+                    );
+                  })}
                 </optgroup>
               ))}
             </Select>
+            {tour && <SeatHint capacity={tour.capacity} sold={tour.sold} adding={sameTour ? 0 : 1} />}
           </Field>
           <Field label="Satış Tarihi" required error={errors.date?.message}>
             <Input type="date" {...register("date")} />

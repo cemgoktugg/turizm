@@ -375,6 +375,8 @@ model ServiceTour {
   guide2Id      Int?
   guide2        Staff?   @relation("Guide2", fields: [guide2Id], references: [id])
   days          Int
+  /// Kişi kontenjanı; boşsa sınır yok. İptal edilmemiş satışlar yer kaplar, dolunca yeni satış yapılamaz
+  capacity      Int?
   note          String?
   /// Pasif turlar yeni satışta listelenmez
   isActive      Boolean  @default(true)

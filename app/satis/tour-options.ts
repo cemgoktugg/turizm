@@ -8,11 +8,25 @@ export async function getSaleTourOptions(includeId?: number): Promise<SaleTourOp
   const tours = await prisma.serviceTour.findMany({
     where: includeId ? { OR: [{ isActive: true }, { id: includeId }] } : { isActive: true },
     orderBy: [{ departureDate: "desc" }, { name: "asc" }],
-    select: { id: true, name: true, period: true, price2: true, price3: true, price4: true, currency: true, departureDate: true, isActive: true },
+    select: {
+      id: true,
+      name: true,
+      period: true,
+      price2: true,
+      price3: true,
+      price4: true,
+      currency: true,
+      departureDate: true,
+      isActive: true,
+      capacity: true,
+      // Dolu yer: iptal edilmemiş satışlar
+      _count: { select: { sales: { where: { isCancelled: false } } } },
+    },
   });
-  return tours.map(({ price2, price3, price4, departureDate, ...t }) => ({
+  return tours.map(({ price2, price3, price4, departureDate, _count, ...t }) => ({
     ...t,
     departure: shortDate(departureDate),
+    sold: _count.sales,
     // Oda kişi sayısı → kişi başı ücret (fiyatı girilmemiş oda tipleri yok)
     prices: Object.fromEntries(
       ([[2, price2], [3, price3], [4, price4]] as const).filter(([, p]) => p != null),

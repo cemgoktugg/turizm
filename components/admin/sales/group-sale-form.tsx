@@ -19,6 +19,8 @@ import { withParam } from "./ui";
 import { toastWithReceipt } from "./receipt-toolbar";
 import { DiscountHint } from "./discount-hint";
 import { DISCOUNT_WARN_RATE, discountOf, listPriceOf } from "@/lib/sale-pricing";
+import { capacityError, seatLabel, seatsLeft } from "@/lib/capacity";
+import { SeatHint } from "./seat-hint";
 
 type Member = { key: number; customer: CustomerOption | null; price: string; priceEdited: boolean };
 
@@ -104,6 +106,9 @@ export function GroupSaleForm({
     const ids = filled.map((m) => m.customer!.id);
     if (new Set(ids).size !== ids.length) errs.members = "Aynı kişi iki kez eklenmiş";
     if (downNum > totalPrice) errs.downPayment = "Toplam ücretten fazla olamaz";
+    // Kontenjan: tur seçiminin altındaki satır canlı uyarır, hata kişi listesinin altında görünür
+    const seatError = tour && capacityError(tour.name, tour.capacity, tour.sold, filled.length);
+    if (seatError) errs.members ??= seatError;
     setErrors(errs);
     if (Object.keys(errs).length) return void toast.error(Object.values(errs)[0]);
 
@@ -161,13 +166,15 @@ export function GroupSaleForm({
               {Object.entries(periods).map(([period, list]) => (
                 <optgroup key={period} label={period}>
                   {list.map((t) => (
-                    <option key={t.id} value={t.id}>
+                    <option key={t.id} value={t.id} disabled={(seatsLeft(t.capacity, t.sold) ?? 1) <= 0}>
                       #{t.id} {t.name} · {t.departure}
+                      {seatLabel(t.capacity, t.sold)}
                     </option>
                   ))}
                 </optgroup>
               ))}
             </Select>
+            {tour && <SeatHint capacity={tour.capacity} sold={tour.sold} adding={Math.max(filled.length, 1)} />}
           </Field>
           <Field label="Satış Tarihi" required>
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />

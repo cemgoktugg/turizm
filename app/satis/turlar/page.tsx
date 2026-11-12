@@ -5,6 +5,7 @@ import { AdminPageHeader, AdminCard, EmptyState } from "@/components/admin/ui";
 import { EditLink, DeleteButton } from "@/components/admin/row-actions";
 import { FilterBar, th, td, num, theadRow, qs } from "@/components/admin/sales/ui";
 import { ToggleButton } from "@/components/admin/sales/toggle-button";
+import { SeatBar } from "@/components/admin/sales/seat-hint";
 import { deleteServiceTour, toggleServiceTour } from "@/app/actions/sales";
 import { getPeriods, money, shortDate } from "@/lib/sales";
 import { cn } from "@/lib/utils";
@@ -37,7 +38,7 @@ export default async function ServiceToursPage({ searchParams }: { searchParams:
     <div>
       <AdminPageHeader
         title="Turlar"
-        description="Satışı yapılan tur hizmetleri. Pasif turlar yeni satışta listelenmez."
+        description="Satışı yapılan tur hizmetleri. Pasif turlar yeni satışta listelenmez, kontenjanı dolan turlar seçilemez."
         actionLabel="Yeni Tur"
         actionHref={`${base}/turlar/yeni`}
       />
@@ -58,7 +59,9 @@ export default async function ServiceToursPage({ searchParams }: { searchParams:
                   <th className={cn(th, "text-center")}>Gün</th>
                   <th className={cn(th, num)}>Kişi Başı (2 / 3 / 4)</th>
                   <th className={th}>Görevliler</th>
-                  <th className={cn(th, "text-center")}>Satış</th>
+                  <th className={cn(th, "text-center")} title="İptal edilmemiş satış / kontenjan">
+                    Doluluk
+                  </th>
                   <th className={th}>Durum</th>
                   <th className={cn(th, "text-right")}>İşlemler</th>
                 </tr>
@@ -85,7 +88,9 @@ export default async function ServiceToursPage({ searchParams }: { searchParams:
                     <td className={cn(td, "text-center")}>
                       <Link href={`${base}${qs({ donem: t.period, q: t.name })}`} className="font-semibold text-brand-700 hover:text-gold-600">
                         {t._count.sales}
+                        {t.capacity != null && <span className="font-normal text-muted"> / {t.capacity}</span>}
                       </Link>
+                      {t.capacity != null && <SeatBar capacity={t.capacity} sold={t._count.sales} />}
                     </td>
                     <td className={td}>
                       <ToggleButton

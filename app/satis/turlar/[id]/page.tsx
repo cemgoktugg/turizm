@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { ServiceTourForm } from "@/components/admin/sales/service-tour-form";
 import { BackLink } from "@/components/admin/sales/ui";
+import { SeatHint } from "@/components/admin/sales/seat-hint";
 import { getPeriods, inputDate } from "@/lib/sales";
 import { getSalesBase } from "@/lib/sales-base-server";
 
@@ -13,17 +14,24 @@ export default async function EditServiceTourPage({ params }: { params: Promise<
   const tourId = Number(id);
   const tour = Number.isInteger(tourId) ? await prisma.serviceTour.findUnique({ where: { id: tourId } }) : null;
   if (!tour) notFound();
-  const [staff, periods] = await Promise.all([
+  const [staff, periods, sold] = await Promise.all([
     prisma.staff.findMany({ orderBy: { fullName: "asc" }, select: { id: true, fullName: true } }),
     getPeriods(),
+    prisma.sale.count({ where: { tourId: tour.id, isCancelled: false } }),
   ]);
 
   return (
     <div>
       <BackLink href={`${base}/turlar`} label="Turlara Dön" />
-      <h2 className="mb-6 font-serif text-2xl font-bold text-brand-900">
+      <h2 className="font-serif text-2xl font-bold text-brand-900">
         Tur Düzenle: <span className="text-brand-600">#{tour.id} {tour.name}</span>
       </h2>
+      <div className="mb-6 max-w-md">
+        <p className="mt-1 text-sm text-muted">
+          {sold} kişi kayıtlı (iptaller hariç){tour.capacity == null ? " · kontenjan girilmemiş" : ""}
+        </p>
+        <SeatHint capacity={tour.capacity} sold={sold} adding={0} />
+      </div>
       <ServiceTourForm
         tourId={tour.id}
         staff={staff}
@@ -40,6 +48,7 @@ export default async function EditServiceTourPage({ params }: { params: Promise<
           guide1Id: String(tour.guide1Id),
           guide2Id: tour.guide2Id == null ? "" : String(tour.guide2Id),
           days: String(tour.days),
+          capacity: tour.capacity == null ? "" : String(tour.capacity),
           note: tour.note ?? "",
           isActive: tour.isActive,
         }}

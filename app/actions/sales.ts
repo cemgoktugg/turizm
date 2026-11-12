@@ -6,6 +6,7 @@ import { recordActivity, type AuditEntry } from "@/lib/activity";
 import type { CurrentUser } from "@/lib/auth";
 import { splitProportional } from "@/lib/split";
 import { discountOf, listPriceOf, percent, tourPriceMap } from "@/lib/sale-pricing";
+import { capacityError } from "@/lib/capacity";
 import { ADMIN_ONLY, salesAction, invalid, type ActionResult } from "@/lib/action";
 import { getCashPeople, getCashRows, money, shortDate } from "@/lib/sales";
 import {
@@ -34,6 +35,19 @@ const notFound = { ok: false, message: "Kayıt bulunamadı; silinmiş olabilir. 
 async function paidOf(saleId: number) {
   const agg = await prisma.payment.aggregate({ where: { saleId }, _sum: { amount: true } });
   return agg._sum.amount ?? 0;
+}
+
+/** Turda yer kaplayan (iptal edilmemiş) satış sayısı */
+function soldCount(tourId: number) {
+  return prisma.sale.count({ where: { tourId, isCancelled: false } });
+}
+
+/** Eklenecek kişiler turun kontenjanını aşıyorsa hata sonucu, aşmıyorsa null */
+async function capacityCheck(tourId: number, adding: number) {
+  const tour = await prisma.serviceTour.findUnique({ where: { id: tourId }, select: { name: true, capacity: true } });
+  if (tour?.capacity == null) return null;
+  const message = capacityError(tour.name, tour.capacity, await soldCount(tourId), adding);
+  return message ? ({ ok: false, message, fieldErrors: { tourId: "Kontenjan yetersiz" } } as const) : null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -181,6 +195,7 @@ function tourData(d: ServiceTourInput) {
     guide1Id: d.guide1Id,
     guide2Id: d.guide2Id ?? null,
     days: d.days,
+    capacity: d.capacity ?? null,
     note: d.note || null,
     isActive: d.isActive,
   };
@@ -202,8 +217,21 @@ export async function updateServiceTour(id: string, input: unknown): Promise<Act
     if (!tourId) return notFound;
     const parsed = serviceTourSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
+    const before = await prisma.serviceTour.findUnique({ where: { id: tourId }, select: { capacity: true } });
+    if (!before) return notFound;
+    const capacity = parsed.data.capacity ?? null;
+    if (capacity != null) {
+      const sold = await soldCount(tourId);
+      if (capacity < sold)
+        return {
+          ok: false,
+          message: `Bu turda ${sold} kişilik satış var; kontenjan en az ${sold} olmalı. Azaltmak için önce fazla satışları iptal edin veya başka tura taşıyın.`,
+          fieldErrors: { capacity: `En az ${sold} olmalı` },
+        };
+    }
     const t = await prisma.serviceTour.update({ where: { id: tourId }, data: tourData(parsed.data) });
-    audit({ entity: "ServiceTour", entityId: t.id, detail: `Tur #${t.id} ${t.name} güncellendi` });
+    const capacityNote = before.capacity !== capacity ? ` (kontenjan: ${before.capacity ?? "yok"} → ${capacity ?? "yok"})` : "";
+    audit({ entity: "ServiceTour", entityId: t.id, detail: `Tur #${t.id} ${t.name} güncellendi${capacityNote}` });
     return { ok: true, message: "Tur güncellendi." };
   });
 }
@@ -268,6 +296,8 @@ export async function createSale(input: unknown): Promise<ActionResult<{ id: num
       return { ok: false, message: "Peşinat ücretten fazla olamaz.", fieldErrors: { downPayment: "Ücretten fazla olamaz" } };
     if (d.downPayment && !(d.downPaymentBy && (await getCashPeople()).includes(d.downPaymentBy)))
       return { ok: false, message: "Peşinatı alan kişiyi seçin.", fieldErrors: { downPaymentBy: "Kişi seçiniz" } };
+    const full = await capacityCheck(d.tourId, 1);
+    if (full) return full;
 
     const date = new Date(d.date);
     const listPrice = listPriceOf(tourPriceMap(tour), d.roomSize);
@@ -323,6 +353,11 @@ export async function updateSale(id: string, input: unknown): Promise<ActionResu
       return { ok: false, message: "Tahsilatı olan satış, farklı para birimli bir tura taşınamaz.", fieldErrors: { tourId: "Para birimi farklı" } };
     if (d.price < paid)
       return { ok: false, message: `Ücret, tahsil edilen tutardan (${paid}) az olamaz.`, fieldErrors: { price: "Tahsil edilenden az olamaz" } };
+    // Başka tura taşınan satış o turda yer kaplar (iptal edilmiş satış kaplamaz)
+    if (d.tourId !== current.tourId && !current.isCancelled) {
+      const full = await capacityCheck(d.tourId, 1);
+      if (full) return full;
+    }
 
     // Tur ve oda aynı kaldıysa satış anındaki liste fiyatı korunur; değiştiyse turun güncel fiyatı alınır
     const sameRoom = d.tourId === current.tourId && (d.roomSize ?? null) === current.roomSize;
@@ -364,8 +399,13 @@ export async function toggleSaleCancel(id: string): Promise<ActionResult> {
   return salesAction(async (_me, audit) => {
     const saleId = toId(id);
     if (!saleId) return notFound;
-    const sale = await prisma.sale.findUnique({ where: { id: saleId }, select: { isCancelled: true } });
+    const sale = await prisma.sale.findUnique({ where: { id: saleId }, select: { isCancelled: true, tourId: true } });
     if (!sale) return notFound;
+    // İptali geri alınan satış yeniden yer kaplar
+    if (sale.isCancelled) {
+      const full = await capacityCheck(sale.tourId, 1);
+      if (full) return { ok: false, message: `İptal geri alınamaz. ${full.message}` };
+    }
     await prisma.sale.update({ where: { id: saleId }, data: { isCancelled: !sale.isCancelled } });
     audit({ entity: "Sale", entityId: saleId, detail: `Satış #${saleId} ${sale.isCancelled ? "iptali geri alındı" : "iptal edildi"}` });
     return { ok: true, message: sale.isCancelled ? "İptal geri alındı." : "Satış iptal edildi." };
@@ -531,6 +571,8 @@ export async function createGroupSale(input: unknown): Promise<ActionResult<{ gr
       return { ok: false, message: "Peşinat toplam ücretten fazla olamaz.", fieldErrors: { downPayment: "Toplam ücretten fazla olamaz" } };
     if (d.downPayment && !(d.downPaymentBy && (await getCashPeople()).includes(d.downPaymentBy)))
       return { ok: false, message: "Peşinatı alan kişiyi seçin.", fieldErrors: { downPaymentBy: "Kişi seçiniz" } };
+    const full = await capacityCheck(d.tourId, d.members.length);
+    if (full) return full;
 
     const date = new Date(d.date);
     const names = new Map(customers.map((c) => [c.id, c.fullName]));

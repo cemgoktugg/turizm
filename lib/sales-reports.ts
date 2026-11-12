@@ -140,12 +140,20 @@ async function tourTable(p: ReportParams): Promise<ReportTable> {
   const paid: Money = {};
   const balance: Money = {};
   let count = 0;
+  // Toplam kontenjan / boş yer yalnızca kontenjanı girilmiş turlardan
+  let capacity = 0;
+  let free = 0;
   for (const r of rows) {
     count += r.count;
     price[r.currency] = (price[r.currency] ?? 0) + r.price;
     paid[r.currency] = (paid[r.currency] ?? 0) + r.paid;
     balance[r.currency] = (balance[r.currency] ?? 0) + r.balance;
+    if (r.capacity != null && r.left != null) {
+      capacity += r.capacity;
+      free += Math.max(r.left, 0);
+    }
   }
+  const hasCapacity = rows.some((r) => r.capacity != null);
   return {
     columns: [
       { label: "Tur ID" },
@@ -154,6 +162,8 @@ async function tourTable(p: ReportParams): Promise<ReportTable> {
       { label: "Gidiş – Dönüş" },
       { label: "Durum" },
       { label: "Satış Adedi", align: C },
+      { label: "Kontenjan", align: C },
+      { label: "Boş Yer", align: C },
       { label: "Ciro", align: R },
       { label: "Tahsil Edilen", align: R },
       { label: "Kalan Alacak", align: R },
@@ -168,12 +178,26 @@ async function tourTable(p: ReportParams): Promise<ReportTable> {
         `${shortDate(r.departureDate)} – ${shortDate(r.returnDate)}`,
         r.isActive ? "Aktif" : "Pasif",
         r.count,
+        r.capacity ?? "—",
+        r.left == null ? "—" : r.left <= 0 ? "Dolu" : r.left,
         m(r.price, r.currency),
         m(r.paid, r.currency),
         m(r.balance, r.currency),
       ],
     })),
-    footer: ["Toplam", "", "", "", "", String(count), moneyList(price), moneyList(paid), moneyList(balance)],
+    footer: [
+      "Toplam",
+      "",
+      "",
+      "",
+      "",
+      String(count),
+      hasCapacity ? String(capacity) : "",
+      hasCapacity ? String(free) : "",
+      moneyList(price),
+      moneyList(paid),
+      moneyList(balance),
+    ],
   };
 }
 

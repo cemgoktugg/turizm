@@ -2,6 +2,7 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import { formatPrice } from "./utils";
+import { seatsLeft } from "./capacity";
 
 /** Para birimine göre toplam (ör. { USD: 12500, TRY: 40000 }) */
 export type Money = Record<string, number>;
@@ -247,7 +248,7 @@ export async function tourReport(donem?: string) {
     prisma.serviceTour.findMany({
       where: donem ? { period: donem } : {},
       orderBy: { departureDate: "desc" },
-      select: { id: true, name: true, period: true, currency: true, departureDate: true, returnDate: true, isActive: true },
+      select: { id: true, name: true, period: true, currency: true, departureDate: true, returnDate: true, isActive: true, capacity: true },
     }),
     loadSales(donem ? { tour: { period: donem } } : {}),
   ]);
@@ -256,6 +257,8 @@ export async function tourReport(donem?: string) {
     return {
       ...t,
       count: sales.length,
+      /** Boş yer (kontenjan girilmemişse null) */
+      left: seatsLeft(t.capacity, sales.length),
       price: sales.reduce((a, s) => a + s.price, 0),
       paid: sales.reduce((a, s) => a + s.paid, 0),
       balance: sales.reduce((a, s) => a + s.balance, 0),

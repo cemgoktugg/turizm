@@ -560,6 +560,7 @@ export const serviceTourSchema = z
     guide1Id: requiredInt("Görevli 1", { min: 1 }),
     guide2Id: optionalNumber({ min: 1, int: true }),
     days: requiredInt("Gün", { min: 1, max: 365 }),
+    capacity: optionalNumber({ min: 1, max: 10_000, int: true }),
     note: optionalText(2000),
     isActive: z.boolean(),
   })

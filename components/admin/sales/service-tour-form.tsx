@@ -72,7 +72,10 @@ export function ServiceTourForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit, () => toast.error("Lütfen işaretli alanları kontrol edin."))} className="space-y-6" noValidate>
-      <FormSection title="Tur Bilgileri" description="Satışlar bu turlara yapılır. Dönem, satış listesindeki dönem süzgecinde kullanılır.">
+      <FormSection
+        title="Tur Bilgileri"
+        description="Satışlar bu turlara yapılır. Dönem, satış listesindeki dönem süzgecinde kullanılır. Kontenjan dolunca yeni satış yapılamaz; iptal edilen satışın yeri boşalır."
+      >
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Field label="Tur Adı" required error={errors.name?.message} className="sm:col-span-2">
             <Input placeholder="15 Günlük Ekonomik Umre" {...register("name")} autoFocus />
@@ -94,7 +97,10 @@ export function ServiceTourForm({
           <Field label="Gün" required error={errors.days?.message}>
             <Input type="number" min={1} {...register("days")} />
           </Field>
-          <Field label="Konaklama Yeri" error={errors.accommodation?.message} className="sm:col-span-2 lg:col-span-1">
+          <Field label="Kontenjan (kişi)" error={errors.capacity?.message}>
+            <Input type="number" min={1} step={1} placeholder="Boş: sınır yok" {...register("capacity")} />
+          </Field>
+          <Field label="Konaklama Yeri" error={errors.accommodation?.message} className="sm:col-span-2">
             <Input placeholder="Mekke: ..., Medine: ..." {...register("accommodation")} />
           </Field>
           <Field label="Görevli 1" required error={errors.guide1Id?.message}>
