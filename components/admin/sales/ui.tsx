@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ArrowLeft, Download, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { PeriodTours } from "@/lib/sales";
+import { PeriodTourSelect } from "./period-tour-select";
 
 /** Tablo hücre sınıfları (satış modülü listelerinde ortak) */
 export const th = "whitespace-nowrap px-3 py-3 font-semibold";
@@ -11,11 +13,13 @@ export const theadRow = "border-b border-border bg-cream-50 text-left text-xs up
 const control =
   "h-10 rounded-xl border border-border bg-white px-3 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100";
 
-/** Arama paneli: dönem seçimi + arama kutusu + Listele (GET formu, JS gerektirmez) */
+/** Arama paneli: dönem seçimi + arama kutusu + Listele (GET formu; tour verilirse dönem altında turlar da seçilir) */
 export function FilterBar({
   action,
   periods,
+  tours,
   donem,
+  tur = "",
   q,
   searchPlaceholder = "Ara...",
   exportHref,
@@ -24,7 +28,10 @@ export function FilterBar({
 }: {
   action: string;
   periods: string[];
+  /** Verilirse dönem listesinde her dönemin altında turları da sıralanır (seçilince liste yenilenir) */
+  tours?: PeriodTours[];
   donem: string;
+  tur?: string;
   /** undefined ise arama kutusu gösterilmez */
   q?: string;
   searchPlaceholder?: string;
@@ -36,14 +43,18 @@ export function FilterBar({
   return (
     <form action={action} className="mb-5 flex flex-col gap-2 rounded-2xl border border-border bg-white p-3 shadow-soft sm:flex-row sm:flex-wrap sm:items-center">
       {hidden && Object.entries(hidden).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
-      <select name="donem" defaultValue={donem} aria-label="Dönem" className={cn(control, "sm:w-56")}>
-        <option value="">Tüm dönemler</option>
-        {periods.map((p) => (
-          <option key={p} value={p}>
-            {p}
-          </option>
-        ))}
-      </select>
+      {tours ? (
+        <PeriodTourSelect groups={tours} donem={donem} tur={tur} className={cn(control, "sm:w-80")} />
+      ) : (
+        <select name="donem" defaultValue={donem} aria-label="Dönem" className={cn(control, "sm:w-56")}>
+          <option value="">Tüm dönemler</option>
+          {periods.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </select>
+      )}
       {q !== undefined && (
         <div className="relative flex-1 sm:min-w-64">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />

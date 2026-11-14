@@ -1,7 +1,8 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { ServiceTourForm } from "@/components/admin/sales/service-tour-form";
-import { BackLink } from "@/components/admin/sales/ui";
+import { BackLink, qs } from "@/components/admin/sales/ui";
 import { SeatHint } from "@/components/admin/sales/seat-hint";
 import { getPeriods, inputDate } from "@/lib/sales";
 import { getSalesBase } from "@/lib/sales-base-server";
@@ -28,7 +29,10 @@ export default async function EditServiceTourPage({ params }: { params: Promise<
       </h2>
       <div className="mb-6 max-w-md">
         <p className="mt-1 text-sm text-muted">
-          {sold} kişi kayıtlı (iptaller hariç){tour.capacity == null ? " · kontenjan girilmemiş" : ""}
+          {sold} kişi kayıtlı (iptaller hariç){tour.capacity == null ? " · kontenjan girilmemiş" : ""} ·{" "}
+          <Link href={`${base}${qs({ donem: tour.period, tur: String(tour.id) })}`} className="font-semibold text-brand-700 hover:text-gold-600">
+            Satışları gör
+          </Link>
         </p>
         <SeatHint capacity={tour.capacity} sold={sold} adding={0} />
       </div>

@@ -38,6 +38,34 @@ export async function getPeriods(): Promise<string[]> {
   return [...new Set(rows.map((r) => r.period))];
 }
 
+/** Dönem / tur seçiminde bir tur: sold = iptal edilmemiş satış (kişi) */
+export type PeriodTour = { id: number; name: string; sold: number; capacity: number | null; isActive: boolean };
+export type PeriodTours = { period: string; tours: PeriodTour[] };
+
+/** Dönemler (en yeni önce) ve her dönemin altında turları (gidiş tarihine göre) */
+export async function getPeriodTours(): Promise<PeriodTours[]> {
+  const rows = await prisma.serviceTour.findMany({
+    orderBy: [{ departureDate: "asc" }, { name: "asc" }],
+    select: {
+      id: true,
+      name: true,
+      period: true,
+      departureDate: true,
+      capacity: true,
+      isActive: true,
+      _count: { select: { sales: { where: { isCancelled: false } } } },
+    },
+  });
+  const map = new Map<string, { latest: number; tours: PeriodTour[] }>();
+  for (const { period, departureDate, _count, ...t } of rows) {
+    const g = map.get(period) ?? { latest: 0, tours: [] };
+    g.latest = Math.max(g.latest, departureDate.getTime());
+    g.tours.push({ ...t, sold: _count.sales });
+    map.set(period, g);
+  }
+  return [...map.entries()].sort(([, a], [, b]) => b.latest - a.latest).map(([period, g]) => ({ period, tours: g.tours }));
+}
+
 /** Parayı alabilecek kişiler: panel kullanıcıları, görevliler ve doğrudan kasa */
 export const KASA = "Kasa";
 /** Kişisi kaydedilmemiş eski tahsilatlar bu adla raporlanır */
@@ -69,10 +97,16 @@ export async function getReferences(): Promise<string[]> {
 
 export const SALE_STATUSES = { borclu: "Borçlu", odendi: "Ödendi", iade: "İade bekleyen", iptal: "İptal" } as const;
 
-export type SaleFilter = { donem?: string; q?: string; durum?: string; personel?: string; referans?: string };
+export type SaleFilter = { donem?: string; tur?: string; q?: string; durum?: string; personel?: string; referans?: string };
 
-/** Satış listesi süzgeci: dönem + personel + serbest arama (müşteri, T.C., telefon, tur, referans, satış no) */
-export function buildSaleWhere({ donem, q, personel }: SaleFilter): Prisma.SaleWhereInput {
+/** Adres çubuğundaki tur numarası (geçersizse null) */
+export function tourParam(tur: string | undefined): number | null {
+  return tur && /^\d{1,9}$/.test(tur) ? Number(tur) : null;
+}
+
+/** Satış listesi süzgeci: dönem / tur + personel + serbest arama (müşteri, T.C., telefon, tur, referans, satış no) */
+export function buildSaleWhere({ donem, tur, q, personel }: SaleFilter): Prisma.SaleWhereInput {
+  const tourId = tourParam(tur);
   const term = q?.trim() ?? "";
   const or: Prisma.SaleWhereInput[] = [
     { customer: { fullName: { contains: term } } },
@@ -85,6 +119,7 @@ export function buildSaleWhere({ donem, q, personel }: SaleFilter): Prisma.SaleW
   if (/^\d{1,9}$/.test(term)) or.push({ id: Number(term) });
   return {
     ...(donem ? { tour: { period: donem } } : {}),
+    ...(tourId ? { tourId } : {}),
     ...(term ? { OR: or } : {}),
     ...(personel ? { AND: [{ OR: [{ createdByName: personel }, { payments: { some: { receivedByName: personel } } }] }] } : {}),
   };

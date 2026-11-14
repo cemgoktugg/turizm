@@ -33,7 +33,7 @@ export type ReportTable = {
 };
 
 /** base: satır bağlantılarının adresi (/satis veya eski /admin/satis) */
-export type ReportParams = { donem?: string; q?: string; bas?: string; bit?: string; durum?: string; personel?: string; referans?: string; base?: string };
+export type ReportParams = { donem?: string; tur?: string; q?: string; bas?: string; bit?: string; durum?: string; personel?: string; referans?: string; base?: string };
 
 const m = (amount: number, currency: string): MoneyCell => ({ amount, currency });
 const R = "right" as const;

@@ -8,10 +8,24 @@ import { GroupDetail } from "@/components/admin/sales/group-detail";
 import { SaleSelection, SelectBox, SelectionBar } from "@/components/admin/sales/group-client";
 import { SaleDetail } from "@/components/admin/sales/sale-detail";
 import { SidePanel } from "@/components/admin/sales/side-panel";
+import { SeatHint } from "@/components/admin/sales/seat-hint";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { Plus, UsersRound } from "lucide-react";
-import { SALE_STATUSES, getCashPeople, getGroup, getPeriods, getReferences, getSale, loadSaleList, money, moneyList, shortDate, totalsOf } from "@/lib/sales";
+import { CalendarRange, Pencil, Plus, UsersRound, X } from "lucide-react";
+import {
+  SALE_STATUSES,
+  getCashPeople,
+  getGroup,
+  getPeriodTours,
+  getReferences,
+  getSale,
+  loadSaleList,
+  money,
+  moneyList,
+  shortDate,
+  totalsOf,
+  tourParam,
+} from "@/lib/sales";
 import { cn, formatDateTime } from "@/lib/utils";
 import { passengerLabel } from "@/lib/sale-pricing";
 import { getSalesBase } from "@/lib/sales-base-server";
@@ -24,25 +38,38 @@ export const metadata = { title: "Satışlar" };
 export default async function SalesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ donem?: string; q?: string; durum?: string; personel?: string; referans?: string; panel?: string; grup?: string; tip?: string }>;
+  searchParams: Promise<{ donem?: string; tur?: string; q?: string; durum?: string; personel?: string; referans?: string; panel?: string; grup?: string; tip?: string }>;
 }) {
   const base = await getSalesBase();
-  const { donem = "", q = "", durum = "", personel = "", referans = "", panel = "", grup = "", tip = "" } = await searchParams;
+  const { donem = "", tur = "", q = "", durum = "", personel = "", referans = "", panel = "", grup = "", tip = "" } = await searchParams;
+  // ?tur=5: yalnızca o turun satışları (dönem listesinde dönemin altından seçilir)
+  const tourId = tourParam(tur);
   // Yan panel (liste arkada kalır): ?panel=yeni (yeni satış; &grup=3 o gruba kişi ekler, &tip=grup aile formuyla açar),
   // ?panel=12 (satış detayı), ?panel=g3 (aile / grup)
   const panelId = /^\d{1,9}$/.test(panel) ? Number(panel) : null;
   const panelGroupId = /^g\d{1,9}$/.test(panel) ? Number(panel.slice(1)) : null;
-  const [periods, sales, tourCount, people, references, panelSale, panelGroup] = await Promise.all([
-    getPeriods(),
-    loadSaleList({ donem, q, durum, personel, referans }),
+  const [periodTours, sales, tourCount, people, references, panelSale, panelGroup, tour] = await Promise.all([
+    getPeriodTours(),
+    loadSaleList({ donem, tur, q, durum, personel, referans }),
     prisma.serviceTour.count(),
     getCashPeople(),
     getReferences(),
     panelId ? getSale(panelId) : null,
     panelGroupId ? getGroup(panelGroupId) : null,
+    tourId
+      ? prisma.serviceTour.findUnique({
+          where: { id: tourId },
+          include: {
+            guide1: { select: { fullName: true } },
+            guide2: { select: { fullName: true } },
+            _count: { select: { sales: { where: { isCancelled: false } } } },
+          },
+        })
+      : null,
   ]);
+  const periods = periodTours.map((g) => g.period);
   const totals = totalsOf(sales);
-  const filters = { donem, q, durum, personel, referans };
+  const filters = { donem, tur, q, durum, personel, referans };
   const listHref = `${base}${qs(filters)}`;
   const panelHref = (value: string, extra: Record<string, string> = {}) => `${base}${qs({ ...filters, panel: value, ...extra })}`;
 
@@ -60,10 +87,12 @@ export default async function SalesPage({
       <FilterBar
         action={base}
         periods={periods}
+        tours={periodTours}
         donem={donem}
+        tur={tour ? String(tour.id) : ""}
         q={q}
         searchPlaceholder="Müşteri, T.C., telefon, tur, referans veya satış no..."
-        exportHref={`/api/admin/satis/export${qs({ rapor: "satislar", donem, q, durum, personel, referans })}`}
+        exportHref={`/api/admin/satis/export${qs({ rapor: "satislar", donem, tur, q, durum, personel, referans })}`}
       >
         <FilterSelect
           name="durum"
@@ -76,6 +105,44 @@ export default async function SalesPage({
         <FilterSelect name="referans" value={referans} label="Referans" allLabel="Tüm referanslar" options={references} />
       </FilterBar>
 
+      {tour && (
+        <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-gold-200 bg-gold-50 p-4 sm:flex-row sm:items-center">
+          <CalendarRange className="hidden size-8 shrink-0 text-gold-600 sm:block" />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gold-700">
+              {tour.period} · Tur No {tour.id}
+            </p>
+            <p className="font-serif text-lg font-bold text-brand-900">
+              {tour.name}
+              {!tour.isActive && (
+                <Badge variant="slate" size="sm" className="ml-2 align-middle">
+                  Pasif
+                </Badge>
+              )}
+            </p>
+            <p className="text-sm text-muted">
+              {shortDate(tour.departureDate)} – {shortDate(tour.returnDate)} · {tour.days} gün · Görevli:{" "}
+              {[tour.guide1?.fullName, tour.guide2?.fullName].filter(Boolean).join(", ") || "atanmadı"}
+            </p>
+          </div>
+          <div className="sm:text-right">
+            <p className="text-sm font-bold text-brand-900">
+              {tour._count.sales}
+              {tour.capacity != null ? ` / ${tour.capacity}` : ""} kişi
+            </p>
+            {tour.capacity == null ? <p className="mt-1 text-xs text-muted">Kontenjan girilmemiş</p> : <SeatHint capacity={tour.capacity} sold={tour._count.sales} adding={0} />}
+          </div>
+          <div className="flex gap-2">
+            <Link href={`${base}/turlar/${tour.id}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+              <Pencil className="size-3.5" /> Tur Bilgileri
+            </Link>
+            <Link href={`${base}${qs({ ...filters, tur: "" })}`} className={buttonVariants({ variant: "ghost", size: "sm" })} title="Tur seçimini kaldır (dönemin bütün satışları)">
+              <X className="size-3.5" /> Kaldır
+            </Link>
+          </div>
+        </div>
+      )}
+
       {sales.length === 0 ? (
         tourCount === 0 ? (
           <EmptyState
@@ -85,7 +152,7 @@ export default async function SalesPage({
             actionHref={`${base}/turlar/yeni`}
           />
         ) : (
-          <EmptyState title="Satış bulunamadı" actionLabel="Yeni Satış" actionHref={panelHref("yeni")} />
+          <EmptyState title={tour ? "Bu turda henüz satış yok" : "Satış bulunamadı"} actionLabel="Yeni Satış" actionHref={panelHref("yeni")} />
         )
       ) : (
         <>

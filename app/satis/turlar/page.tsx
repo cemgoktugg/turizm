@@ -91,7 +91,7 @@ export default async function ServiceToursPage({ searchParams }: { searchParams:
                     </td>
                     <td className={td}>{[t.guide1?.fullName, t.guide2?.fullName].filter(Boolean).join(", ") || <span className="text-muted">Atanmadı</span>}</td>
                     <td className={cn(td, "text-center")}>
-                      <Link href={`${base}${qs({ donem: t.period, q: t.name })}`} className="font-semibold text-brand-700 hover:text-gold-600">
+                      <Link href={`${base}${qs({ donem: t.period, tur: String(t.id) })}`} title="Bu turun satışları" className="font-semibold text-brand-700 hover:text-gold-600">
                         {t._count.sales}
                         {t.capacity != null && <span className="font-normal text-muted"> / {t.capacity}</span>}
                       </Link>
