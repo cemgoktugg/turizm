@@ -18,7 +18,7 @@ import { useSalesBase } from "./use-sales-base";
 import { withParam } from "./ui";
 import { toastWithReceipt } from "./receipt-toolbar";
 import { DiscountHint } from "./discount-hint";
-import { discountOf, listPriceOf, percent } from "@/lib/sale-pricing";
+import { PASSENGER_KEYS, PASSENGER_TYPES, discountOf, isPassengerType, percent, saleListPrice, type PassengerType } from "@/lib/sale-pricing";
 import { seatLabel, seatsLeft } from "@/lib/capacity";
 import { SeatHint } from "./seat-hint";
 
@@ -30,6 +30,8 @@ export type SaleTourOption = {
   period: string;
   /** Oda kişi sayısı → kişi başı ücret (yalnızca fiyatı girilmiş oda tipleri) */
   prices: Record<number, number>;
+  /** Yaş grubu → çocuk ücreti (yalnızca girilmiş yaş grupları) */
+  childPrices: Partial<Record<PassengerType, number>>;
   currency: string;
   departure: string;
   isActive: boolean;
@@ -83,14 +85,17 @@ export function SaleForm({
   // Ücret elle yazıldıysa tur değişince üzerine yazılmaz
   const [priceEdited, setPriceEdited] = useState(false);
 
-  const [tourId, roomSize, price] = useWatch({ control, name: ["tourId", "roomSize", "price"] });
+  const [tourId, roomSize, passenger, price] = useWatch({ control, name: ["tourId", "roomSize", "passenger", "price"] });
   const tour = tours.find((t) => String(t.id) === String(tourId ?? ""));
   const cur = tour ? currencySymbol(tour.currency).trim() : "";
 
-  // Liste fiyatı: düzenlemede tur ve oda değişmediyse kayıttaki değer, aksi halde turun güncel fiyatı (sunucuyla aynı kural)
+  // Liste fiyatı: düzenlemede tur, oda ve yolcu değişmediyse kayıttaki değer, aksi halde turun güncel fiyatı (sunucuyla aynı kural)
   const sameRoom =
-    !!saleId && String(tourId ?? "") === String(defaultValues?.tourId ?? "") && String(roomSize ?? "") === String(defaultValues?.roomSize ?? "");
-  const listPrice = sameRoom ? savedListPrice : tour ? listPriceOf(tour.prices, Number(roomSize) || null) : null;
+    !!saleId &&
+    String(tourId ?? "") === String(defaultValues?.tourId ?? "") &&
+    String(roomSize ?? "") === String(defaultValues?.roomSize ?? "") &&
+    String(passenger ?? "") === String(defaultValues?.passenger ?? "");
+  const listPrice = sameRoom ? savedListPrice : tour ? saleListPrice(tour.prices, tour.childPrices, Number(roomSize) || null, passenger) : null;
   // Düzenlemede satışın kendi turu: satış zaten yer kaplıyor, ek yer gerekmez
   const sameTour = !!saleId && String(tourId ?? "") === String(defaultValues?.tourId ?? "");
   const priceNum = price === "" || price == null ? null : Number(price);
@@ -101,8 +106,12 @@ export function SaleForm({
   if (currentRoom && !roomSizes.includes(currentRoom)) roomSizes.push(currentRoom);
   roomSizes.sort((a, b) => a - b);
 
-  /** Seçili tur ve oda tipine göre kişi başı ücret; oda seçilmediyse turun ilk oda fiyatı */
-  const priceFor = (t: SaleTourOption, size: number) => t.prices[size] ?? Object.values(t.prices)[0];
+  // Yolcu seçenekleri: turun ücreti girilmiş çocuk yaş grupları (+ kayıtlı satışın eski değeri)
+  const passengerTypes = PASSENGER_KEYS.filter((k) => (tour ? tour.childPrices[k] != null : true) || k === passenger);
+
+  /** Kişi başı ücret: çocukta yaş grubunun ücreti; yetişkinde seçili oda, oda seçilmediyse turun ilk oda fiyatı */
+  const priceFor = (t: SaleTourOption, size: number, who?: string) =>
+    (isPassengerType(who) ? t.childPrices[who] : undefined) ?? t.prices[size] ?? Object.values(t.prices)[0];
 
   // Dönemlere göre gruplu tur listesi
   const groups = tours.reduce<Record<string, SaleTourOption[]>>((acc, t) => {
@@ -151,7 +160,9 @@ export function SaleForm({
                   if (!t || saleId) return;
                   const size = Number(getValues("roomSize"));
                   if (size && t.prices[size] == null) setValue("roomSize", "");
-                  if (!priceEdited) setValue("price", String(priceFor(t, size)));
+                  const who = getValues("passenger");
+                  if (isPassengerType(who) && t.childPrices[who] == null) setValue("passenger", "");
+                  if (!priceEdited) setValue("price", String(priceFor(t, size, getValues("passenger"))));
                 },
               })}
             >
@@ -177,13 +188,31 @@ export function SaleForm({
           <Field label="Satış Tarihi" required error={errors.date?.message}>
             <Input type="date" {...register("date")} />
           </Field>
+          <Field label="Yolcu" error={errors.passenger?.message}>
+            <Select
+              {...register("passenger", {
+                onChange: (e) => {
+                  // Yolcu tipi değişince ücret: çocukta yaş grubunun, yetişkinde odanın ücreti
+                  if (tour) setValue("price", String(priceFor(tour, Number(getValues("roomSize")), e.target.value)));
+                },
+              })}
+            >
+              <option value="">Yetişkin</option>
+              {passengerTypes.map((k) => (
+                <option key={k} value={k}>
+                  {PASSENGER_TYPES[k]}
+                  {tour?.childPrices[k] != null ? ` · ${formatPrice(tour.childPrices[k], tour.currency)}` : ""}
+                </option>
+              ))}
+            </Select>
+          </Field>
           <Field label="Oda Kişi Sayısı" error={errors.roomSize?.message}>
             <Select
               {...register("roomSize", {
                 onChange: (e) => {
-                  // Oda tipi seçilince o odanın kişi başı ücreti yazılır
+                  // Yetişkinde oda tipi seçilince o odanın kişi başı ücreti yazılır (çocuk ücreti odadan bağımsız)
                   const p = tour?.prices[Number(e.target.value)];
-                  if (p != null) setValue("price", String(p));
+                  if (p != null && !isPassengerType(getValues("passenger"))) setValue("price", String(p));
                 },
               })}
             >

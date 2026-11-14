@@ -9,6 +9,7 @@ export async function getContract(saleId: number) {
       date: true,
       price: true,
       roomSize: true,
+      passenger: true,
       isCancelled: true,
       customer: { select: { fullName: true, tc: true, phone: true } },
       tour: {

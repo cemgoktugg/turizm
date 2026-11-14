@@ -13,6 +13,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Plus, UsersRound } from "lucide-react";
 import { SALE_STATUSES, getCashPeople, getGroup, getPeriods, getReferences, getSale, loadSaleList, money, moneyList, shortDate, totalsOf } from "@/lib/sales";
 import { cn, formatDateTime } from "@/lib/utils";
+import { passengerLabel } from "@/lib/sale-pricing";
 import { getSalesBase } from "@/lib/sales-base-server";
 
 // İşlem butonları geniş tabloda kaydırmadan görünsün diye sağa sabitlenir
@@ -160,6 +161,11 @@ export default async function SalesPage({
                           >
                             <UsersRound className="size-3" /> {s.group.name}
                           </Link>
+                        )}
+                        {s.passenger && (
+                          <Badge variant="slate" size="sm" className="ml-2 no-underline" title={passengerLabel(s.passenger)}>
+                            {s.passenger} yaş
+                          </Badge>
                         )}
                         {s.isCancelled && (
                           <Badge variant="slate" size="sm" className="ml-2 no-underline">

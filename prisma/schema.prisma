@@ -370,10 +370,15 @@ model ServiceTour {
   price2        Int?
   price3        Int?
   price4        Int?
+  /// Çocuk ücretleri (yaşa göre, oda tipinden bağımsız); boşsa o yaş grubu satışta seçilemez
+  priceAge0to2  Int?
+  priceAge2to6  Int?
+  priceAge6to11 Int?
   currency      String   @default("USD")
   accommodation String?
-  guide1Id      Int
-  guide1        Staff    @relation("Guide1", fields: [guide1Id], references: [id])
+  /// Görevli sonradan atanabilir
+  guide1Id      Int?
+  guide1        Staff?   @relation("Guide1", fields: [guide1Id], references: [id])
   guide2Id      Int?
   guide2        Staff?   @relation("Guide2", fields: [guide2Id], references: [id])
   days          Int
@@ -411,6 +416,8 @@ model Sale {
   reference   String?
   /// Oda kişi sayısı (2-4) — seçilince turun o oda tipindeki fiyatı önerilir
   roomSize    Int?
+  /// Yolcu: boş = yetişkin; "0-2" | "2-6" | "6-11" yaş çocuk (turun çocuk ücreti önerilir)
+  passenger   String?
   /// Satış anındaki tur liste fiyatı (kişi başı); tur fiyatı sonradan değişse de korunur. Eski kayıtlarda boş
   listPrice   Int?
   /// Anlaşılan (pazarlıklı) ücret; bakiye bunun üzerinden hesaplanır

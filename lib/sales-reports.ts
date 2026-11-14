@@ -1,7 +1,7 @@
 import "server-only";
 import { formatDateTime } from "./utils";
 import { SALES_BASE } from "./sales-base";
-import { DISCOUNT_WARN_RATE, discountOf, percent } from "./sale-pricing";
+import { DISCOUNT_WARN_RATE, discountOf, passengerLabel, percent } from "./sale-pricing";
 import {
   addMoney,
   debtorReport,
@@ -59,6 +59,7 @@ async function salesTable(p: ReportParams): Promise<ReportTable> {
       { label: "Açıklama" },
       { label: "Referans" },
       { label: "Oda Kişi Sayısı", align: C },
+      { label: "Yolcu" },
       { label: "Liste Fiyatı", align: R },
       { label: "İndirim", align: R },
       { label: "Ücret", align: R },
@@ -82,6 +83,7 @@ async function salesTable(p: ReportParams): Promise<ReportTable> {
         s.note,
         s.reference,
         s.roomSize,
+        passengerLabel(s.passenger),
         s.listPrice == null ? null : m(s.listPrice, s.currency),
         s.listPrice == null ? null : m(discountOf(s.listPrice, s.price)?.amount ?? 0, s.currency),
         m(s.price, s.currency),
@@ -92,7 +94,7 @@ async function salesTable(p: ReportParams): Promise<ReportTable> {
         formatDateTime(s.createdAt),
       ],
     })),
-    footer: [`Toplam (${t.count} satış)`, "", "", "", "", "", "", "", "", "", "", "", moneyList(t.price), moneyList(t.paid), moneyList(t.balance), "", "", ""],
+    footer: [`Toplam (${t.count} satış)`, "", "", "", "", "", "", "", "", "", "", "", "", moneyList(t.price), moneyList(t.paid), moneyList(t.balance), "", "", ""],
   };
 }
 

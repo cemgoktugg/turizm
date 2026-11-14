@@ -83,8 +83,13 @@ export default async function ServiceToursPage({ searchParams }: { searchParams:
                     <td className={cn(td, "text-center")}>{t.days}</td>
                     <td className={cn(td, num)}>
                       {[t.price2, t.price3, t.price4].map((p) => (p == null ? "—" : money(p, t.currency))).join(" / ")}
+                      {[t.priceAge0to2, t.priceAge2to6, t.priceAge6to11].some((p) => p != null) && (
+                        <p className="text-xs text-muted" title="Çocuk: 0-2 / 2-6 / 6-11 yaş">
+                          Çocuk: {[t.priceAge0to2, t.priceAge2to6, t.priceAge6to11].map((p) => (p == null ? "—" : money(p, t.currency))).join(" / ")}
+                        </p>
+                      )}
                     </td>
-                    <td className={td}>{[t.guide1.fullName, t.guide2?.fullName].filter(Boolean).join(", ")}</td>
+                    <td className={td}>{[t.guide1?.fullName, t.guide2?.fullName].filter(Boolean).join(", ") || <span className="text-muted">Atanmadı</span>}</td>
                     <td className={cn(td, "text-center")}>
                       <Link href={`${base}${qs({ donem: t.period, q: t.name })}`} className="font-semibold text-brand-700 hover:text-gold-600">
                         {t._count.sales}

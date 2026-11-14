@@ -3,6 +3,7 @@ import { SaleForm } from "@/components/admin/sales/sale-form";
 import { BackLink } from "@/components/admin/sales/ui";
 import { getReferences, getSale, inputDate } from "@/lib/sales";
 import { getSaleTourOptions } from "../../tour-options";
+import type { PassengerType } from "@/lib/sale-pricing";
 import { getSalesBase } from "@/lib/sales-base-server";
 
 export const metadata = { title: "Satış Düzenle" };
@@ -34,6 +35,7 @@ export default async function EditSalePage({ params }: { params: Promise<{ id: s
           note: sale.note ?? "",
           reference: sale.reference ?? "",
           roomSize: sale.roomSize == null ? "" : String(sale.roomSize),
+          passenger: (sale.passenger ?? "") as "" | PassengerType,
           price: String(sale.price),
         }}
       />

@@ -35,6 +35,7 @@ export async function getReceipt(paymentId: number) {
       customer: { id: s.customer.id, fullName: s.customer.fullName, tc: s.customer.tc, phone: s.customer.phone },
       tour: s.tour,
       roomSize: s.roomSize,
+      passenger: s.passenger,
       price: s.price,
       currency: s.tour.currency,
       isCancelled: s.isCancelled,

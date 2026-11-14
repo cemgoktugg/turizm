@@ -18,14 +18,15 @@ import { useSalesBase } from "./use-sales-base";
 import { withParam } from "./ui";
 import { toastWithReceipt } from "./receipt-toolbar";
 import { DiscountHint } from "./discount-hint";
-import { DISCOUNT_WARN_RATE, discountOf, listPriceOf } from "@/lib/sale-pricing";
+import { DISCOUNT_WARN_RATE, PASSENGER_KEYS, PASSENGER_TYPES, discountOf, isPassengerType, saleListPrice } from "@/lib/sale-pricing";
 import { capacityError, seatLabel, seatsLeft } from "@/lib/capacity";
 import { SeatHint } from "./seat-hint";
 
-type Member = { key: number; customer: CustomerOption | null; price: string; priceEdited: boolean };
+/** passenger: "" = yetişkin, aksi halde çocuk yaş grubu ("0-2" | "2-6" | "6-11") */
+type Member = { key: number; customer: CustomerOption | null; passenger: string; price: string; priceEdited: boolean };
 
 let nextKey = 1;
-const emptyMember = (price = ""): Member => ({ key: nextKey++, customer: null, price, priceEdited: false });
+const emptyMember = (price = ""): Member => ({ key: nextKey++, customer: null, passenger: "", price, priceEdited: false });
 
 /**
  * Aile / grup satışı: tur, tarih ve oda tipi bir kez seçilir; kişiler arka
@@ -70,15 +71,24 @@ export function GroupSaleForm({
   const cur = tour ? currencySymbol(tour.currency).trim() : "";
   const fmt = (v: number) => (tour ? formatPrice(v, tour.currency, "0") : String(v));
   const roomSizes = tour ? Object.keys(tour.prices).map(Number).sort((a, b) => a - b) : [2, 3, 4];
-  const priceFor = (t: SaleTourOption | undefined, size: number) => (t ? String(t.prices[size] ?? Object.values(t.prices)[0] ?? "") : "");
+  /** Kişi başı ücret: çocukta yaş grubunun ücreti; yetişkinde seçili oda, oda seçilmediyse turun ilk oda fiyatı */
+  const priceFor = (t: SaleTourOption | undefined, size: number, passenger = "") =>
+    t ? String((isPassengerType(passenger) ? t.childPrices[passenger] : undefined) ?? t.prices[size] ?? Object.values(t.prices)[0] ?? "") : "";
+  // Çocuk seçenekleri: seçili turun ücreti girilmiş yaş grupları (tur seçilmediyse hepsi)
+  const passengerTypes = PASSENGER_KEYS.filter((k) => !tour || tour.childPrices[k] != null);
   const periods = tours.reduce<Record<string, SaleTourOption[]>>((acc, t) => {
     (acc[t.period] ??= []).push(t);
     return acc;
   }, {});
 
-  /** Tur / oda değişince fiyatı elle değiştirilmemiş kişilere yeni fiyat önerilir */
+  /** Tur / oda değişince fiyatı elle değiştirilmemiş kişilere yeni fiyat önerilir (turda ücreti olmayan çocuk tipi yetişkine döner) */
   function repriceMembers(t: SaleTourOption | undefined, size: number) {
-    setMembers((ms) => ms.map((m) => (m.priceEdited ? m : { ...m, price: priceFor(t, size) })));
+    setMembers((ms) =>
+      ms.map((m) => {
+        const passenger = isPassengerType(m.passenger) && t && t.childPrices[m.passenger] == null ? "" : m.passenger;
+        return m.priceEdited ? { ...m, passenger } : { ...m, passenger, price: priceFor(t, size, passenger) };
+      }),
+    );
   }
   const update = (key: number, patch: Partial<Member>) => {
     setDirty(true);
@@ -90,9 +100,9 @@ export function GroupSaleForm({
   const totalPrice = prices.reduce((a, b) => a + b, 0);
   const downNum = Number(down.amount) || 0;
   const downParts = downNum ? splitProportional(downNum, prices) : [];
-  // Liste fiyatı sunucudakiyle aynı kuralla: seçili oda tipinin kişi başı ücreti
-  const listPrice = tour ? listPriceOf(tour.prices, Number(roomSize) || null) : null;
-  const memberDiscounts = filled.map((m) => (m.price === "" ? null : discountOf(listPrice, Number(m.price))));
+  // Liste fiyatı sunucudakiyle aynı kuralla: çocukta yaş grubunun, yetişkinde seçili oda tipinin kişi başı ücreti
+  const listPriceOfMember = (m: Member) => (tour ? saleListPrice(tour.prices, tour.childPrices, Number(roomSize) || null, m.passenger) : null);
+  const memberDiscounts = filled.map((m) => (m.price === "" ? null : discountOf(listPriceOfMember(m), Number(m.price))));
   const totalDiscount = memberDiscounts.reduce((t, d) => t + (d?.amount ?? 0), 0);
   const warnCount = memberDiscounts.filter((d) => d?.warn).length;
 
@@ -121,7 +131,7 @@ export function GroupSaleForm({
       roomSize,
       reference,
       note,
-      members: filled.map((m) => ({ customerId: m.customer!.id, price: m.price })),
+      members: filled.map((m) => ({ customerId: m.customer!.id, passenger: m.passenger, price: m.price })),
       downPayment: down.amount,
       downPaymentMethod: down.method,
       downPaymentBy: down.by,
@@ -209,11 +219,25 @@ export function GroupSaleForm({
         </div>
       </FormSection>
 
-      <FormSection title={`Kişiler${filled.length ? ` (${filled.length})` : ""}`} description="Müşteriyi arayın veya yeni müşteri ekleyin. Ücret, seçili oda tipine göre önerilir.">
+      <FormSection title={`Kişiler${filled.length ? ` (${filled.length})` : ""}`} description="Müşteriyi arayın veya yeni müşteri ekleyin. Ücret, seçili oda tipine göre önerilir; çocuklarda yaş grubunu seçin.">
         <div className="space-y-3">
           {members.map((m, i) => (
-            <div key={m.key} className="grid items-start gap-3 rounded-xl border border-border bg-cream-50/50 p-3 @lg:grid-cols-[1fr_9rem_auto]">
+            <div key={m.key} className="grid items-start gap-3 rounded-xl border border-border bg-cream-50/50 p-3 @lg:grid-cols-[1fr_11rem_9rem_auto]">
               <CustomerPicker value={m.customer} onChange={(c) => update(m.key, { customer: c })} invalid={!!errors.members && !m.customer && i === 0} />
+              <Select
+                value={m.passenger}
+                onChange={(e) => update(m.key, { passenger: e.target.value, price: priceFor(tour, Number(roomSize), e.target.value), priceEdited: false })}
+                aria-label={`${i + 1}. kişi: yetişkin / çocuk`}
+                className="h-11"
+              >
+                <option value="">Yetişkin</option>
+                {passengerTypes.map((k) => (
+                  <option key={k} value={k}>
+                    {PASSENGER_TYPES[k]}
+                    {tour?.childPrices[k] != null ? ` · ${formatPrice(tour.childPrices[k], tour.currency)}` : ""}
+                  </option>
+                ))}
+              </Select>
               <Input
                 type="number"
                 min={0}
@@ -238,7 +262,7 @@ export function GroupSaleForm({
                 <Trash2 className="size-4" />
               </button>
               {tour && m.price !== "" && (
-                <DiscountHint listPrice={listPrice} price={Number(m.price)} currency={tour.currency} className="-mt-2 @lg:col-span-3 @lg:text-right @lg:pr-14" />
+                <DiscountHint listPrice={listPriceOfMember(m)} price={Number(m.price)} currency={tour.currency} className="-mt-2 @lg:col-span-4 @lg:text-right @lg:pr-14" />
               )}
             </div>
           ))}

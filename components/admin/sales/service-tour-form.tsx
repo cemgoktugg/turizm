@@ -103,9 +103,9 @@ export function ServiceTourForm({
           <Field label="Konaklama Yeri" error={errors.accommodation?.message} className="sm:col-span-2">
             <Input placeholder="Mekke: ..., Medine: ..." {...register("accommodation")} />
           </Field>
-          <Field label="Görevli 1" required error={errors.guide1Id?.message}>
+          <Field label="Görevli 1" error={errors.guide1Id?.message}>
             <Select {...register("guide1Id")}>
-              <option value="">Seçiniz</option>
+              <option value="">Henüz atanmadı</option>
               {staff.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.fullName}
@@ -141,6 +141,22 @@ export function ServiceTourForm({
           </Field>
           <Field label="4 Kişilik Oda ($)" error={errors.price4?.message}>
             <Input type="number" min={0} step={1} {...register("price4")} />
+          </Field>
+        </div>
+      </FormSection>
+      <FormSection
+        title="Çocuk Ücretleri"
+        description="Kişi başı, oda tipinden bağımsız (dolar). Boş bırakılan yaş grubu satışta seçilemez; satışta 'Yolcu' alanından seçilir."
+      >
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Field label="0-2 Yaş Bebek ($)" error={errors.priceAge0to2?.message}>
+            <Input type="number" min={0} step={1} {...register("priceAge0to2")} />
+          </Field>
+          <Field label="2-6 Yaş Çocuk ($)" error={errors.priceAge2to6?.message}>
+            <Input type="number" min={0} step={1} {...register("priceAge2to6")} />
+          </Field>
+          <Field label="6-11 Yaş Çocuk ($)" error={errors.priceAge6to11?.message}>
+            <Input type="number" min={0} step={1} {...register("priceAge6to11")} />
           </Field>
         </div>
       </FormSection>

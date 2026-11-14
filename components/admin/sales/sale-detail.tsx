@@ -12,7 +12,7 @@ import { getActivityFor } from "@/lib/activity";
 import { getCurrentUser } from "@/lib/auth";
 import { getCashPeople, getGroup, inputDate, money, moneyList, shortDate, type getSale } from "@/lib/sales";
 import { cn, currencySymbol, formatDateTime } from "@/lib/utils";
-import { discountOf, percent } from "@/lib/sale-pricing";
+import { discountOf, passengerLabel, percent } from "@/lib/sale-pricing";
 import { contractHref, receiptHref } from "@/lib/sales-base";
 
 export type SaleDetailData = NonNullable<Awaited<ReturnType<typeof getSale>>>;
@@ -76,8 +76,9 @@ export async function SaleDetail({
     ],
     ["Dönem", tour.period],
     ["Gidiş – Dönüş", `${shortDate(tour.departureDate)} – ${shortDate(tour.returnDate)} (${tour.days} gün)`],
-    ["Görevliler", [tour.guide1.fullName, tour.guide2?.fullName].filter(Boolean).join(", ")],
+    ["Görevliler", [tour.guide1?.fullName, tour.guide2?.fullName].filter(Boolean).join(", ") || "Atanmadı"],
     ["Satış Tarihi", shortDate(sale.date)],
+    ["Yolcu", passengerLabel(sale.passenger)],
     ["Oda Kişi Sayısı", sale.roomSize ? `${sale.roomSize} kişilik oda` : "—"],
     [
       "Liste Fiyatı",

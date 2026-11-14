@@ -12,6 +12,7 @@ import { getActivityFor } from "@/lib/activity";
 import { getCurrentUser } from "@/lib/auth";
 import { getCashPeople, getGroupBatches, inputDate, money, moneyList, shortDate, type GroupData } from "@/lib/sales";
 import { cn, formatDateTime } from "@/lib/utils";
+import { roomAndPassenger } from "@/lib/sale-pricing";
 
 /**
  * Aile / grup ayrıntısı: kişiler ve borçları, grup tahsilatı, geçmiş.
@@ -119,7 +120,7 @@ export async function GroupDetail({
                   </Badge>
                 )}
                 <p className="truncate text-xs text-muted">
-                  {s.tour.name} · {s.roomSize ? `${s.roomSize} kişilik oda · ` : ""}
+                  {[s.tour.name, roomAndPassenger(s.roomSize, s.passenger)].filter(Boolean).join(" · ")} ·{" "}
                   {money(s.price, s.currency)}
                 </p>
               </div>

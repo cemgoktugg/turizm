@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { USERNAME_HINT, USERNAME_PATTERN, normalizeUsername } from "./username";
+import { PASSENGER_KEYS, type PassengerType } from "./sale-pricing";
 
 /* ------------------------------------------------------------------ */
 /* Yardımcılar                                                          */
@@ -491,6 +492,9 @@ export const SETTING_KEYS = Object.keys(settingsSchema.shape) as (keyof Settings
 
 export const PAYMENT_METHODS = ["Nakit", "Havale", "Kredi Kartı"] as const;
 
+/** Satışta yolcu tipi: boş = yetişkin, aksi halde çocuk yaş grubu */
+const passengerField = z.enum(PASSENGER_KEYS as [PassengerType, ...PassengerType[]]).or(z.literal("")).optional();
+
 /** T.C. kimlik numarası algoritma kontrolü (11 hane, son iki hane sağlaması) */
 export function isValidTc(tc: string): boolean {
   if (!/^[1-9]\d{10}$/.test(tc)) return false;
@@ -567,8 +571,13 @@ export const serviceTourSchema = z
     price2: optionalNumber({ min: 0, max: 100_000_000, int: true }),
     price3: optionalNumber({ min: 0, max: 100_000_000, int: true }),
     price4: optionalNumber({ min: 0, max: 100_000_000, int: true }),
+    /** Çocuk ücretleri (yaşa göre); boş bırakılan yaş grubu satışta seçilemez */
+    priceAge0to2: optionalNumber({ min: 0, max: 100_000_000, int: true }),
+    priceAge2to6: optionalNumber({ min: 0, max: 100_000_000, int: true }),
+    priceAge6to11: optionalNumber({ min: 0, max: 100_000_000, int: true }),
     accommodation: optionalText(200),
-    guide1Id: requiredInt("Görevli 1", { min: 1 }),
+    /** Görevli sonradan atanabilir */
+    guide1Id: optionalNumber({ min: 1, int: true }),
     guide2Id: optionalNumber({ min: 1, int: true }),
     days: requiredInt("Gün", { min: 1, max: 365 }),
     capacity: optionalNumber({ min: 1, max: 10_000, int: true }),
@@ -596,6 +605,8 @@ export const saleSchema = z.object({
   note: optionalText(1000),
   reference: optionalText(100),
   roomSize: optionalNumber({ min: 1, max: 10, int: true }),
+  /** Boş = yetişkin; çocukta yaş grubu ("0-2" | "2-6" | "6-11") */
+  passenger: passengerField,
   price: requiredInt("Ücret", { min: 0, max: 100_000_000 }),
   /** Yalnızca yeni satışta: girilirse ilk tahsilat olarak kaydedilir */
   downPayment: optionalNumber({ min: 1, max: 100_000_000, int: true }),
@@ -636,6 +647,7 @@ export const groupSaleSchema = z
       .array(
         z.object({
           customerId: requiredInt("Müşteri", { min: 1 }),
+          passenger: passengerField,
           price: requiredInt("Ücret", { min: 0, max: 100_000_000 }),
         }),
       )

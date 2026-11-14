@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { shortDate } from "@/lib/sales";
+import { childPriceMap } from "@/lib/sale-pricing";
 import type { SaleTourOption } from "@/components/admin/sales/sale-form";
 
 /** Satış formundaki tur listesi: aktif turlar (+ düzenlenen satışın mevcut turu) */
@@ -15,6 +16,9 @@ export async function getSaleTourOptions(includeId?: number): Promise<SaleTourOp
       price2: true,
       price3: true,
       price4: true,
+      priceAge0to2: true,
+      priceAge2to6: true,
+      priceAge6to11: true,
       currency: true,
       departureDate: true,
       isActive: true,
@@ -23,8 +27,10 @@ export async function getSaleTourOptions(includeId?: number): Promise<SaleTourOp
       _count: { select: { sales: { where: { isCancelled: false } } } },
     },
   });
-  return tours.map(({ price2, price3, price4, departureDate, _count, ...t }) => ({
+  return tours.map(({ price2, price3, price4, priceAge0to2, priceAge2to6, priceAge6to11, departureDate, _count, ...t }) => ({
     ...t,
+    // Yaş grubu → çocuk ücreti (girilmemiş yaş grupları yok)
+    childPrices: childPriceMap({ priceAge0to2, priceAge2to6, priceAge6to11 }),
     departure: shortDate(departureDate),
     sold: _count.sales,
     // Oda kişi sayısı → kişi başı ücret (fiyatı girilmemiş oda tipleri yok)

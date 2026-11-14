@@ -4,6 +4,7 @@ import type { ReceiptData } from "@/lib/receipts";
 import { money, shortDate } from "@/lib/sales";
 import type { SiteSettings } from "@/lib/settings";
 import { cn, formatDateTime } from "@/lib/utils";
+import { roomAndPassenger } from "@/lib/sale-pricing";
 
 export type Company = Pick<SiteSettings, "siteName" | "companyTitle" | "logo" | "address" | "phone" | "email" | "tursabNo">;
 
@@ -66,7 +67,7 @@ export function ReceiptCopy({ r, company, copyLabel }: { r: ReceiptData; company
           <Info label="Tur" value={<strong>{one.tour.name}</strong>} />
           <Info label="Tur Tarihi" value={`${shortDate(one.tour.departureDate)} – ${shortDate(one.tour.returnDate)} (${one.tour.days} gün)`} />
           <Info label="Dönem" value={one.tour.period} />
-          <Info label="Satış No / Oda" value={`#${one.saleId}${one.roomSize ? ` · ${one.roomSize} kişilik oda` : ""}`} />
+          <Info label="Satış No / Oda" value={[`#${one.saleId}`, roomAndPassenger(one.roomSize, one.passenger)].filter(Boolean).join(" · ")} />
         </dl>
       ) : (
         <dl className="grid grid-cols-2 gap-x-6 gap-y-[1.2mm] py-[3mm]">

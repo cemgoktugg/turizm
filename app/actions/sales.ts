@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { recordActivity, type AuditEntry } from "@/lib/activity";
 import type { CurrentUser } from "@/lib/auth";
 import { splitProportional } from "@/lib/split";
-import { discountOf, listPriceOf, percent, tourPriceMap } from "@/lib/sale-pricing";
+import { childPriceMap, discountOf, passengerLabel, percent, saleListPrice, tourPriceMap } from "@/lib/sale-pricing";
 import { capacityError } from "@/lib/capacity";
 import { ADMIN_ONLY, salesAction, invalid, type ActionResult } from "@/lib/action";
 import { getCashPeople, money, shortDate } from "@/lib/sales";
@@ -190,8 +190,11 @@ function tourData(d: ServiceTourInput) {
     price2: d.price2 ?? null,
     price3: d.price3 ?? null,
     price4: d.price4 ?? null,
+    priceAge0to2: d.priceAge0to2 ?? null,
+    priceAge2to6: d.priceAge2to6 ?? null,
+    priceAge6to11: d.priceAge6to11 ?? null,
     accommodation: d.accommodation || null,
-    guide1Id: d.guide1Id,
+    guide1Id: d.guide1Id ?? null,
     guide2Id: d.guide2Id ?? null,
     days: d.days,
     capacity: d.capacity ?? null,
@@ -271,7 +274,19 @@ function saleChanges(rows: [string, string | number | null | undefined, string |
     .join("; ");
 }
 
-const tourPriceSelect = { price2: true, price3: true, price4: true } as const;
+const tourPriceSelect = { price2: true, price3: true, price4: true, priceAge0to2: true, priceAge2to6: true, priceAge6to11: true } as const;
+
+/** Turun oda ve çocuk ücretlerinden satışın liste fiyatı */
+function listPriceFor(
+  tour: { price2: number | null; price3: number | null; price4: number | null; priceAge0to2: number | null; priceAge2to6: number | null; priceAge6to11: number | null },
+  roomSize: number | null | undefined,
+  passenger: string | null | undefined,
+) {
+  return saleListPrice(tourPriceMap(tour), childPriceMap(tour), roomSize, passenger);
+}
+
+/** İşlem geçmişi için " (2-6 yaş çocuk)"; yetişkinde boş */
+const passengerNote = (passenger: string | null | undefined) => (passenger ? ` (${passengerLabel(passenger)})` : "");
 
 /** İşlem geçmişi için ", liste $1.690, indirim $140 (%8,3)" */
 function discountNote(listPrice: number | null, price: number, currency: string) {
@@ -299,7 +314,8 @@ export async function createSale(input: unknown): Promise<ActionResult<{ id: num
     if (full) return full;
 
     const date = new Date(d.date);
-    const listPrice = listPriceOf(tourPriceMap(tour), d.roomSize);
+    const passenger = d.passenger || null;
+    const listPrice = listPriceFor(tour, d.roomSize, passenger);
     const sale = await prisma.sale.create({
       data: {
         date,
@@ -308,6 +324,7 @@ export async function createSale(input: unknown): Promise<ActionResult<{ id: num
         note: d.note || null,
         reference: d.reference || null,
         roomSize: d.roomSize ?? null,
+        passenger,
         listPrice,
         price: d.price,
         createdByName: me.name,
@@ -321,7 +338,7 @@ export async function createSale(input: unknown): Promise<ActionResult<{ id: num
       entity: "Sale",
       entityId: sale.id,
       detail:
-        `Satış #${sale.id} eklendi: ${customer.fullName}, ${tour.name}, ${money(d.price, tour.currency)}` +
+        `Satış #${sale.id} eklendi: ${customer.fullName}${passengerNote(passenger)}, ${tour.name}, ${money(d.price, tour.currency)}` +
         discountNote(listPrice, d.price, tour.currency) +
         (d.downPayment ? `, peşinat ${money(d.downPayment, tour.currency)} (${d.downPaymentMethod ?? "Nakit"}, alan: ${d.downPaymentBy})` : ""),
     });
@@ -359,8 +376,10 @@ export async function updateSale(id: string, input: unknown): Promise<ActionResu
     }
 
     // Tur ve oda aynı kaldıysa satış anındaki liste fiyatı korunur; değiştiyse turun güncel fiyatı alınır
-    const sameRoom = d.tourId === current.tourId && (d.roomSize ?? null) === current.roomSize;
-    const listPrice = sameRoom ? current.listPrice : listPriceOf(tourPriceMap(tour), d.roomSize);
+    // Tur, oda ve yolcu tipi aynı kaldıysa satış anındaki liste fiyatı korunur; değiştiyse turun güncel fiyatı alınır
+    const passenger = d.passenger || null;
+    const sameRoom = d.tourId === current.tourId && (d.roomSize ?? null) === current.roomSize && passenger === current.passenger;
+    const listPrice = sameRoom ? current.listPrice : listPriceFor(tour, d.roomSize, passenger);
     await prisma.sale.update({
       where: { id: saleId },
       data: {
@@ -370,6 +389,7 @@ export async function updateSale(id: string, input: unknown): Promise<ActionResu
         note: d.note || null,
         reference: d.reference || null,
         roomSize: d.roomSize ?? null,
+        passenger,
         listPrice,
         price: d.price,
       },
@@ -385,6 +405,7 @@ export async function updateSale(id: string, input: unknown): Promise<ActionResu
       ["Müşteri", current.customer.fullName, customer.fullName],
       ["Tur", current.tour.name, tour.name],
       ["Oda", current.roomSize, d.roomSize],
+      ["Yolcu", passengerLabel(current.passenger), passengerLabel(passenger)],
       ["Referans", current.reference, d.reference],
       ["Açıklama", current.note, d.note],
     ]);
@@ -542,13 +563,16 @@ export async function createGroupSale(input: unknown): Promise<ActionResult<{ gr
     const downParts = d.downPayment ? splitProportional(d.downPayment, d.members.map((m) => m.price)) : [];
     const batchId = d.downPayment ? randomUUID() : null;
     const method = d.downPaymentMethod ?? "Nakit";
-    const listPrice = listPriceOf(tourPriceMap(tour), d.roomSize);
+    const memberList = d.members.map((m) => {
+      const passenger = m.passenger || null;
+      return { ...m, passenger, listPrice: listPriceFor(tour, d.roomSize, passenger) };
+    });
 
     const { groupId, groupName, saleIds, paymentId } = await prisma.$transaction(async (tx) => {
       const g = group ?? (await tx.saleGroup.create({ data: { name: d.groupName!, createdByName: me.name } }));
       const ids: number[] = [];
       let firstPaymentId: number | undefined;
-      for (const [i, m] of d.members.entries()) {
+      for (const [i, m] of memberList.entries()) {
         const sale = await tx.sale.create({
           data: {
             date,
@@ -558,7 +582,8 @@ export async function createGroupSale(input: unknown): Promise<ActionResult<{ gr
             note: d.note || null,
             reference: d.reference || null,
             roomSize: d.roomSize ?? null,
-            listPrice,
+            passenger: m.passenger,
+            listPrice: m.listPrice,
             price: m.price,
             createdByName: me.name,
             ...(downParts[i]
@@ -575,11 +600,11 @@ export async function createGroupSale(input: unknown): Promise<ActionResult<{ gr
 
     await logToSales(
       me,
-      d.members.map((m, i) => ({
+      memberList.map((m, i) => ({
         saleId: saleIds[i],
         detail:
-          `Satış #${saleIds[i]} eklendi (${groupName}): ${names.get(m.customerId)}, ${tour.name}, ${money(m.price, tour.currency)}` +
-          discountNote(listPrice, m.price, tour.currency) +
+          `Satış #${saleIds[i]} eklendi (${groupName}): ${names.get(m.customerId)}${passengerNote(m.passenger)}, ${tour.name}, ${money(m.price, tour.currency)}` +
+          discountNote(m.listPrice, m.price, tour.currency) +
           (downParts[i] ? `, peşinat payı ${money(downParts[i], tour.currency)}` : ""),
       })),
     );

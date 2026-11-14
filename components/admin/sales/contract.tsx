@@ -3,6 +3,7 @@ import type { ContractData } from "@/lib/contracts";
 import { money, shortDate } from "@/lib/sales";
 import { cn } from "@/lib/utils";
 import { CompanyBlock, type Company } from "./receipt";
+import { roomAndPassenger } from "@/lib/sale-pricing";
 
 /**
  * Umre hizmet sözleşmesi (tek A4 sayfası). Taraflar, tur ve ücret bilgileri
@@ -47,7 +48,7 @@ export function UmreContract({ sale, company }: { sale: ContractData; company: C
           <Field label="Dönem" value={tour.period} />
           <Field label="Gidiş – Dönüş" value={`${shortDate(tour.departureDate)} – ${shortDate(tour.returnDate)} (${tour.days} gün)`} />
           {tour.accommodation && <Field label="Konaklama" value={tour.accommodation} />}
-          <Field label="Oda Tipi" value={sale.roomSize ? `${sale.roomSize} kişilik oda` : <Blank />} />
+          <Field label={sale.passenger ? "Oda / Yolcu" : "Oda Tipi"} value={roomAndPassenger(sale.roomSize, sale.passenger) || <Blank />} />
           <Field label="Tur Ücreti" value={<strong>{money(sale.price, tour.currency)} (kişi başı)</strong>} />
         </Box>
       </div>
