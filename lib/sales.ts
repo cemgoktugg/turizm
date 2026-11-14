@@ -354,38 +354,68 @@ export function referenceReport(rows: SaleRow[]) {
   return [...map.values()].sort((a, b) => b.price - a.price);
 }
 
+/* ------------------------------------------------------------------ */
+/* Kasa                                                                 */
+/* ------------------------------------------------------------------ */
+
+const METHOD_ORDER = ["Nakit", "Havale", "Kredi Kartı"];
+const methodRank = (m: string) => (METHOD_ORDER.includes(m) ? METHOD_ORDER.indexOf(m) : METHOD_ORDER.length);
+
+export type KasaRow = { method: string; currency: string; count: number; collected: number; refunded: number; net: number };
+
 /**
- * Kişilerin elindeki nakit: alınan nakit - nakit iade - kasaya teslim.
- * Havale ve kart doğrudan hesaba girdiğinden kişide kalmaz. Tarih süzgeci yoktur; bakiye baştan hesaplanır.
+ * Kasa: alınan her ödeme (nakit, havale, kredi kartı) kaydedildiği an kasaya girer, iadeler düşülür.
+ * Parayı kimin aldığı kasayı etkilemez (makbuzda ve Personel raporunda görünür). Tarih süzgeci yoktur;
+ * bugün / bu ay toplamları tahsilat tarihine göredir.
  */
-export async function getCashRows() {
-  const [payments, handovers] = await Promise.all([
-    prisma.payment.findMany({ where: { method: "Nakit" }, select: { amount: true, receivedByName: true, sale: { select: { tour: { select: { currency: true } } } } } }),
-    prisma.cashHandover.findMany({ select: { fromName: true, amount: true } }),
-  ]);
-  const map = new Map<string, { person: string; currency: string; received: number; refunded: number; handedOver: number; held: number }>();
-  const row = (person: string, currency: string) => {
-    const key = `${person}|${currency}`;
-    const r = map.get(key) ?? { person, currency, received: 0, refunded: 0, handedOver: 0, held: 0 };
-    map.set(key, r);
-    return r;
-  };
+export async function getKasa() {
+  const payments = await prisma.payment.findMany({ select: { date: true, amount: true, method: true, sale: { select: { tour: { select: { currency: true } } } } } });
+  const today = inputDate();
+  const month = today.slice(0, 7);
+  const map = new Map<string, KasaRow>();
+  const total: Money = {};
+  const refunded: Money = {};
+  const todayNet: Money = {};
+  const monthNet: Money = {};
+  const byMethod: Record<string, Money> = {};
   for (const p of payments) {
-    const r = row(p.receivedByName ?? UNKNOWN_PERSON, p.sale.tour.currency);
-    if (p.amount < 0) r.refunded -= p.amount;
-    else r.received += p.amount;
-    r.held += p.amount;
+    const cur = p.sale.tour.currency;
+    const key = `${p.method}|${cur}`;
+    const r = map.get(key) ?? { method: p.method, currency: cur, count: 0, collected: 0, refunded: 0, net: 0 };
+    if (p.amount < 0) {
+      r.refunded -= p.amount;
+      addMoney(refunded, cur, -p.amount);
+    } else {
+      r.count++;
+      r.collected += p.amount;
+    }
+    r.net += p.amount;
+    map.set(key, r);
+    addMoney(total, cur, p.amount);
+    addMoney((byMethod[p.method] ??= {}), cur, p.amount);
+    const day = inputDate(p.date);
+    if (day === today) addMoney(todayNet, cur, p.amount);
+    if (day.startsWith(month)) addMoney(monthNet, cur, p.amount);
   }
-  for (const h of handovers) {
-    const r = row(h.fromName, "USD");
-    r.handedOver += h.amount;
-    r.held -= h.amount;
-  }
-  return [...map.values()].sort((a, b) => b.held - a.held);
+  const rows = [...map.values()].sort((a, b) => methodRank(a.method) - methodRank(b.method) || a.currency.localeCompare(b.currency));
+  const methods = Object.keys(byMethod).sort((a, b) => methodRank(a) - methodRank(b));
+  return { rows, total, refunded, today: todayNet, month: monthNet, byMethod, methods };
 }
 
-export function getHandovers() {
-  return prisma.cashHandover.findMany({ orderBy: [{ date: "desc" }, { id: "desc" }], take: 200 });
+/** Kasa hareketleri: son tahsilat ve iadeler (en yeni önce) */
+export function getKasaMovements(take = 50) {
+  return prisma.payment.findMany({
+    orderBy: [{ date: "desc" }, { id: "desc" }],
+    take,
+    select: {
+      id: true,
+      date: true,
+      amount: true,
+      method: true,
+      receivedByName: true,
+      sale: { select: { id: true, customer: { select: { fullName: true } }, tour: { select: { name: true, currency: true } } } },
+    },
+  });
 }
 
 /** Kontrol paneli için: iptal edilmemiş satışlardaki toplam alacak */

@@ -8,13 +8,12 @@ import { splitProportional } from "@/lib/split";
 import { discountOf, listPriceOf, percent, tourPriceMap } from "@/lib/sale-pricing";
 import { capacityError } from "@/lib/capacity";
 import { ADMIN_ONLY, salesAction, invalid, type ActionResult } from "@/lib/action";
-import { getCashPeople, getCashRows, money, shortDate } from "@/lib/sales";
+import { getCashPeople, money, shortDate } from "@/lib/sales";
 import {
   customerSchema,
   groupPaymentSchema,
   groupSaleSchema,
   groupSchema,
-  handoverSchema,
   paymentSchema,
   saleSchema,
   serviceTourSchema,
@@ -501,42 +500,6 @@ export async function deletePayment(id: string): Promise<ActionResult> {
     const label = p.amount < 0 ? "iade" : "tahsilat";
     audit({ entity: "Sale", entityId: p.saleId, detail: `Satış #${p.saleId}: ${money(Math.abs(p.amount), p.sale.tour.currency)} ${label} silindi (${p.method}, ${p.receivedByName ?? "kişi yok"})` });
     return { ok: true, message: p.amount < 0 ? "İade silindi." : "Tahsilat silindi." };
-  });
-}
-
-/* ------------------------------------------------------------------ */
-/* Kasa teslimleri                                                      */
-/* ------------------------------------------------------------------ */
-
-export async function addHandover(input: unknown): Promise<ActionResult> {
-  return salesAction(async (me, audit) => {
-    if (me.role !== "ADMIN") return ADMIN_ONLY;
-    const parsed = handoverSchema.safeParse(input);
-    if (!parsed.success) return invalid(parsed.error);
-    const d = parsed.data;
-    const held = (await getCashRows()).find((r) => r.person === d.fromName && r.currency === "USD")?.held ?? 0;
-    if (d.amount > held)
-      return {
-        ok: false,
-        message: held > 0 ? `Tutar kişinin elindeki nakitten (${money(held, "USD")}) fazla olamaz.` : "Bu kişinin elinde nakit görünmüyor.",
-        fieldErrors: { amount: "Elindeki nakitten fazla" },
-      };
-    const h = await prisma.cashHandover.create({
-      data: { date: new Date(d.date), fromName: d.fromName, amount: d.amount, note: d.note || null, createdByName: me.name },
-    });
-    audit({ detail: `Kasa teslimi #${h.id}: ${h.fromName}, ${money(h.amount, "USD")}` });
-    return { ok: true, message: "Kasa teslimi kaydedildi." };
-  });
-}
-
-export async function deleteHandover(id: string): Promise<ActionResult> {
-  return salesAction(async (me, audit) => {
-    if (me.role !== "ADMIN") return ADMIN_ONLY;
-    const handoverId = toId(id);
-    if (!handoverId) return notFound;
-    const h = await prisma.cashHandover.delete({ where: { id: handoverId } });
-    audit({ detail: `Kasa teslimi #${h.id} silindi: ${h.fromName}, ${money(h.amount, "USD")}` });
-    return { ok: true, message: "Kasa teslimi silindi." };
   });
 }
 

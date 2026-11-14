@@ -3,10 +3,9 @@ import { formatDateTime } from "./utils";
 import { SALES_BASE } from "./sales-base";
 import { DISCOUNT_WARN_RATE, discountOf, percent } from "./sale-pricing";
 import {
-  KASA,
   addMoney,
   debtorReport,
-  getCashRows,
+  getKasa,
   loadSaleList,
   loadSales,
   moneyList,
@@ -407,20 +406,27 @@ async function discountTable(p: ReportParams): Promise<ReportTable> {
   };
 }
 
-/** Kişilerin elindeki nakit (Kasa sayfası ve Excel) */
+/** Kasa: ödeme şekline göre alınan, iade ve kasada kalan (Kasa sayfası ve Excel) */
 async function cashTable(): Promise<ReportTable> {
-  const rows = (await getCashRows()).filter((r) => r.person !== KASA);
+  const kasa = await getKasa();
   return {
-    columns: [
-      { label: "Kişi" },
-      { label: "Alınan Nakit", align: R },
-      { label: "Nakit İade", align: R },
-      { label: "Kasaya Teslim", align: R },
-      { label: "Elinde Kalan", align: R },
+    summary: [
+      { label: "Kasadaki toplam", value: moneyList(kasa.total), tone: "green" },
+      { label: "Bugün giren", value: moneyList(kasa.today) },
+      { label: "Bu ay giren", value: moneyList(kasa.month) },
     ],
-    rows: rows.map((r) => ({
-      cells: [r.person, m(r.received, r.currency), m(r.refunded, r.currency), m(r.handedOver, r.currency), m(r.held, r.currency)],
+    columns: [
+      { label: "Ödeme Şekli" },
+      { label: "Para Birimi" },
+      { label: "Tahsilat Adedi", align: C },
+      { label: "Alınan", align: R },
+      { label: "İade", align: R },
+      { label: "Kasada", align: R },
+    ],
+    rows: kasa.rows.map((r) => ({
+      cells: [r.method, r.currency, r.count, m(r.collected, r.currency), m(r.refunded, r.currency), m(r.net, r.currency)],
     })),
+    footer: ["Kasadaki toplam", "", "", "", "", moneyList(kasa.total)],
   };
 }
 

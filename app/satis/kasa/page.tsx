@@ -1,132 +1,130 @@
+import Link from "next/link";
 import { Download } from "lucide-react";
 import { AdminPageHeader, AdminCard, EmptyState } from "@/components/admin/ui";
-import { DeleteButton } from "@/components/admin/row-actions";
-import { HandoverForm } from "@/components/admin/sales/handover-form";
-import { StatBox, th, td, num, theadRow } from "@/components/admin/sales/ui";
-import { deleteHandover } from "@/app/actions/sales";
-import { getCurrentUser } from "@/lib/auth";
-import { KASA, UNKNOWN_PERSON, addMoney, getCashRows, getHandovers, inputDate, money, moneyList, shortDate, type Money } from "@/lib/sales";
-import { cn, formatDateTime } from "@/lib/utils";
+import { StatBox, th, td, num, theadRow, qs } from "@/components/admin/sales/ui";
+import { getKasa, getKasaMovements, money, moneyList, shortDate } from "@/lib/sales";
+import { getSalesBase } from "@/lib/sales-base-server";
+import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Kasa" };
 
 const exportHref = "/api/admin/satis/export?rapor=kasa";
 
 export default async function CashPage() {
-  const [me, rows, handovers] = await Promise.all([getCurrentUser(), getCashRows(), getHandovers()]);
-  const isAdmin = me?.role === "ADMIN";
-
-  const people = rows.filter((r) => r.person !== KASA);
-  // Kasaya giren: doğrudan kasaya alınan nakit (iadeler düşülür) + personelin teslim ettiği
-  const inCash: Money = {};
-  const onPeople: Money = {};
-  for (const r of rows) {
-    if (r.person === KASA) addMoney(inCash, r.currency, r.held);
-    else {
-      addMoney(onPeople, r.currency, r.held);
-      addMoney(inCash, "USD", r.handedOver);
-    }
-  }
-  const canHandOver = people.filter((r) => r.currency === "USD" && r.held > 0 && r.person !== UNKNOWN_PERSON);
+  const [base, kasa, movements] = await Promise.all([getSalesBase(), getKasa(), getKasaMovements(50)]);
 
   return (
     <div className="space-y-6">
       <AdminPageHeader
         title="Kasa"
-        description="Personelin aldığı nakit ve kasaya teslim ettiği tutarlar. Havale ve kart doğrudan hesaba girdiği için burada sayılmaz."
+        description="Alınan her ödeme (nakit, havale, kredi kartı) kaydedildiği an kasaya girer; iadeler düşülür. Parayı kimin aldığı makbuzda ve Raporlar › Personel'de görünür."
       />
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <StatBox label="Personelde bekleyen nakit" value={moneyList(onPeople)} tone="red" />
-        <StatBox label="Kasaya giren nakit" value={moneyList(inCash)} tone="green" />
-      </div>
-
-      {isAdmin && canHandOver.length > 0 && (
-        <AdminCard className="p-5">
-          <h3 className="mb-3 font-serif text-lg font-bold text-brand-900">Kasaya Teslim Al</h3>
-          <HandoverForm people={canHandOver.map((r) => ({ name: r.person, label: `${r.person} (${money(r.held, r.currency)})` }))} today={inputDate()} />
-        </AdminCard>
-      )}
-
-      {people.length === 0 ? (
-        <EmptyState title="Personelin aldığı nakit tahsilat yok" />
+      {kasa.rows.length === 0 ? (
+        <EmptyState title="Henüz tahsilat yok" description="Satışlara girilen tahsilatlar burada kasaya eklenir." />
       ) : (
-        <AdminCard className="overflow-hidden">
-          <div className="flex items-center justify-between border-b border-border px-5 py-4">
-            <h3 className="font-serif text-lg font-bold text-brand-900">Kişilerin Elindeki Nakit</h3>
-            <a href={exportHref} className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-800 hover:text-gold-600">
-              <Download className="size-4" /> Excel
-            </a>
+        <>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <StatBox label="Kasadaki toplam" value={moneyList(kasa.total)} tone="green" />
+            <StatBox label="Bugün giren" value={moneyList(kasa.today)} />
+            <StatBox label="Bu ay giren" value={moneyList(kasa.month)} />
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-sm">
-              <thead>
-                <tr className={theadRow}>
-                  <th className={th}>Kişi</th>
-                  <th className={cn(th, num)}>Alınan Nakit</th>
-                  <th className={cn(th, num)}>Nakit İade</th>
-                  <th className={cn(th, num)}>Kasaya Teslim</th>
-                  <th className={cn(th, num)}>Elinde Kalan</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {people.map((r) => (
-                  <tr key={`${r.person}|${r.currency}`} className={cn("hover:bg-cream-50/60", r.person === UNKNOWN_PERSON && "text-muted")}>
-                    <td className={cn(td, "font-semibold")}>{r.person}</td>
-                    <td className={cn(td, num)}>{money(r.received, r.currency)}</td>
-                    <td className={cn(td, num)}>{money(r.refunded, r.currency)}</td>
-                    <td className={cn(td, num)}>{money(r.handedOver, r.currency)}</td>
-                    <td className={cn(td, num, "font-bold", r.held > 0 ? "text-red-600" : "text-green-700")}>{money(r.held, r.currency)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {kasa.methods.map((m) => (
+              <StatBox key={m} label={m} value={moneyList(kasa.byMethod[m])} />
+            ))}
+            {Object.keys(kasa.refunded).length > 0 && <StatBox label="Yapılan iade" value={moneyList(kasa.refunded)} tone="red" />}
           </div>
-        </AdminCard>
-      )}
 
-      <AdminCard className="overflow-hidden">
-        <div className="border-b border-border px-5 py-4">
-          <h3 className="font-serif text-lg font-bold text-brand-900">Kasa Teslimleri</h3>
-        </div>
-        {handovers.length === 0 ? (
-          <p className="px-5 py-6 text-sm text-muted">Henüz kasa teslimi yok.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-sm">
-              <thead>
-                <tr className={theadRow}>
-                  <th className={th}>Tarih</th>
-                  <th className={th}>Teslim Eden</th>
-                  <th className={cn(th, num)}>Tutar</th>
-                  <th className={th}>Açıklama</th>
-                  <th className={th}>Kaydeden</th>
-                  {isAdmin && <th className={cn(th, "text-right")}>İşlem</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {handovers.map((h) => (
-                  <tr key={h.id} className="hover:bg-cream-50/60">
-                    <td className={td}>{shortDate(h.date)}</td>
-                    <td className={cn(td, "font-semibold")}>{h.fromName}</td>
-                    <td className={cn(td, num, "font-semibold")}>{money(h.amount, "USD")}</td>
-                    <td className={cn(td, "whitespace-normal")}>{h.note}</td>
-                    <td className={td}>
-                      <p className="font-semibold">{h.createdByName}</p>
-                      <p className="text-xs text-muted tabular-nums">{formatDateTime(h.createdAt)}</p>
-                    </td>
-                    {isAdmin && (
-                      <td className={cn(td, "text-right")}>
-                        <DeleteButton action={deleteHandover} id={String(h.id)} label="Bu kasa teslimini silmek istediğinize emin misiniz?" />
-                      </td>
-                    )}
+          <AdminCard className="overflow-hidden">
+            <div className="flex items-center justify-between border-b border-border px-5 py-4">
+              <h3 className="font-serif text-lg font-bold text-brand-900">Ödeme Şekline Göre</h3>
+              <a href={exportHref} className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-800 hover:text-gold-600">
+                <Download className="size-4" /> Excel
+              </a>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px] text-sm">
+                <thead>
+                  <tr className={theadRow}>
+                    <th className={th}>Ödeme Şekli</th>
+                    <th className={th}>Para Birimi</th>
+                    <th className={cn(th, "text-center")}>Tahsilat Adedi</th>
+                    <th className={cn(th, num)}>Alınan</th>
+                    <th className={cn(th, num)}>İade</th>
+                    <th className={cn(th, num)}>Kasada</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </AdminCard>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {kasa.rows.map((r) => (
+                    <tr key={`${r.method}|${r.currency}`} className="hover:bg-cream-50/60">
+                      <td className={cn(td, "font-semibold")}>{r.method}</td>
+                      <td className={td}>{r.currency}</td>
+                      <td className={cn(td, "text-center")}>{r.count}</td>
+                      <td className={cn(td, num)}>{money(r.collected, r.currency)}</td>
+                      <td className={cn(td, num, r.refunded > 0 && "text-red-600")}>{money(r.refunded, r.currency)}</td>
+                      <td className={cn(td, num, "font-bold text-green-700")}>{money(r.net, r.currency)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-border bg-cream-50 font-bold text-brand-900">
+                    <td className={td} colSpan={5}>
+                      Kasadaki toplam
+                    </td>
+                    <td className={cn(td, num, "text-green-700")}>{moneyList(kasa.total)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </AdminCard>
+
+          <AdminCard className="overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-4">
+              <h3 className="font-serif text-lg font-bold text-brand-900">Son Kasa Hareketleri</h3>
+              <Link href={`${base}/raporlar${qs({ rapor: "tahsilat" })}`} className="text-sm font-semibold text-brand-800 hover:text-gold-600">
+                Tarihe göre tüm liste: Raporlar › Tahsilat Listesi
+              </Link>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[820px] text-sm">
+                <thead>
+                  <tr className={theadRow}>
+                    <th className={th}>Tarih</th>
+                    <th className={th}>Satış No</th>
+                    <th className={th}>Müşteri</th>
+                    <th className={th}>Tur</th>
+                    <th className={th}>Ödeme Şekli</th>
+                    <th className={th}>Parayı Alan / Veren</th>
+                    <th className={cn(th, num)}>Tutar</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {movements.map((p) => (
+                    <tr key={p.id} className="hover:bg-cream-50/60">
+                      <td className={td}>{shortDate(p.date)}</td>
+                      <td className={td}>
+                        <Link href={`${base}${qs({ panel: String(p.sale.id) })}`} className="font-bold text-brand-700 hover:text-gold-600">
+                          {p.sale.id}
+                        </Link>
+                      </td>
+                      <td className={cn(td, "font-semibold")}>{p.sale.customer.fullName}</td>
+                      <td className={cn(td, "max-w-56 truncate")} title={p.sale.tour.name}>
+                        {p.sale.tour.name}
+                      </td>
+                      <td className={td}>{p.method}</td>
+                      <td className={td}>{p.receivedByName ?? "—"}</td>
+                      <td className={cn(td, num, "font-semibold", p.amount < 0 ? "text-red-600" : "text-green-700")}>
+                        {p.amount < 0 ? `İade ${money(-p.amount, p.sale.tour.currency)}` : `+${money(p.amount, p.sale.tour.currency)}`}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </AdminCard>
+        </>
+      )}
     </div>
   );
 }

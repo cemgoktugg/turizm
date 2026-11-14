@@ -1,6 +1,6 @@
 /**
  * Kullanıcı rolleri:
- * - ADMIN: her şey (kullanıcı yönetimi, tahsilat silme, kasa teslimi dahil)
+ * - ADMIN: her şey (kullanıcı yönetimi ve tahsilat silme dahil)
  * - STAFF: site içeriği + satış
  * - SALES: yalnızca Satış Programı (/satis); site içeriğine giremez
  */
