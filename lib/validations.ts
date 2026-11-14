@@ -611,7 +611,6 @@ export const saleSchema = z.object({
   /** Yalnızca yeni satışta: girilirse ilk tahsilat olarak kaydedilir */
   downPayment: optionalNumber({ min: 1, max: 100_000_000, int: true }),
   downPaymentMethod: z.enum(PAYMENT_METHODS).optional(),
-  downPaymentBy: optionalText(100),
 });
 export type SaleInput = z.infer<typeof saleSchema>;
 
@@ -619,7 +618,6 @@ export const paymentSchema = z.object({
   date: requiredDate("Tarih"),
   amount: requiredInt("Tutar", { min: 1, max: 100_000_000 }),
   method: z.enum(PAYMENT_METHODS),
-  receivedBy: z.string({ error: "Kişi seçiniz" }).trim().min(1, "Kişi seçiniz").max(100),
   note: optionalText(500),
 });
 export type PaymentInput = z.infer<typeof paymentSchema>;
@@ -656,7 +654,6 @@ export const groupSaleSchema = z
     /** Grubun toplam peşinatı: kişilere ücretlerine göre orantılı dağıtılır */
     downPayment: optionalNumber({ min: 1, max: 100_000_000, int: true }),
     downPaymentMethod: z.enum(PAYMENT_METHODS).optional(),
-    downPaymentBy: optionalText(100),
   })
   .refine((d) => d.groupId || (d.groupName && d.groupName.length >= 2), { message: "Grup adı gerekli (ör. Yılmaz Ailesi)", path: ["groupName"] })
   .refine((d) => new Set(d.members.map((m) => m.customerId)).size === d.members.length, {
@@ -670,7 +667,6 @@ export const groupPaymentSchema = z
   .object({
     date: requiredDate("Tarih"),
     method: z.enum(PAYMENT_METHODS),
-    receivedBy: z.string({ error: "Kişi seçiniz" }).trim().min(1, "Kişi seçiniz").max(100),
     note: optionalText(500),
     parts: z.array(z.object({ saleId: requiredInt("Satış", { min: 1 }), amount: requiredInt("Tutar", { min: 0, max: 100_000_000 }) })).min(1),
   })

@@ -10,7 +10,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { deletePayment, deleteSale } from "@/app/actions/sales";
 import { getActivityFor } from "@/lib/activity";
 import { getCurrentUser } from "@/lib/auth";
-import { getCashPeople, getGroup, inputDate, money, moneyList, shortDate, type getSale } from "@/lib/sales";
+import { getGroup, inputDate, money, moneyList, shortDate, type getSale } from "@/lib/sales";
 import { cn, currencySymbol, formatDateTime } from "@/lib/utils";
 import { discountOf, passengerLabel, percent } from "@/lib/sale-pricing";
 import { contractHref, receiptHref } from "@/lib/sales-base";
@@ -37,10 +37,9 @@ export async function SaleDetail({
   groupHref?: string;
 }) {
   const { tour, customer } = sale;
-  const [activity, me, people, group] = await Promise.all([
+  const [activity, me, group] = await Promise.all([
     getActivityFor("Sale", sale.id),
     getCurrentUser(),
-    getCashPeople(),
     sale.group ? getGroup(sale.group.id) : null,
   ]);
   const isAdmin = me?.role === "ADMIN";
@@ -162,7 +161,7 @@ export async function SaleDetail({
       )}
 
       {/* Ödeme formu yan panelde en üstte: en sık yapılan iş */}
-      {compact && <PaymentForms sale={sale} people={people} person={me?.name ?? ""} currencyLabel={currencyLabel} />}
+      {compact && <PaymentForms sale={sale} person={me?.name ?? ""} currencyLabel={currencyLabel} />}
 
       <AdminCard className={compact ? "p-4" : "p-5 sm:p-6"}>
         <dl className={cn("grid gap-x-8 gap-y-3 text-sm", !compact && "sm:grid-cols-2")}>
@@ -262,7 +261,7 @@ export async function SaleDetail({
             </table>
           </div>
         )}
-        {!compact && <PaymentForms sale={sale} people={people} person={me?.name ?? ""} currencyLabel={currencyLabel} bordered />}
+        {!compact && <PaymentForms sale={sale} person={me?.name ?? ""} currencyLabel={currencyLabel} bordered />}
       </AdminCard>
 
       <AdminCard className="overflow-hidden">
@@ -306,13 +305,11 @@ export function ReceiptLink({ paymentId, refund = false }: { paymentId: number; 
 /** Tahsilat (kalan varsa) ve iade (iptal edilmiş, iade bekleyen satışta) formları */
 function PaymentForms({
   sale,
-  people,
   person,
   currencyLabel,
   bordered = false,
 }: {
   sale: SaleDetailData;
-  people: string[];
   person: string;
   currencyLabel: string;
   bordered?: boolean;
@@ -328,7 +325,6 @@ function PaymentForms({
             amount={sale.balance}
             today={inputDate()}
             currencyLabel={currencyLabel}
-            people={people}
             person={person}
           />
         </div>
@@ -345,7 +341,6 @@ function PaymentForms({
             amount={sale.refundDue}
             today={inputDate()}
             currencyLabel={currencyLabel}
-            people={people}
             person={person}
           />
         </div>

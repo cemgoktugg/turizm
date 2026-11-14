@@ -9,7 +9,7 @@ import { PAYMENT_METHODS } from "@/lib/validations";
 import { splitProportional } from "@/lib/split";
 import type { ActionResult } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select, Textarea } from "@/components/ui/form-controls";
+import { Field, Input, Select, Textarea, StaticField } from "@/components/ui/form-controls";
 import { cn, formatPrice } from "@/lib/utils";
 import { withParam } from "./ui";
 import { toastWithReceipt } from "./receipt-toolbar";
@@ -125,7 +125,6 @@ export function GroupPaymentForm({
   groupId,
   members,
   currency,
-  people,
   person,
   today,
 }: {
@@ -133,7 +132,7 @@ export function GroupPaymentForm({
   /** Yalnızca kalan borcu olan, iptal edilmemiş satışlar (aynı para birimi) */
   members: GroupPayMember[];
   currency: string;
-  people: string[];
+  /** Parayı alan: giriş yapan kullanıcı */
   person: string;
   today: string;
 }) {
@@ -142,7 +141,7 @@ export function GroupPaymentForm({
   const [total, setTotal] = useState(String(totalDebt));
   const [parts, setParts] = useState<string[]>(() => members.map((m) => String(m.balance)));
   const [edited, setEdited] = useState(false);
-  const [form, setForm] = useState({ date: today, method: "Nakit", receivedBy: person, note: "" });
+  const [form, setForm] = useState({ date: today, method: "Nakit", note: "" });
   const [pending, start] = useTransition();
 
   const nums = parts.map((p) => Number(p) || 0);
@@ -186,12 +185,8 @@ export function GroupPaymentForm({
             ))}
           </Select>
         </Field>
-        <Field label="Parayı alan" required>
-          <Select value={form.receivedBy} onChange={(e) => setForm((f) => ({ ...f, receivedBy: e.target.value }))}>
-            {people.map((p) => (
-              <option key={p}>{p}</option>
-            ))}
-          </Select>
+        <Field label="Parayı alan">
+          <StaticField title="Parayı alan her zaman kaydı yapan (giriş yapmış) kişidir">{person}</StaticField>
         </Field>
       </div>
 

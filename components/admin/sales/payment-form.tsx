@@ -10,7 +10,7 @@ import { paymentSchema, PAYMENT_METHODS, type PaymentInput } from "@/lib/validat
 import { addPayment, addRefund } from "@/app/actions/sales";
 import { Button } from "@/components/ui/button";
 import { toastWithReceipt } from "./receipt-toolbar";
-import { Input, Select, Field } from "@/components/ui/form-controls";
+import { Input, Select, Field, StaticField } from "@/components/ui/form-controls";
 
 type FormIn = z.input<typeof paymentSchema>;
 
@@ -20,7 +20,6 @@ export function PaymentForm({
   amount,
   today,
   currencyLabel,
-  people,
   person,
   refund,
 }: {
@@ -28,8 +27,7 @@ export function PaymentForm({
   amount: number;
   today: string;
   currencyLabel: string;
-  people: string[];
-  /** Varsayılan kişi: giriş yapan kullanıcı */
+  /** Parayı alan / iadeyi yapan: giriş yapan kullanıcı (sunucu da kendisi kaydeder) */
   person: string;
   refund?: boolean;
 }) {
@@ -41,14 +39,13 @@ export function PaymentForm({
     formState: { errors, isSubmitting },
   } = useForm<FormIn, unknown, PaymentInput>({
     resolver: zodResolver(paymentSchema),
-    defaultValues: { date: today, amount: String(amount), method: "Nakit", receivedBy: person, note: "" },
+    defaultValues: { date: today, amount: String(amount), method: "Nakit", note: "" },
   });
 
   async function onSubmit(values: PaymentInput) {
     const res = await (refund ? addRefund : addPayment)(String(saleId), values);
     if (!res.ok) {
       if (res.fieldErrors?.amount) setError("amount", { message: res.fieldErrors.amount });
-      if (res.fieldErrors?.receivedBy) setError("receivedBy", { message: res.fieldErrors.receivedBy });
       return void toast.error(res.message);
     }
     toastWithReceipt(res.message, res.data?.paymentId, (href) => router.push(href));
@@ -75,14 +72,8 @@ export function PaymentForm({
             ))}
           </Select>
         </Field>
-        <Field label={refund ? "İadeyi Yapan" : "Parayı Alan"} error={errors.receivedBy?.message}>
-          <Select {...register("receivedBy")}>
-            {people.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </Select>
+        <Field label={refund ? "İadeyi Yapan" : "Parayı Alan"}>
+          <StaticField title="Parayı alan her zaman kaydı yapan (giriş yapmış) kişidir">{person}</StaticField>
         </Field>
         <Field label="Açıklama" error={errors.note?.message}>
           <Input placeholder="Dekont no, not..." {...register("note")} />

@@ -8,7 +8,7 @@ import { splitProportional } from "@/lib/split";
 import { childPriceMap, discountOf, passengerLabel, percent, saleListPrice, tourPriceMap } from "@/lib/sale-pricing";
 import { capacityError } from "@/lib/capacity";
 import { ADMIN_ONLY, salesAction, invalid, type ActionResult } from "@/lib/action";
-import { getCashPeople, money, shortDate } from "@/lib/sales";
+import { money, shortDate } from "@/lib/sales";
 import {
   customerSchema,
   groupPaymentSchema,
@@ -308,8 +308,6 @@ export async function createSale(input: unknown): Promise<ActionResult<{ id: num
     if (!customer) return { ok: false, message: "Müşteri bulunamadı.", fieldErrors: { customerId: "Müşteri seçiniz" } };
     if (d.downPayment && d.downPayment > d.price)
       return { ok: false, message: "Peşinat ücretten fazla olamaz.", fieldErrors: { downPayment: "Ücretten fazla olamaz" } };
-    if (d.downPayment && !(d.downPaymentBy && (await getCashPeople()).includes(d.downPaymentBy)))
-      return { ok: false, message: "Peşinatı alan kişiyi seçin.", fieldErrors: { downPaymentBy: "Kişi seçiniz" } };
     const full = await capacityCheck(d.tourId, 1);
     if (full) return full;
 
@@ -329,7 +327,7 @@ export async function createSale(input: unknown): Promise<ActionResult<{ id: num
         price: d.price,
         createdByName: me.name,
         ...(d.downPayment
-          ? { payments: { create: { date, amount: d.downPayment, method: d.downPaymentMethod ?? "Nakit", note: "Peşinat", receivedByName: d.downPaymentBy, createdByName: me.name } } }
+          ? { payments: { create: { date, amount: d.downPayment, method: d.downPaymentMethod ?? "Nakit", note: "Peşinat", receivedByName: me.name, createdByName: me.name } } }
           : {}),
       },
       include: { payments: { select: { id: true } } },
@@ -340,7 +338,7 @@ export async function createSale(input: unknown): Promise<ActionResult<{ id: num
       detail:
         `Satış #${sale.id} eklendi: ${customer.fullName}${passengerNote(passenger)}, ${tour.name}, ${money(d.price, tour.currency)}` +
         discountNote(listPrice, d.price, tour.currency) +
-        (d.downPayment ? `, peşinat ${money(d.downPayment, tour.currency)} (${d.downPaymentMethod ?? "Nakit"}, alan: ${d.downPaymentBy})` : ""),
+        (d.downPayment ? `, peşinat ${money(d.downPayment, tour.currency)} (${d.downPaymentMethod ?? "Nakit"}, alan: ${me.name})` : ""),
     });
     return { ok: true, message: `Satış kaydedildi (No: ${sale.id}).`, data: { id: sale.id, paymentId: sale.payments[0]?.id } };
   });
@@ -460,8 +458,6 @@ export async function addPayment(saleId: string, input: unknown): Promise<Action
     const sale = await prisma.sale.findUnique({ where: { id }, select: { price: true, isCancelled: true, tour: { select: { currency: true } } } });
     if (!sale) return notFound;
     if (sale.isCancelled) return { ok: false, message: "İptal edilmiş satışa tahsilat girilemez." };
-    if (!(await getCashPeople()).includes(parsed.data.receivedBy))
-      return { ok: false, message: "Parayı alan kişiyi listeden seçin.", fieldErrors: { receivedBy: "Kişi seçiniz" } };
     const balance = sale.price - (await paidOf(id));
     if (parsed.data.amount > balance)
       return {
@@ -470,9 +466,9 @@ export async function addPayment(saleId: string, input: unknown): Promise<Action
         fieldErrors: { amount: "Kalan borçtan fazla" },
       };
     const payment = await prisma.payment.create({
-      data: { saleId: id, date: new Date(parsed.data.date), amount: parsed.data.amount, method: parsed.data.method, note: parsed.data.note || null, receivedByName: parsed.data.receivedBy, createdByName: me.name },
+      data: { saleId: id, date: new Date(parsed.data.date), amount: parsed.data.amount, method: parsed.data.method, note: parsed.data.note || null, receivedByName: me.name, createdByName: me.name },
     });
-    audit({ entity: "Sale", entityId: id, detail: `Satış #${id}: ${money(parsed.data.amount, sale.tour.currency)} tahsilat eklendi (${parsed.data.method}, alan: ${parsed.data.receivedBy})` });
+    audit({ entity: "Sale", entityId: id, detail: `Satış #${id}: ${money(parsed.data.amount, sale.tour.currency)} tahsilat eklendi (${parsed.data.method}, alan: ${me.name})` });
     return { ok: true, message: "Tahsilat kaydedildi.", data: { paymentId: payment.id } };
   });
 }
@@ -487,8 +483,6 @@ export async function addRefund(saleId: string, input: unknown): Promise<ActionR
     const sale = await prisma.sale.findUnique({ where: { id }, select: { isCancelled: true, tour: { select: { currency: true } } } });
     if (!sale) return notFound;
     if (!sale.isCancelled) return { ok: false, message: "İade yalnızca iptal edilmiş satışa yapılır." };
-    if (!(await getCashPeople()).includes(parsed.data.receivedBy))
-      return { ok: false, message: "İadeyi yapan kişiyi listeden seçin.", fieldErrors: { receivedBy: "Kişi seçiniz" } };
     const paid = await paidOf(id);
     if (parsed.data.amount > paid)
       return {
@@ -497,9 +491,9 @@ export async function addRefund(saleId: string, input: unknown): Promise<ActionR
         fieldErrors: { amount: "İade edilecek paradan fazla" },
       };
     const payment = await prisma.payment.create({
-      data: { saleId: id, date: new Date(parsed.data.date), amount: -parsed.data.amount, method: parsed.data.method, note: parsed.data.note || null, receivedByName: parsed.data.receivedBy, createdByName: me.name },
+      data: { saleId: id, date: new Date(parsed.data.date), amount: -parsed.data.amount, method: parsed.data.method, note: parsed.data.note || null, receivedByName: me.name, createdByName: me.name },
     });
-    audit({ entity: "Sale", entityId: id, detail: `Satış #${id}: ${money(parsed.data.amount, sale.tour.currency)} iade edildi (${parsed.data.method}, yapan: ${parsed.data.receivedBy})` });
+    audit({ entity: "Sale", entityId: id, detail: `Satış #${id}: ${money(parsed.data.amount, sale.tour.currency)} iade edildi (${parsed.data.method}, yapan: ${me.name})` });
     return { ok: true, message: "İade kaydedildi.", data: { paymentId: payment.id } };
   });
 }
@@ -553,8 +547,6 @@ export async function createGroupSale(input: unknown): Promise<ActionResult<{ gr
     const totalPrice = d.members.reduce((t, m) => t + m.price, 0);
     if (d.downPayment && d.downPayment > totalPrice)
       return { ok: false, message: "Peşinat toplam ücretten fazla olamaz.", fieldErrors: { downPayment: "Toplam ücretten fazla olamaz" } };
-    if (d.downPayment && !(d.downPaymentBy && (await getCashPeople()).includes(d.downPaymentBy)))
-      return { ok: false, message: "Peşinatı alan kişiyi seçin.", fieldErrors: { downPaymentBy: "Kişi seçiniz" } };
     const full = await capacityCheck(d.tourId, d.members.length);
     if (full) return full;
 
@@ -587,7 +579,7 @@ export async function createGroupSale(input: unknown): Promise<ActionResult<{ gr
             price: m.price,
             createdByName: me.name,
             ...(downParts[i]
-              ? { payments: { create: { date, amount: downParts[i], method, note: "Peşinat (grup)", receivedByName: d.downPaymentBy, createdByName: me.name, batchId } } }
+              ? { payments: { create: { date, amount: downParts[i], method, note: "Peşinat (grup)", receivedByName: me.name, createdByName: me.name, batchId } } }
               : {}),
           },
           include: { payments: { select: { id: true } } },
@@ -613,7 +605,7 @@ export async function createGroupSale(input: unknown): Promise<ActionResult<{ gr
       entityId: groupId,
       detail:
         `${groupName}: ${d.members.length} kişilik satış (${saleIds.map((s) => `#${s}`).join(", ")}), ${tour.name}, toplam ${money(totalPrice, tour.currency)}` +
-        (d.downPayment ? `, peşinat ${money(d.downPayment, tour.currency)} (${method}, alan: ${d.downPaymentBy})` : ""),
+        (d.downPayment ? `, peşinat ${money(d.downPayment, tour.currency)} (${method}, alan: ${me.name})` : ""),
     });
     return { ok: true, message: `${d.members.length} kişilik satış kaydedildi (${groupName}).`, data: { groupId, paymentId } };
   });
@@ -712,8 +704,6 @@ export async function addGroupPayment(groupId: string, input: unknown): Promise<
     const d = parsed.data;
     const group = await prisma.saleGroup.findUnique({ where: { id }, select: { name: true } });
     if (!group) return notFound;
-    if (!(await getCashPeople()).includes(d.receivedBy))
-      return { ok: false, message: "Parayı alan kişiyi listeden seçin.", fieldErrors: { receivedBy: "Kişi seçiniz" } };
 
     const parts = d.parts.filter((p) => p.amount > 0);
     if (new Set(parts.map((p) => p.saleId)).size !== parts.length) return { ok: false, message: "Aynı kişi iki kez yazılmış." };
@@ -738,7 +728,7 @@ export async function addGroupPayment(groupId: string, input: unknown): Promise<
     const created = await prisma.$transaction(
       parts.map((p) =>
         prisma.payment.create({
-          data: { saleId: p.saleId, date, amount: p.amount, method: d.method, note: d.note || "Grup tahsilatı", receivedByName: d.receivedBy, createdByName: me.name, batchId },
+          data: { saleId: p.saleId, date, amount: p.amount, method: d.method, note: d.note || "Grup tahsilatı", receivedByName: me.name, createdByName: me.name, batchId },
         }),
       ),
     );
@@ -747,13 +737,13 @@ export async function addGroupPayment(groupId: string, input: unknown): Promise<
       me,
       parts.map((p) => ({
         saleId: p.saleId,
-        detail: `Satış #${p.saleId}: ${money(p.amount, currency)} tahsilat eklendi (${group.name} grup tahsilatından, ${d.method}, alan: ${d.receivedBy})`,
+        detail: `Satış #${p.saleId}: ${money(p.amount, currency)} tahsilat eklendi (${group.name} grup tahsilatından, ${d.method}, alan: ${me.name})`,
       })),
     );
     audit({
       entity: "SaleGroup",
       entityId: id,
-      detail: `${group.name}: ${money(total, currency)} grup tahsilatı (${d.method}, alan: ${d.receivedBy}) — ${parts.map((p) => `${name(p.saleId)} ${money(p.amount, currency)}`).join(", ")}`,
+      detail: `${group.name}: ${money(total, currency)} grup tahsilatı (${d.method}, alan: ${me.name}) — ${parts.map((p) => `${name(p.saleId)} ${money(p.amount, currency)}`).join(", ")}`,
     });
     return { ok: true, message: `${money(total, currency)} tahsilat ${parts.length} kişiye dağıtıldı.`, data: { paymentId: created[0].id } };
   });

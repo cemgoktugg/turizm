@@ -5,7 +5,7 @@ import { NewSaleTabs } from "@/components/admin/sales/new-sale-tabs";
 import { EmptyState } from "@/components/admin/ui";
 import { getSaleTourOptions } from "@/app/satis/tour-options";
 import { getCurrentUser } from "@/lib/auth";
-import { getCashPeople, getReferences, inputDate } from "@/lib/sales";
+import { getReferences, inputDate } from "@/lib/sales";
 
 /**
  * Yeni satış (tek kişi veya aile / grup): /satis/yeni sayfasında ve satış
@@ -27,10 +27,9 @@ export async function NewSale({
   initialMode?: "single" | "group";
 }) {
   const validId = (n?: number) => (n && Number.isInteger(n) && n > 0 ? n : null);
-  const [tours, me, people, references, customer, group] = await Promise.all([
+  const [tours, me, references, customer, group] = await Promise.all([
     getSaleTourOptions(),
     getCurrentUser(),
-    getCashPeople(),
     getReferences(),
     validId(customerId) ? prisma.customer.findUnique({ where: { id: customerId }, select: { id: true, fullName: true, tc: true, phone: true } }) : null,
     validId(groupId) ? prisma.saleGroup.findUnique({ where: { id: groupId }, select: { id: true, name: true } }) : null,
@@ -41,7 +40,7 @@ export async function NewSale({
   }
   const activeTours = tours.filter((t) => t.isActive);
   const groupForm = (
-    <GroupSaleForm tours={activeTours} references={references} people={people} today={inputDate()} person={me?.name ?? ""} group={group} listHref={listHref} />
+    <GroupSaleForm tours={activeTours} references={references} today={inputDate()} person={me?.name ?? ""} group={group} listHref={listHref} />
   );
   if (group) return groupForm;
 
@@ -52,9 +51,9 @@ export async function NewSale({
           tours={tours}
           customer={customer}
           references={references}
-          people={people}
+          person={me?.name ?? ""}
           listHref={listHref}
-          defaultValues={{ date: inputDate(), downPaymentBy: me?.name, ...(customer ? { customerId: String(customer.id) } : {}) }}
+          defaultValues={{ date: inputDate(), ...(customer ? { customerId: String(customer.id) } : {}) }}
         />
       }
       group={groupForm}

@@ -7,7 +7,7 @@ import { Trash2, UserPlus } from "lucide-react";
 import { createGroupSale, type CustomerOption } from "@/app/actions/sales";
 import { PAYMENT_METHODS } from "@/lib/validations";
 import { splitProportional } from "@/lib/split";
-import { Input, Textarea, Select, Field } from "@/components/ui/form-controls";
+import { Input, Textarea, Select, Field, StaticField } from "@/components/ui/form-controls";
 import { currencySymbol, formatPrice } from "@/lib/utils";
 import { FormSection } from "../form-parts";
 import { useUnsavedChanges } from "../use-unsaved-changes";
@@ -36,7 +36,6 @@ const emptyMember = (price = ""): Member => ({ key: nextKey++, customer: null, p
 export function GroupSaleForm({
   tours,
   references,
-  people,
   today,
   person,
   group,
@@ -44,7 +43,6 @@ export function GroupSaleForm({
 }: {
   tours: SaleTourOption[];
   references: string[];
-  people: string[];
   today: string;
   /** Peşinatı alan için varsayılan: giriş yapan kullanıcı */
   person: string;
@@ -61,7 +59,7 @@ export function GroupSaleForm({
   const [reference, setReference] = useState("");
   const [note, setNote] = useState("");
   const [members, setMembers] = useState<Member[]>(() => [emptyMember(), emptyMember()]);
-  const [down, setDown] = useState({ amount: "", method: "Nakit", by: person });
+  const [down, setDown] = useState({ amount: "", method: "Nakit" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -134,7 +132,6 @@ export function GroupSaleForm({
       members: filled.map((m) => ({ customerId: m.customer!.id, passenger: m.passenger, price: m.price })),
       downPayment: down.amount,
       downPaymentMethod: down.method,
-      downPaymentBy: down.by,
     });
     setSubmitting(false);
     if (!res.ok || !res.data) {
@@ -299,12 +296,8 @@ export function GroupSaleForm({
               ))}
             </Select>
           </Field>
-          <Field label="Parayı Alan" error={errors.downPaymentBy}>
-            <Select value={down.by} onChange={(e) => setDown((d) => ({ ...d, by: e.target.value }))}>
-              {people.map((p) => (
-                <option key={p}>{p}</option>
-              ))}
-            </Select>
+          <Field label="Parayı Alan">
+            <StaticField title="Parayı alan her zaman kaydı yapan (giriş yapmış) kişidir">{person}</StaticField>
           </Field>
         </div>
         {downNum > 0 && filled.length > 0 && (

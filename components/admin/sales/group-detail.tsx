@@ -10,7 +10,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { deleteGroup, deletePayment, removeFromGroup } from "@/app/actions/sales";
 import { getActivityFor } from "@/lib/activity";
 import { getCurrentUser } from "@/lib/auth";
-import { getCashPeople, getGroupBatches, inputDate, money, moneyList, shortDate, type GroupData } from "@/lib/sales";
+import { getGroupBatches, inputDate, money, moneyList, shortDate, type GroupData } from "@/lib/sales";
 import { cn, formatDateTime } from "@/lib/utils";
 import { roomAndPassenger } from "@/lib/sale-pricing";
 
@@ -33,7 +33,7 @@ export async function GroupDetail({
   addHref: string;
   afterDeleteHref: string;
 }) {
-  const [me, people, batches, activity] = await Promise.all([getCurrentUser(), getCashPeople(), getGroupBatches(group.id), getActivityFor("SaleGroup", group.id)]);
+  const [me, batches, activity] = await Promise.all([getCurrentUser(), getGroupBatches(group.id), getActivityFor("SaleGroup", group.id)]);
   const isAdmin = me?.role === "ADMIN";
   const { sales, totals } = group;
 
@@ -90,7 +90,6 @@ export async function GroupDetail({
             groupId={group.id}
             members={payMembers}
             currency={payCurrency}
-            people={people}
             person={me?.name ?? ""}
             today={inputDate()}
           />

@@ -8,7 +8,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { saleSchema, PAYMENT_METHODS, type SaleInput } from "@/lib/validations";
 import { createSale, updateSale, type CustomerOption } from "@/app/actions/sales";
-import { Input, Textarea, Select, Field } from "@/components/ui/form-controls";
+import { Input, Textarea, Select, Field, StaticField } from "@/components/ui/form-controls";
 import { FormSection } from "../form-parts";
 import { useUnsavedChanges } from "../use-unsaved-changes";
 import { FormFooter } from "./form-footer";
@@ -48,7 +48,7 @@ export function SaleForm({
   paid = 0,
   listPrice: savedListPrice = null,
   references,
-  people = [],
+  person = "",
   listHref,
 }: {
   saleId?: number;
@@ -62,7 +62,8 @@ export function SaleForm({
   /** Referans alanındaki öneriler (daha önce girilenler) */
   references: string[];
   /** Yeni satışta: peşinatı alabilecek kişiler */
-  people?: string[];
+  /** Yeni satışta peşinatı alan: giriş yapan kullanıcı */
+  person?: string;
   /** Yan panelde (satış listesi): kayıttan sonra listede bu satışın paneli açılır, İptal listeye döner */
   listHref?: string;
 }) {
@@ -263,14 +264,8 @@ export function SaleForm({
                 ))}
               </Select>
             </Field>
-            <Field label="Parayı Alan" error={errors.downPaymentBy?.message}>
-              <Select {...register("downPaymentBy")}>
-                {people.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </Select>
+            <Field label="Parayı Alan">
+              <StaticField title="Parayı alan her zaman kaydı yapan (giriş yapmış) kişidir">{person}</StaticField>
             </Field>
           </div>
         </FormSection>

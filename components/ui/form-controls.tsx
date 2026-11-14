@@ -12,6 +12,15 @@ export const Input = React.forwardRef<
 ));
 Input.displayName = "Input";
 
+/** Değiştirilemeyen değer (ör. "Parayı alan": giriş yapan kişi); diğer alanlarla aynı boyda */
+export function StaticField({ children, title, className }: { children: React.ReactNode; title?: string; className?: string }) {
+  return (
+    <div title={title} className={cn(base, "truncate bg-cream-50 font-semibold text-brand-900 shadow-none", className)}>
+      {children}
+    </div>
+  );
+}
+
 export const Textarea = React.forwardRef<
   HTMLTextAreaElement,
   React.TextareaHTMLAttributes<HTMLTextAreaElement>
