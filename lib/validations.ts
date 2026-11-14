@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { USERNAME_HINT, USERNAME_PATTERN, normalizeUsername } from "./username";
 
 /* ------------------------------------------------------------------ */
 /* Yardımcılar                                                          */
@@ -107,10 +108,18 @@ export type LeadStatus = (typeof LEAD_STATUSES)[number];
 /* ------------------------------------------------------------------ */
 
 export const loginSchema = z.object({
-  email: z.string().trim().email("Geçerli bir e-posta giriniz"),
+  /** E-posta veya kullanıcı adı ("@" içeriyorsa e-posta sayılır) */
+  login: z.string().trim().min(1, "Kullanıcı adı veya e-posta gerekli").max(150),
   password: z.string().min(1, "Şifre gerekli").max(200),
 });
 export type LoginInput = z.infer<typeof loginSchema>;
+
+/** Formdaki ham kullanıcı adı; sunucu normalizeUsername ile sadeleştirip kaydeder. Boş: kullanıcı adı yok */
+const usernameText = z
+  .string()
+  .trim()
+  .max(60)
+  .refine((v) => v === "" || USERNAME_PATTERN.test(normalizeUsername(v)), `Geçersiz kullanıcı adı: ${USERNAME_HINT}`);
 
 const strongPassword = z
   .string()
@@ -121,6 +130,7 @@ const strongPassword = z
 export const profileSchema = z.object({
   name: z.string().trim().min(2, "Ad en az 2 karakter olmalı").max(80),
   email: z.string().trim().toLowerCase().email("Geçerli bir e-posta giriniz"),
+  username: usernameText,
 });
 export type ProfileInput = z.infer<typeof profileSchema>;
 
@@ -141,6 +151,7 @@ export const passwordChangeSchema = z
 export type PasswordChangeInput = z.infer<typeof passwordChangeSchema>;
 
 export const userCreateSchema = profileSchema.extend({
+  username: usernameText.refine((v) => v !== "", "Kullanıcı adı gerekli"),
   password: strongPassword,
   /** STAFF: site + satış, SALES: yalnızca Satış Programı (bkz. lib/roles.ts) */
   role: z.enum(["STAFF", "SALES"]),
@@ -653,11 +664,3 @@ export const groupPaymentSchema = z
   })
   .refine((d) => d.parts.some((p) => p.amount > 0), { message: "Dağıtılacak tutar girin", path: ["parts"] });
 export type GroupPaymentInput = z.infer<typeof groupPaymentSchema>;
-
-export const handoverSchema = z.object({
-  date: requiredDate("Tarih"),
-  fromName: z.string({ error: "Kişi seçiniz" }).trim().min(1, "Kişi seçiniz").max(100),
-  amount: requiredInt("Tutar", { min: 1, max: 100_000_000 }),
-  note: optionalText(500),
-});
-export type HandoverInput = z.infer<typeof handoverSchema>;

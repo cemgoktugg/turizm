@@ -4,6 +4,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { prisma } from "./prisma";
+import { normalizeUsername } from "./username";
 import {
   PATHNAME_HEADER,
   SESSION_COOKIE,
@@ -19,6 +20,8 @@ export type CurrentUser = {
   id: string;
   name: string;
   email: string;
+  /** Girişte e-posta yerine yazılabilen kullanıcı adı (yoksa null) */
+  username: string | null;
   role: string;
   /** Şifre hiç değiştirilmemişse (seed'deki varsayılan şifre) true */
   mustChangePassword: boolean;
@@ -30,13 +33,17 @@ export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
 }
 
-/** E-posta + şifre doğrular, geçerliyse kullanıcıyı döndürür */
-export async function verifyCredentials(email: string, password: string) {
-  const user = await prisma.user.findUnique({
-    where: { email: email.toLowerCase().trim() },
-  });
+/** Girişte yazılan değer: "@" içeriyorsa e-posta, değilse kullanıcı adı (sadeleştirilmiş) */
+export function loginKey(login: string): { email: string } | { username: string } {
+  const value = login.trim();
+  return value.includes("@") ? { email: value.toLowerCase() } : { username: normalizeUsername(value) };
+}
+
+/** E-posta veya kullanıcı adı + şifre doğrular, geçerliyse kullanıcıyı döndürür */
+export async function verifyCredentials(login: string, password: string) {
+  const user = await prisma.user.findUnique({ where: loginKey(login) });
   if (!user) {
-    // Zamanlama farkıyla e-posta tahminini zorlaştırmak için yine de hash karşılaştır
+    // Zamanlama farkıyla hesap tahminini zorlaştırmak için yine de hash karşılaştır
     await bcrypt.compare(password, (dummyHash ??= bcrypt.hashSync("zamanlama-dengesi", 10)));
     return null;
   }
@@ -85,6 +92,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
       id: true,
       name: true,
       email: true,
+      username: true,
       role: true,
       tokenVersion: true,
       passwordChangedAt: true,
@@ -96,6 +104,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     id: user.id,
     name: user.name,
     email: user.email,
+    username: user.username,
     role: user.role,
     mustChangePassword: user.passwordChangedAt === null,
   };

@@ -14,8 +14,10 @@ model User {
   id        String   @id @default(cuid())
   name      String
   email     String   @unique
+  /// Girişte e-posta yerine yazılabilir; küçük harf, Türkçe harfler sadeleştirilmiş ("Ömer" → "omer")
+  username  String?  @unique
   password  String
-  /// ADMIN: tüm yetkiler | STAFF: tahsilat silemez, kasa teslimi ve kullanıcı işlemi yapamaz
+  /// ADMIN: tüm yetkiler | STAFF: tahsilat silemez, kullanıcı işlemi yapamaz
   role      String   @default("ADMIN")
   // Şifre değişince artırılır; eski oturumları geçersiz kılar
   tokenVersion      Int       @default(0)
@@ -466,7 +468,8 @@ model Payment {
   @@index([batchId])
 }
 
-/// Personelin elindeki nakdi kasaya teslim etmesi (yalnızca yönetici kaydeder; tutar dolar)
+/// Eski kasa teslimleri (personelin elindeki nakdi kasaya teslim etmesi). Artık kullanılmıyor:
+/// tahsilatlar alındığı an kasaya girer. Geçmiş kayıtlar silinmesin diye tablo duruyor.
 model CashHandover {
   id            Int      @id @default(autoincrement())
   date          DateTime

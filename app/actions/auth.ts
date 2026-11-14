@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { recordActivity } from "@/lib/activity";
-import { verifyCredentials, createSession, destroySession } from "@/lib/auth";
+import { verifyCredentials, createSession, destroySession, loginKey } from "@/lib/auth";
 import { clientIp, clearHits, formatWait, registerHit, retryAfter } from "@/lib/rate-limit";
 import { loginSchema } from "@/lib/validations";
 import type { ActionResult } from "@/lib/action";
@@ -17,21 +17,21 @@ export async function loginAction(input: unknown): Promise<ActionResult> {
   const parsed = loginSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: "Lütfen bilgilerinizi kontrol edin." };
 
-  const email = parsed.data.email.toLowerCase();
+  const { login, password } = parsed.data;
   const ip = await clientIp();
   const ipKey = `login-ip:${ip}`;
-  const accountKey = `login-acc:${email}`;
+  const accountKey = `login-acc:${Object.values(loginKey(login))[0]}`;
 
   const wait = Math.max(retryAfter(ipKey, MAX_PER_IP, WINDOW), retryAfter(accountKey, MAX_PER_ACCOUNT, WINDOW));
   if (wait > 0) {
     return { ok: false, message: `Çok fazla hatalı deneme. Lütfen ${formatWait(wait)} sonra tekrar deneyin.` };
   }
 
-  const user = await verifyCredentials(email, parsed.data.password);
+  const user = await verifyCredentials(login, password);
   if (!user) {
     registerHit(ipKey);
     registerHit(accountKey);
-    return { ok: false, message: "E-posta veya şifre hatalı." };
+    return { ok: false, message: "Kullanıcı adı / e-posta veya şifre hatalı." };
   }
 
   clearHits(accountKey);

@@ -31,6 +31,7 @@ services:
       OMER_PASSWORD: ${OMER_PASSWORD:-}
       OFIS_PASSWORD: ${OFIS_PASSWORD:-}
       PERSONEL_PASSWORD: ${PERSONEL_PASSWORD:-}
+      DEMET_PASSWORD: ${DEMET_PASSWORD:-}
       # Yeni başvuru bildirimleri (isteğe bağlı — boşsa gönderilmez)
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}

@@ -15,11 +15,11 @@ export default async function ProfilePage() {
       {user.mustChangePassword ? (
         <>
           <PasswordForm mustChange />
-          <ProfileForm defaultValues={{ name: user.name, email: user.email }} />
+          <ProfileForm defaultValues={{ name: user.name, email: user.email, username: user.username ?? "" }} />
         </>
       ) : (
         <>
-          <ProfileForm defaultValues={{ name: user.name, email: user.email }} />
+          <ProfileForm defaultValues={{ name: user.name, email: user.email, username: user.username ?? "" }} />
           <PasswordForm mustChange={false} />
         </>
       )}

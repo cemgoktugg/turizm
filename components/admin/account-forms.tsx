@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Eye, EyeOff, KeyRound, Loader2, Save, UserPlus } from "lucide-react";
 import { changePassword, createUser, updateProfile, updateUserRole } from "@/app/actions/account";
 import { ASSIGNABLE_ROLES, ROLE_LABELS } from "@/lib/roles";
+import { USERNAME_HINT } from "@/lib/username";
 import {
   passwordChangeSchema,
   profileSchema,
@@ -37,6 +38,11 @@ function PasswordInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   );
 }
 
+/** Kullanıcı adı alanı: telefonda ilk harf büyümesin, otomatik düzeltme yapılmasın */
+function UsernameInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  return <Input type="text" autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false} {...props} />;
+}
+
 export function ProfileForm({ defaultValues }: { defaultValues: ProfileInput }) {
   const router = useRouter();
   const {
@@ -53,15 +59,19 @@ export function ProfileForm({ defaultValues }: { defaultValues: ProfileInput }) 
       router.refresh();
     } else {
       if (res.fieldErrors?.email) setError("email", { message: res.fieldErrors.email });
+      if (res.fieldErrors?.username) setError("username", { message: res.fieldErrors.username });
       toast.error(res.message);
     }
   }
 
   return (
-    <FormSection title="Profil Bilgileri" description="Panelde görünen adınız ve giriş e-postanız.">
+    <FormSection title="Profil Bilgileri" description="Panelde görünen adınız. Girişte kullanıcı adınızı veya e-postanızı yazabilirsiniz.">
       <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-2" noValidate>
         <Field label="Ad Soyad" required error={errors.name?.message}>
           <Input autoComplete="name" {...register("name")} />
+        </Field>
+        <Field label="Kullanıcı adı (giriş için)" error={errors.username?.message}>
+          <UsernameInput {...register("username")} />
         </Field>
         <Field label="E-posta (giriş için)" required error={errors.email?.message}>
           <Input type="email" autoComplete="email" {...register("email")} />
@@ -142,7 +152,7 @@ export function NewUserForm() {
     formState: { errors, isSubmitting },
   } = useForm<UserCreateInput>({
     resolver: zodResolver(userCreateSchema),
-    defaultValues: { name: "", email: "", password: "", role: "SALES" },
+    defaultValues: { name: "", username: "", email: "", password: "", role: "SALES" },
   });
 
   async function onSubmit(values: UserCreateInput) {
@@ -153,15 +163,20 @@ export function NewUserForm() {
       router.refresh();
     } else {
       if (res.fieldErrors?.email) setError("email", { message: res.fieldErrors.email });
+      if (res.fieldErrors?.username) setError("username", { message: res.fieldErrors.username });
       toast.error(res.message);
     }
   }
 
   return (
-    <FormSection title="Yeni Personel Ekle" description="Eklenen kişi ilk girişte şifresini değiştirmesi için uyarılır.">
+    <FormSection title="Yeni Personel Ekle" description="Kişi kullanıcı adı (veya e-posta) ve geçici şifreyle girer; ilk girişte kendi şifresini belirlemesi istenir.">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         <Field label="Ad Soyad" required error={errors.name?.message}>
           <Input {...register("name")} />
+        </Field>
+        <Field label="Kullanıcı adı (giriş için)" required error={errors.username?.message}>
+          <UsernameInput placeholder="ör. omer" {...register("username")} />
+          <p className="mt-1.5 text-xs text-muted">Türkçe harfler sadeleşir: &quot;Ömer&quot; → omer. {USERNAME_HINT}.</p>
         </Field>
         <Field label="E-posta" required error={errors.email?.message}>
           <Input type="email" autoComplete="off" {...register("email")} />

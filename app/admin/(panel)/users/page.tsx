@@ -16,7 +16,7 @@ export default async function AdminUsersPage() {
     getCurrentUser(),
     prisma.user.findMany({
       orderBy: { createdAt: "asc" },
-      select: { id: true, name: true, email: true, role: true, createdAt: true, lastLoginAt: true, passwordChangedAt: true },
+      select: { id: true, name: true, email: true, username: true, role: true, createdAt: true, lastLoginAt: true, passwordChangedAt: true },
     }),
   ]);
   if (me?.role !== "ADMIN") redirect("/admin");
@@ -49,6 +49,11 @@ export default async function AdminUsersPage() {
                           <p className="font-semibold text-brand-900">
                             {u.name} {u.id === me?.id && <span className="text-xs font-normal text-muted">(siz)</span>}
                           </p>
+                          {u.username && (
+                            <p className="text-xs font-semibold text-brand-700" title="Kullanıcı adı (giriş için)">
+                              {u.username}
+                            </p>
+                          )}
                           <p className="text-xs text-muted">{u.email}</p>
                         </div>
                       </div>

@@ -1,7 +1,7 @@
 // Canlı ortam: ADMIN_EMAIL / ADMIN_PASSWORD ortam değişkenleriyle yönetici hesabını hazırlar.
 // - Bu e-postayla hesap varsa hiçbir şeye dokunmaz (her açılışta şifreyi ezmez).
 // - İlk kurulumdaki varsayılan hesap (admin@turizm.com / admin123) duruyorsa onu bu bilgilere çevirir.
-// Panel kullanıcıları (ALPEREN_PASSWORD vb.): şifresi girilmişse ve hesap yoksa oluşturur.
+// Panel kullanıcıları (ALPEREN_PASSWORD vb.): şifresi girilmişse ve hesap yoksa kullanıcı adıyla oluşturur.
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
@@ -10,12 +10,14 @@ const email = (process.env.ADMIN_EMAIL ?? "").trim().toLowerCase();
 const password = process.env.ADMIN_PASSWORD ?? "";
 const prisma = new PrismaClient();
 
+// username: girişte e-posta yerine yazılabilir (var olan hesaplara veritabanı geçişiyle verildi)
 const PANEL_USERS = [
-  { name: "Ömer Ali Gültekin", email: "omer@nemiraturizm.com", password: process.env.OMER_PASSWORD, role: "STAFF" },
-  { name: "Alperen Gültekin", email: "alperen@nemiraturizm.com", password: process.env.ALPEREN_PASSWORD, role: "STAFF" },
+  { name: "Ömer Ali Gültekin", username: "omer", email: "omer@nemiraturizm.com", password: process.env.OMER_PASSWORD, role: "STAFF" },
+  { name: "Alperen Gültekin", username: "alperen", email: "alperen@nemiraturizm.com", password: process.env.ALPEREN_PASSWORD, role: "STAFF" },
   // SALES: yalnızca Satış Programı (/satis)
-  { name: "Ofis", email: "ofis@nemiraturizm.com", password: process.env.OFIS_PASSWORD, role: "SALES" },
-  { name: "Personel", email: "personel@nemiraturizm.com", password: process.env.PERSONEL_PASSWORD, role: "SALES" },
+  { name: "Ofis", username: "ofis", email: "ofis@nemiraturizm.com", password: process.env.OFIS_PASSWORD, role: "SALES" },
+  { name: "Personel", username: "personel", email: "personel@nemiraturizm.com", password: process.env.PERSONEL_PASSWORD, role: "SALES" },
+  { name: "Demet Ünlükaya", username: "demet", email: "demet@nemiraturizm.com", password: process.env.DEMET_PASSWORD, role: "SALES" },
 ];
 
 const isWeak = (p) => p.length < 10 || !/[A-Za-zÇĞİÖŞÜçğıöşü]/.test(p) || !/\d/.test(p);
@@ -61,8 +63,12 @@ try {
     }
     const existing = await prisma.user.findUnique({ where: { email: u.email } });
     if (!existing) {
-      await prisma.user.create({ data: { name: u.name, email: u.email, password: await bcrypt.hash(u.password, 12), role: u.role } });
-      console.log(`[yönetici] ${u.email} hesabı geçici şifreyle oluşturuldu.`);
+      // Kullanıcı adı başka bir hesaba (ör. panelden) verilmişse hesap kullanıcı adısız açılır
+      const usernameTaken = await prisma.user.findUnique({ where: { username: u.username }, select: { id: true } });
+      await prisma.user.create({
+        data: { name: u.name, email: u.email, username: usernameTaken ? null : u.username, password: await bcrypt.hash(u.password, 12), role: u.role },
+      });
+      console.log(`[yönetici] ${u.email} hesabı geçici şifreyle oluşturuldu${usernameTaken ? " (kullanıcı adı başka hesapta)" : ` (kullanıcı adı: ${u.username})`}.`);
       continue;
     }
     if (existing.passwordChangedAt) continue; // kendi şifresini belirlemiş

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Eye, EyeOff, Loader2, LogIn, Lock, Mail } from "lucide-react";
+import { Eye, EyeOff, Loader2, LogIn, Lock, User } from "lucide-react";
 import { loginSchema, type LoginInput } from "@/lib/validations";
 import { loginAction } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,7 @@ export function LoginForm() {
     formState: { errors },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "" },
+    defaultValues: { login: "", password: "" },
   });
 
   async function onSubmit(values: LoginInput) {
@@ -54,10 +54,20 @@ export function LoginForm() {
           Oturumunuz sona erdi veya şifreniz değiştirildi. Lütfen tekrar giriş yapın.
         </p>
       )}
-      <Field label="E-posta" required error={errors.email?.message}>
+      <Field label="Kullanıcı adı veya e-posta" required error={errors.login?.message}>
         <div className="relative">
-          <Mail className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted" />
-          <Input className="pl-10" type="email" autoComplete="username" autoFocus placeholder="ornek@firma.com" {...register("email")} />
+          <User className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted" />
+          <Input
+            className="pl-10"
+            type="text"
+            autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            autoFocus
+            placeholder="omer veya ornek@firma.com"
+            {...register("login")}
+          />
         </div>
       </Field>
 

@@ -43,16 +43,23 @@ ADMIN_EMAIL=<panel e-postanız>
 ADMIN_PASSWORD=<en az 10 karakter, harf + rakam>
 ```
 
-**Panel kullanıcıları (isteğe bağlı):** `OMER_PASSWORD`, `ALPEREN_PASSWORD`, `OFIS_PASSWORD`
+**Panel kullanıcıları (isteğe bağlı):** `OMER_PASSWORD`, `ALPEREN_PASSWORD`, `OFIS_PASSWORD`, `DEMET_PASSWORD`
 (ve eski `PERSONEL_PASSWORD`) girilirse `omer@` (Ömer Ali Gültekin), `alperen@` (Alperen Gültekin),
-`ofis@` (Ofis) ve `personel@nemiraturizm.com` hesapları bu **geçici** şifrelerle açılır (en az 10
-karakter, harf + rakam). Kullanıcı ilk girişte kendi şifresini belirlemeden panele giremez; belirledikten
+`ofis@` (Ofis), `demet@` (Demet Ünlükaya) ve `personel@nemiraturizm.com` hesapları bu **geçici** şifrelerle açılır
+(en az 10 karakter, harf **ve** rakam; uymayan şifrede hesap açılmaz, logda uyarı çıkar). Giriş ekranına e-posta
+yerine **kullanıcı adı** da yazılabilir: `omer`, `alperen`, `ofis`, `demet`, `personel` (büyük/küçük harf ve Türkçe
+harf farkı gözetilmez: "Ömer" de olur). Panelden eklenen yeni
+kullanıcılara da kullanıcı adı verilir. Kullanıcı ilk girişte kendi şifresini belirlemeden panele giremez; belirledikten
 sonra hesaba dokunulmaz ve değişken silinebilir. Kullanıcı henüz kendi şifresini belirlemediyse değişkeni
 değiştirip Redeploy yapmak geçici şifreyi yeniler. Yapılan işlemler **Sistem › İşlem Geçmişi** sayfasında görünür.
-Ömer ve Alperen personel yetkisindedir (site + satış); `ofis@` ve `personel@` hesapları **satış personelidir** ve
+Ömer ve Alperen personel yetkisindedir (site + satış); `ofis@`, `demet@` ve `personel@` hesapları **satış personelidir** ve
 yalnızca Satış Programı'nı (`https://<alan adı>/satis`) görür. Yetkiler yönetici hesabıyla
-**Sistem › Kullanıcılar** sayfasından değiştirilebilir. Tahsilat silme, kasa teslimi ve kullanıcı
+**Sistem › Kullanıcılar** sayfasından değiştirilebilir. Tahsilat silme ve kullanıcı
 işlemlerini yalnızca `ADMIN_EMAIL` hesabı yapar.
+
+**Kasa:** Alınan her ödeme (nakit, havale, kredi kartı) kaydedildiği an kasaya girer; iadeler düşülür.
+Kasa sayfası toplamı, bugün ve bu ay gireni, ödeme şekline göre dökümü ve son hareketleri gösterir.
+Parayı kimin aldığı makbuzda ve Raporlar › Personel'de görünür.
 
 **Satış Programı:** Satış ekranları `/satis` adresinde, yönetim panelinden ayrı bir çerçevede açılır.
 Aynı ekranlar geçiş dönemi için yönetim panelinde (`/admin/satis`) de durur.

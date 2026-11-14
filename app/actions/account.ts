@@ -6,21 +6,34 @@ import { checkPassword, createSession, hashPassword } from "@/lib/auth";
 import { ADMIN_ONLY, adminAction, invalid, salesAction, type ActionResult } from "@/lib/action";
 import { ASSIGNABLE_ROLES, ROLE_LABELS } from "@/lib/roles";
 import { passwordChangeSchema, profileSchema, userCreateSchema } from "@/lib/validations";
+import { normalizeUsername } from "@/lib/username";
 
-/** Kendi ad / e-posta bilgilerini günceller */
+/** E-posta / kullanıcı adı başka hesapta kullanılıyorsa hata sonucu */
+async function identityTaken(email: string, username: string | null, exceptId?: string): Promise<ActionResult | null> {
+  const others = await prisma.user.findMany({
+    where: { OR: [{ email }, ...(username ? [{ username }] : [])], ...(exceptId ? { id: { not: exceptId } } : {}) },
+    select: { email: true, username: true },
+  });
+  if (others.some((u) => u.email === email))
+    return { ok: false, message: "Bu e-posta başka bir kullanıcıya ait.", fieldErrors: { email: "Bu e-posta kullanılıyor" } };
+  if (username && others.some((u) => u.username === username))
+    return { ok: false, message: `"${username}" kullanıcı adı başka bir kullanıcıya ait.`, fieldErrors: { username: "Bu kullanıcı adı kullanılıyor" } };
+  return null;
+}
+
+/** Kendi ad / e-posta / kullanıcı adı bilgilerini günceller */
 export async function updateProfile(input: unknown): Promise<ActionResult> {
   return salesAction(async (me, audit) => {
     const parsed = profileSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
-    const taken = await prisma.user.findFirst({
-      where: { email: parsed.data.email, id: { not: me.id } },
-      select: { id: true },
-    });
-    if (taken) return { ok: false, message: "Bu e-posta başka bir kullanıcıya ait.", fieldErrors: { email: "Bu e-posta kullanılıyor" } };
-    await prisma.user.update({ where: { id: me.id }, data: parsed.data });
+    const { name, email } = parsed.data;
+    const username = normalizeUsername(parsed.data.username) || null;
+    const taken = await identityTaken(email, username, me.id);
+    if (taken) return taken;
+    await prisma.user.update({ where: { id: me.id }, data: { name, email, username } });
     revalidatePath("/admin", "layout");
     revalidatePath("/satis", "layout");
-    audit({ detail: `Profil bilgilerini güncelledi (${parsed.data.name}, ${parsed.data.email})` });
+    audit({ detail: `Profil bilgilerini güncelledi (${name}, ${email}${username ? `, kullanıcı adı: ${username}` : ""})` });
     return { ok: true, message: "Profil bilgileriniz güncellendi." };
   });
 }
@@ -58,12 +71,14 @@ export async function createUser(input: unknown): Promise<ActionResult> {
     if (me.role !== "ADMIN") return ADMIN_ONLY;
     const parsed = userCreateSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
-    const exists = await prisma.user.findUnique({ where: { email: parsed.data.email }, select: { id: true } });
-    if (exists) return { ok: false, message: "Bu e-posta ile kayıtlı bir kullanıcı var.", fieldErrors: { email: "Bu e-posta kullanılıyor" } };
+    const username = normalizeUsername(parsed.data.username);
+    const taken = await identityTaken(parsed.data.email, username);
+    if (taken) return taken;
     await prisma.user.create({
       data: {
         name: parsed.data.name,
         email: parsed.data.email,
+        username,
         password: await hashPassword(parsed.data.password),
         role: parsed.data.role,
         // Yeni kullanıcı ilk girişte şifresini değiştirmeye yönlendirilir
@@ -71,8 +86,8 @@ export async function createUser(input: unknown): Promise<ActionResult> {
       },
     });
     revalidatePath("/admin/users");
-    audit({ detail: `Kullanıcı eklendi: ${parsed.data.name} (${parsed.data.email}, ${ROLE_LABELS[parsed.data.role]})` });
-    return { ok: true, message: "Kullanıcı eklendi. Geçici şifreyi kendisiyle güvenli bir yoldan paylaşın." };
+    audit({ detail: `Kullanıcı eklendi: ${parsed.data.name} (kullanıcı adı: ${username}, ${parsed.data.email}, ${ROLE_LABELS[parsed.data.role]})` });
+    return { ok: true, message: `Kullanıcı eklendi. "${username}" kullanıcı adı ve geçici şifreyle giriş yapabilir; şifreyi kendisiyle güvenli bir yoldan paylaşın.` };
   });
 }
 
