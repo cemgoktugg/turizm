@@ -1,14 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Download, Receipt } from "lucide-react";
+import { Download, Receipt, Tags } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { BackLink, qs } from "@/components/admin/sales/ui";
 import { RoomingBoard } from "@/components/admin/sales/rooming-board";
+import { GuideLinkCard } from "@/components/admin/sales/guide-link";
+import { getLastUndo } from "@/lib/rooming-undo";
+import { SITE_URL } from "@/lib/site-url";
 import { GENDERS, groupByRoom, hotelSummary, takesBed } from "@/lib/rooming";
 import { getRooming } from "@/lib/rooming-server";
 import { passengerLabel } from "@/lib/sale-pricing";
 import { shortDate } from "@/lib/sales";
-import { cn } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
 import { getSalesBase } from "@/lib/sales-base-server";
 
 export const metadata = { title: "Odalama" };
@@ -20,11 +23,11 @@ export default async function RoomingPage({ params }: { params: Promise<{ id: st
   const tour = Number.isInteger(tourId)
     ? await prisma.serviceTour.findUnique({
         where: { id: tourId },
-        select: { id: true, name: true, period: true, departureDate: true, returnDate: true, days: true, accommodation: true },
+        select: { id: true, name: true, period: true, departureDate: true, returnDate: true, days: true, accommodation: true, guideToken: true },
       })
     : null;
   if (!tour) notFound();
-  const { rooms, people } = await getRooming(tour.id);
+  const [{ rooms, people }, undo] = await Promise.all([getRooming(tour.id), getLastUndo(tour.id)]);
   const sum = hotelSummary(rooms, people);
   const byRoom = groupByRoom(people);
   const dates = `${shortDate(tour.departureDate)} – ${shortDate(tour.returnDate)} · ${tour.days} gün`;
@@ -50,6 +53,13 @@ export default async function RoomingPage({ params }: { params: Promise<{ id: st
               className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-border bg-white px-3 text-sm font-semibold text-brand-800 hover:bg-cream-100"
             >
               <Receipt className="size-4" /> Satışlar
+            </Link>
+            <Link
+              href={`${base}/turlar/${tour.id}/odalar/etiketler`}
+              className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-border bg-white px-3 text-sm font-semibold text-brand-800 hover:bg-cream-100"
+              title="Kapıya / anahtar zarfına oda etiketleri"
+            >
+              <Tags className="size-4" /> Etiketler
             </Link>
             <a
               href={`/api/admin/satis/export${qs({ rapor: "odalar", tur: String(tour.id) })}`}
@@ -89,7 +99,14 @@ export default async function RoomingPage({ params }: { params: Promise<{ id: st
           </div>
         </div>
 
-        <RoomingBoard tourId={tour.id} rooms={rooms} people={people} />
+        <GuideLinkCard tourId={tour.id} tourName={tour.name} url={tour.guideToken ? `${SITE_URL}/oda/${tour.guideToken}` : null} />
+
+        <RoomingBoard
+          tourId={tour.id}
+          rooms={rooms}
+          people={people}
+          lastUndo={undo ? { label: undo.label, by: undo.createdByName, at: formatDateTime(undo.createdAt) } : null}
+        />
       </div>
 
       {/* Yazdırılan oda listesi (otel / görevli için) */}
@@ -106,7 +123,7 @@ export default async function RoomingPage({ params }: { params: Promise<{ id: st
         <table className="w-full border-collapse">
           <thead>
             <tr>
-              {["Oda", "Tip", "Ad Soyad", "Cinsiyet", "Yolcu", "T.C.", "Aile / Grup"].map((h) => (
+              {["Oda", "Tip", "Mekke No", "Medine No", "Ad Soyad", "Cinsiyet", "Yolcu", "T.C.", "Aile / Grup"].map((h) => (
                 <th key={h} className="border border-black px-1.5 py-1 text-left">
                   {h}
                 </th>
@@ -127,6 +144,12 @@ export default async function RoomingPage({ params }: { params: Promise<{ id: st
                       </td>
                       <td rowSpan={ordered.length} className="border border-black px-1.5 py-1 align-top">
                         {r.size} kişilik
+                      </td>
+                      <td rowSpan={ordered.length} className="border border-black px-1.5 py-1 align-top font-bold">
+                        {r.meccaNo ?? ""}
+                      </td>
+                      <td rowSpan={ordered.length} className="border border-black px-1.5 py-1 align-top font-bold">
+                        {r.medinaNo ?? ""}
                       </td>
                     </>
                   )}

@@ -441,6 +441,8 @@ async function roomingTable(p: ReportParams): Promise<ReportTable> {
   const columns: ReportTable["columns"] = [
     { label: "Oda No", align: C },
     { label: "Oda Tipi" },
+    { label: "Mekke Oda No" },
+    { label: "Medine Oda No" },
     { label: "Ad Soyad" },
     { label: "Cinsiyet" },
     { label: "Yolcu" },
@@ -453,10 +455,12 @@ async function roomingTable(p: ReportParams): Promise<ReportTable> {
   if (!tourId) return { columns, rows: [] };
   const { rooms, people } = await getRooming(tourId);
   const byRoom = groupByRoom(people);
-  const row = (p: (typeof people)[number], no: string, type: string) => ({
+  const row = (p: (typeof people)[number], no: string, type: string, mecca = "", medina = "") => ({
     cells: [
       no,
       type,
+      mecca,
+      medina,
       p.name,
       p.gender ? GENDERS[p.gender] : "",
       passengerLabel(p.passenger),
@@ -470,7 +474,7 @@ async function roomingTable(p: ReportParams): Promise<ReportTable> {
   return {
     columns,
     rows: [
-      ...rooms.flatMap((r, i) => (byRoom.get(r.id) ?? []).map((p) => row(p, String(i + 1), `${r.size} kişilik`))),
+      ...rooms.flatMap((r, i) => (byRoom.get(r.id) ?? []).map((p) => row(p, String(i + 1), `${r.size} kişilik`, r.meccaNo ?? "", r.medinaNo ?? ""))),
       ...people.filter((p) => p.roomId == null).map((p) => ({ ...row(p, "", "Yerleşmemiş"), muted: true })),
     ],
   };

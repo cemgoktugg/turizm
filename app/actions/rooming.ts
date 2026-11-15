@@ -1,9 +1,11 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { salesAction, type ActionResult } from "@/lib/action";
-import { GENDERS, isGender, isRoomSize, planAutoPlacement, takesBed, type AutoPlan } from "@/lib/rooming";
+import { GENDERS, cleanRoomNo, isGender, isRoomSize, planAutoPlacement, takesBed, type AutoPlan } from "@/lib/rooming";
 import { getRooming } from "@/lib/rooming-server";
+import { restoreLastUndo, saveUndo } from "@/lib/rooming-undo";
 
 /** Odalama işlemleri: kişiler satış kaydı (Sale.roomId) üzerinden odaya yerleşir. */
 
@@ -46,7 +48,7 @@ const bedsOf = (rows: { passenger: string | null }[]) => rows.filter((r) => take
 
 /** Seçilen kişileri mevcut bir odaya yerleştirir (başka odadaysa taşır) */
 export async function placeInRoom(tourIdIn: number, saleIdsIn: number[], roomIdIn: number): Promise<ActionResult> {
-  return salesAction(async (_me, audit) => {
+  return salesAction(async (me, audit) => {
     const tourId = toId(tourIdIn);
     const saleIds = toIds(saleIdsIn);
     const roomId = toId(roomIdIn);
@@ -66,6 +68,7 @@ export async function placeInRoom(tourIdIn: number, saleIdsIn: number[], roomIdI
         ok: false,
         message: free <= 0 ? `Bu ${room.size} kişilik oda dolu.` : `Odada ${free} boş yatak var; ${need} kişi sığmaz. Yeni oda açın ya da başka oda seçin.`,
       };
+    await saveUndo(tourId, `Odaya yerleştirme: ${names(moving)}`, me.name);
     await prisma.sale.updateMany({ where: { id: { in: saleIds } }, data: { roomId } });
     await dropEmptied(moving, roomId);
     audit({ entity: "ServiceTour", entityId: tourId, detail: `Odalama: ${names(moving)} → ${room.size} kişilik oda` });
@@ -75,7 +78,7 @@ export async function placeInRoom(tourIdIn: number, saleIdsIn: number[], roomIdI
 
 /** Yeni oda açar; kişi seçildiyse onları da içine yerleştirir */
 export async function createRoom(tourIdIn: number, sizeIn: number, saleIdsIn: number[] = []): Promise<ActionResult> {
-  return salesAction(async (_me, audit) => {
+  return salesAction(async (me, audit) => {
     const tourId = toId(tourIdIn);
     if (!tourId || !isRoomSize(sizeIn)) return { ok: false, message: "Oda tipi 2, 3 ya da 4 kişilik olmalı." };
     const tour = await prisma.serviceTour.findUnique({ where: { id: tourId }, select: { id: true } });
@@ -85,6 +88,7 @@ export async function createRoom(tourIdIn: number, sizeIn: number, saleIdsIn: nu
     const moving = saleIds.length ? await movingSales(tourId, saleIds) : [];
     if (!moving) return stale;
     if (bedsOf(moving) > sizeIn) return { ok: false, message: `${bedsOf(moving)} kişi ${sizeIn} kişilik odaya sığmaz.` };
+    await saveUndo(tourId, `Yeni ${sizeIn} kişilik oda${moving.length ? `: ${names(moving)}` : ""}`, me.name);
     await prisma.$transaction(async (tx) => {
       const room = await tx.tourRoom.create({ data: { tourId, size: sizeIn } });
       if (saleIds.length) await tx.sale.updateMany({ where: { id: { in: saleIds } }, data: { roomId: room.id } });
@@ -101,12 +105,13 @@ export async function createRoom(tourIdIn: number, sizeIn: number, saleIdsIn: nu
 
 /** Seçilen kişileri odalarından çıkarır (yerleşmemişler listesine döner) */
 export async function unplaceSales(tourIdIn: number, saleIdsIn: number[]): Promise<ActionResult> {
-  return salesAction(async (_me, audit) => {
+  return salesAction(async (me, audit) => {
     const tourId = toId(tourIdIn);
     const saleIds = toIds(saleIdsIn);
     if (!tourId || !saleIds) return notFound;
     const moving = await movingSales(tourId, saleIds);
     if (!moving) return stale;
+    await saveUndo(tourId, `Odadan çıkarma: ${names(moving)}`, me.name);
     await prisma.sale.updateMany({ where: { id: { in: saleIds } }, data: { roomId: null } });
     await dropEmptied(moving);
     audit({ entity: "ServiceTour", entityId: tourId, detail: `Odalama: ${names(moving)} odadan çıkarıldı` });
@@ -116,7 +121,7 @@ export async function unplaceSales(tourIdIn: number, saleIdsIn: number[]): Promi
 
 /** Oda tipini değiştirir (içindekiler yeni tipe sığmalı) */
 export async function resizeRoom(roomIdIn: number, sizeIn: number): Promise<ActionResult> {
-  return salesAction(async (_me, audit) => {
+  return salesAction(async (me, audit) => {
     const roomId = toId(roomIdIn);
     if (!roomId || !isRoomSize(sizeIn)) return { ok: false, message: "Oda tipi 2, 3 ya da 4 kişilik olmalı." };
     const room = await prisma.tourRoom.findUnique({
@@ -126,6 +131,7 @@ export async function resizeRoom(roomIdIn: number, sizeIn: number): Promise<Acti
     if (!room) return notFound;
     const beds = bedsOf(room.sales);
     if (beds > sizeIn) return { ok: false, message: `Odada ${beds} kişi var; ${sizeIn} kişilik yapılamaz.` };
+    await saveUndo(room.tourId, `Oda tipi: ${room.size} → ${sizeIn} kişilik`, me.name);
     await prisma.tourRoom.update({ where: { id: roomId }, data: { size: sizeIn } });
     audit({ entity: "ServiceTour", entityId: room.tourId, detail: `Odalama: ${room.size} kişilik oda ${sizeIn} kişilik yapıldı` });
     return { ok: true, message: `Oda ${sizeIn} kişilik yapıldı.` };
@@ -134,11 +140,12 @@ export async function resizeRoom(roomIdIn: number, sizeIn: number): Promise<Acti
 
 /** Odayı siler; içindekiler yerleşmemişler listesine döner */
 export async function deleteRoom(roomIdIn: number): Promise<ActionResult> {
-  return salesAction(async (_me, audit) => {
+  return salesAction(async (me, audit) => {
     const roomId = toId(roomIdIn);
     if (!roomId) return notFound;
     const room = await prisma.tourRoom.findUnique({ where: { id: roomId }, select: { tourId: true, size: true, _count: { select: { sales: true } } } });
     if (!room) return notFound;
+    await saveUndo(room.tourId, `Oda silme (${room.size} kişilik)`, me.name);
     await prisma.$transaction([
       prisma.sale.updateMany({ where: { roomId }, data: { roomId: null } }),
       prisma.tourRoom.delete({ where: { id: roomId } }),
@@ -150,12 +157,13 @@ export async function deleteRoom(roomIdIn: number): Promise<ActionResult> {
 
 /** Yerleşmemiş herkesi kurallara göre yerleştirir (bkz. planAutoPlacement); mevcut yerleşime dokunmaz */
 export async function autoPlaceRooms(tourIdIn: number): Promise<ActionResult<{ skipped: AutoPlan["skipped"] }>> {
-  return salesAction(async (_me, audit) => {
+  return salesAction(async (me, audit) => {
     const tourId = toId(tourIdIn);
     if (!tourId) return notFound;
     const { rooms, people } = await getRooming(tourId);
     if (!people.some((p) => p.roomId == null)) return { ok: true, message: "Yerleştirilecek kimse yok; herkes bir odada.", data: { skipped: [] } };
     const plan = planAutoPlacement(rooms, people);
+    await saveUndo(tourId, "Otomatik yerleştirme", me.name);
     await prisma.$transaction(
       async (tx) => {
         for (const r of plan.create) {
@@ -179,9 +187,10 @@ export async function autoPlaceRooms(tourIdIn: number): Promise<ActionResult<{ s
 
 /** Turun bütün odalarını siler, herkes yerleşmemişler listesine döner */
 export async function resetRooms(tourIdIn: number): Promise<ActionResult> {
-  return salesAction(async (_me, audit) => {
+  return salesAction(async (me, audit) => {
     const tourId = toId(tourIdIn);
     if (!tourId) return notFound;
+    await saveUndo(tourId, "Odalamayı sıfırlama", me.name);
     const [, deleted] = await prisma.$transaction([
       prisma.sale.updateMany({ where: { tourId, roomId: { not: null } }, data: { roomId: null } }),
       prisma.tourRoom.deleteMany({ where: { tourId } }),
@@ -199,5 +208,55 @@ export async function setCustomerGender(customerIdIn: number, gender: string): P
     const c = await prisma.customer.update({ where: { id: customerId }, data: { gender }, select: { fullName: true } });
     audit({ entity: "Customer", entityId: customerId, detail: `Müşteri #${customerId} ${c.fullName}: cinsiyet ${GENDERS[gender]}` });
     return { ok: true, message: `${c.fullName}: ${GENDERS[gender]}` };
+  });
+}
+
+/** Odalamada son işlemi geri alır (turun son işlemi; kim yaptıysa) */
+export async function undoRooming(tourIdIn: number): Promise<ActionResult> {
+  return salesAction(async (_me, audit) => {
+    const tourId = toId(tourIdIn);
+    if (!tourId) return notFound;
+    const done = await restoreLastUndo(tourId);
+    if (!done) return { ok: false, message: "Geri alınacak işlem yok." };
+    audit({ entity: "ServiceTour", entityId: tourId, detail: `Odalama: geri alındı (${done.label})` });
+    return { ok: true, message: `Geri alındı: ${done.label}` };
+  });
+}
+
+const BAD_ROOM_NO = "Oda numarasında yalnızca harf, rakam, boşluk ve - / kullanılabilir (en fazla 12 karakter).";
+
+/** Otelin verdiği oda numarası (ofisten); field: "meccaNo" | "medinaNo" */
+export async function setRoomNumber(roomIdIn: number, field: string, value: string): Promise<ActionResult> {
+  return salesAction(async (_me, audit) => {
+    const roomId = toId(roomIdIn);
+    if (!roomId || (field !== "meccaNo" && field !== "medinaNo")) return notFound;
+    const v = cleanRoomNo(value);
+    if (v === false) return { ok: false, message: BAD_ROOM_NO };
+    const room = await prisma.tourRoom.update({ where: { id: roomId }, data: { [field]: v }, select: { tourId: true } });
+    audit({ entity: "ServiceTour", entityId: room.tourId, detail: `Odalama: ${field === "meccaNo" ? "Mekke" : "Medine"} oda no ${v ?? "silindi"}` });
+    return { ok: true, message: "Oda numarası kaydedildi." };
+  });
+}
+
+/** Görevli bağlantısını oluşturur ya da yeniler (eski bağlantı çalışmaz olur) */
+export async function renewGuideLink(tourIdIn: number): Promise<ActionResult<{ token: string }>> {
+  return salesAction(async (_me, audit) => {
+    const tourId = toId(tourIdIn);
+    if (!tourId) return notFound;
+    const token = randomBytes(18).toString("base64url");
+    const t = await prisma.serviceTour.update({ where: { id: tourId }, data: { guideToken: token }, select: { name: true } });
+    audit({ entity: "ServiceTour", entityId: tourId, detail: `Görevli bağlantısı oluşturuldu / yenilendi: ${t.name}` });
+    return { ok: true, message: "Görevli bağlantısı hazır.", data: { token } };
+  });
+}
+
+/** Görevli bağlantısını kapatır */
+export async function disableGuideLink(tourIdIn: number): Promise<ActionResult> {
+  return salesAction(async (_me, audit) => {
+    const tourId = toId(tourIdIn);
+    if (!tourId) return notFound;
+    const t = await prisma.serviceTour.update({ where: { id: tourId }, data: { guideToken: null }, select: { name: true } });
+    audit({ entity: "ServiceTour", entityId: tourId, detail: `Görevli bağlantısı kapatıldı: ${t.name}` });
+    return { ok: true, message: "Görevli bağlantısı kapatıldı; eski bağlantı artık açılmaz." };
   });
 }

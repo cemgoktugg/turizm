@@ -370,7 +370,7 @@ model Staff {
 
 /// Satışı yapılan tur hizmeti (sitedeki katalog turlarından bağımsızdır)
 model ServiceTour {
-  id            Int        @id @default(autoincrement())
+  id            Int           @id @default(autoincrement())
   name          String
   /// Dönem (ör. "2026 Ramazan Umresi") — satış listesi bu alana göre süzülür
   period        String
@@ -384,24 +384,28 @@ model ServiceTour {
   priceAge0to2  Int?
   priceAge2to6  Int?
   priceAge6to11 Int?
-  currency      String     @default("USD")
+  currency      String        @default("USD")
   accommodation String?
   /// Görevli sonradan atanabilir
   guide1Id      Int?
-  guide1        Staff?     @relation("Guide1", fields: [guide1Id], references: [id])
+  guide1        Staff?        @relation("Guide1", fields: [guide1Id], references: [id])
   guide2Id      Int?
-  guide2        Staff?     @relation("Guide2", fields: [guide2Id], references: [id])
+  guide2        Staff?        @relation("Guide2", fields: [guide2Id], references: [id])
   days          Int
   /// Kişi kontenjanı; boşsa sınır yok. İptal edilmemiş satışlar yer kaplar, dolunca yeni satış yapılamaz
   capacity      Int?
   note          String?
   /// Pasif turlar yeni satışta listelenmez
-  isActive      Boolean    @default(true)
+  isActive      Boolean       @default(true)
   sales         Sale[]
   /// Odalama: turun otel odaları (bkz. TourRoom)
   rooms         TourRoom[]
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  /// Görevli ekranının gizli bağlantısı (/oda/<token>); boşsa bağlantı kapalı. Yenilenince eskisi çalışmaz
+  guideToken    String?       @unique
+  /// Odalamada "Geri al" için son işlemlerden önceki durumlar
+  roomingUndos  RoomingUndo[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   @@index([period])
 }
@@ -414,8 +418,27 @@ model TourRoom {
   tourId    Int
   tour      ServiceTour @relation(fields: [tourId], references: [id], onDelete: Cascade)
   size      Int
+  /// Otelin verdiği gerçek oda numaraları (otele girişte görevli ya da ofis yazar)
+  meccaNo   String?
+  medinaNo  String?
   sales     Sale[]
   createdAt DateTime    @default(now())
+
+  @@index([tourId])
+}
+
+/// Odalamada "Geri al": her odalama işleminden önceki durum (odalar + kim hangi odada).
+/// Turun son işlemi geri alınabilir; turda en fazla 30 kayıt tutulur.
+model RoomingUndo {
+  id            Int         @id @default(autoincrement())
+  tourId        Int
+  tour          ServiceTour @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  /// Geri alınacak işlem (ör. "Otomatik yerleştirme")
+  label         String
+  /// JSON: { rooms: [{ id, size, meccaNo, medinaNo }], placements: [[saleId, roomId]] }
+  snapshot      String
+  createdByName String?
+  createdAt     DateTime    @default(now())
 
   @@index([tourId])
 }

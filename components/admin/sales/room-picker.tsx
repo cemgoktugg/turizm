@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { AlertTriangle, Baby, BedDouble, BedSingle, ChevronDown, Loader2, Mars, Plus, Undo2, Venus } from "lucide-react";
-import { createRoom, placeInRoom, unplaceSales } from "@/app/actions/rooming";
+import { createRoom, placeInRoom, undoRooming, unplaceSales } from "@/app/actions/rooming";
 import { Modal } from "@/components/ui/modal";
 import { ROOM_SIZES, type Gender, type RoomOption, type RoomOptionsByTour } from "@/lib/rooming";
 import type { ActionResult } from "@/lib/types";
@@ -86,6 +86,9 @@ function RoomCard({
       <span className="mb-2 flex w-full items-center gap-2">
         <span className="font-serif text-base font-bold text-brand-900">Oda {room.no}</span>
         <span className="text-xs text-muted">{room.size} kişilik</span>
+        {(room.meccaNo || room.medinaNo) && (
+          <span className="text-[11px] font-semibold text-brand-700">{[room.meccaNo && `Mekke ${room.meccaNo}`, room.medinaNo && `Medine ${room.medinaNo}`].filter(Boolean).join(" · ")}</span>
+        )}
         <span
           className={cn(
             "ml-auto rounded-full px-2 py-0.5 text-[11px] font-bold",
@@ -180,8 +183,16 @@ export function RoomChooser({
     start(async () => {
       const res = await fn();
       if (!res.ok) return void toast.error(res.message);
-      toast.success(res.message);
+      toast.success(res.message, { action: { label: "Geri al", onClick: undo }, duration: 8000 });
       setOpen(false);
+      router.refresh();
+    });
+  }
+  function undo() {
+    start(async () => {
+      const res = await undoRooming(tourId);
+      if (!res.ok) return void toast.error(res.message);
+      toast.success(res.message);
       router.refresh();
     });
   }
@@ -214,6 +225,11 @@ export function RoomChooser({
           {current ? `Oda ${current.no} · ${current.size} kişilik` : roomId === MIXED ? "Farklı odalarda" : "Oda ata"}
           <span className="font-normal text-muted">· {current || roomId === MIXED ? "değiştir" : "seç"}</span>
         </button>
+        {current && (current.meccaNo || current.medinaNo) && (
+          <span className="text-xs font-semibold text-brand-700">
+            Otel oda no: {[current.meccaNo && `Mekke ${current.meccaNo}`, current.medinaNo && `Medine ${current.medinaNo}`].filter(Boolean).join(" · ")}
+          </span>
+        )}
         {current && current.people.some((p) => !saleIds.includes(p.saleId)) && (
           <span className="text-xs text-muted">
             Birlikte: {current.people.filter((p) => !saleIds.includes(p.saleId)).map((p) => p.name).join(", ")}

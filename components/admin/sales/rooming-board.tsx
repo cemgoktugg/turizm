@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { AlertTriangle, Baby, BedSingle, CheckCircle2, Loader2, Mars, Plus, Printer, RotateCcw, Trash2, Undo2, Venus, WandSparkles, X } from "lucide-react";
+import { AlertTriangle, Baby, BedSingle, CheckCircle2, History, Loader2, Mars, Plus, Printer, RotateCcw, Trash2, Undo2, Venus, WandSparkles, X } from "lucide-react";
 import {
   autoPlaceRooms,
   createRoom,
@@ -12,8 +12,11 @@ import {
   resetRooms,
   resizeRoom,
   setCustomerGender,
+  setRoomNumber,
+  undoRooming,
   unplaceSales,
 } from "@/app/actions/rooming";
+import { RoomNoInput } from "./room-no-input";
 import { GENDERS, ROOM_SIZES, bedsUsed, groupByRoom, roomIssues, takesBed, unitKey, type AutoPlan, type Gender, type Room, type RoomPerson } from "@/lib/rooming";
 import type { ActionResult } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -30,7 +33,10 @@ function toneOf(people: RoomPerson[]): Gender | "aile" | null {
   return "aile";
 }
 
-export function RoomingBoard({ tourId, rooms, people }: { tourId: number; rooms: Room[]; people: RoomPerson[] }) {
+/** Geri alınabilecek son işlem */
+export type LastUndo = { label: string; by: string | null; at: string } | null;
+
+export function RoomingBoard({ tourId, rooms, people, lastUndo }: { tourId: number; rooms: Room[]; people: RoomPerson[]; lastUndo: LastUndo }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [selected, setSelected] = useState<number[]>([]);
@@ -43,15 +49,19 @@ export function RoomingBoard({ tourId, rooms, people }: { tourId: number; rooms:
   const sel = selected.filter((id) => people.some((p) => p.saleId === id));
   const selPeople = people.filter((p) => sel.includes(p.saleId));
 
-  function run<T>(fn: () => Promise<ActionResult<T>>, after?: (res: ActionResult<T>) => void) {
+  /** undoable: başarı bildiriminde "Geri al" düğmesi çıkar */
+  function run<T>(fn: () => Promise<ActionResult<T>>, after?: (res: ActionResult<T>) => void, undoable = true) {
     start(async () => {
       const res = await fn();
       if (!res.ok) return void toast.error(res.message);
-      toast.success(res.message);
+      toast.success(res.message, undoable ? { action: { label: "Geri al", onClick: undo }, duration: 8000 } : undefined);
       setSelected([]);
       after?.(res);
       router.refresh();
     });
+  }
+  function undo() {
+    run(() => undoRooming(tourId), () => setSkipped([]), false);
   }
 
   const toggle = (ids: number[]) =>
@@ -85,7 +95,7 @@ export function RoomingBoard({ tourId, rooms, people }: { tourId: number; rooms:
         e.dataTransfer.setData(DRAG_TYPE, JSON.stringify(dragIds(p.saleId)));
         e.dataTransfer.effectAllowed = "move";
       }}
-      onGender={(g) => run(() => setCustomerGender(p.customerId, g))}
+      onGender={(g) => run(() => setCustomerGender(p.customerId, g), undefined, false)}
       disabled={pending}
     />
   );
@@ -124,7 +134,16 @@ export function RoomingBoard({ tourId, rooms, people }: { tourId: number; rooms:
             <Plus className="size-3.5" /> {size} kişilik
           </button>
         ))}
-        <div className="ml-auto flex gap-2">
+        <div className="ml-auto flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={pending || !lastUndo}
+            onClick={undo}
+            className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-border px-3 text-sm font-semibold text-brand-800 hover:bg-cream-100 disabled:opacity-40"
+            title={lastUndo ? `Geri al: ${lastUndo.label}${lastUndo.by ? ` (${lastUndo.by}, ${lastUndo.at})` : ""}` : "Geri alınacak işlem yok"}
+          >
+            <History className="size-4" /> Geri al
+          </button>
           <button
             type="button"
             onClick={() => window.print()}
@@ -285,6 +304,10 @@ export function RoomingBoard({ tourId, rooms, people }: { tourId: number; rooms:
                                 <Trash2 className="size-3.5" />
                               </button>
                             </div>
+                          </div>
+                          <div className="mb-2 flex gap-2">
+                            <RoomNoInput key={`m-${r.meccaNo ?? ""}`} label="Mekke" value={r.meccaNo} onSave={(v) => setRoomNumber(r.id, "meccaNo", v)} />
+                            <RoomNoInput key={`d-${r.medinaNo ?? ""}`} label="Medine" value={r.medinaNo} onSave={(v) => setRoomNumber(r.id, "medinaNo", v)} />
                           </div>
                           <div className="grid gap-1">
                             {adults.map((p) => chip(p, { showGroup: mixedUnits }))}

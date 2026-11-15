@@ -5,7 +5,7 @@ import { isGender, sortRooms, takesBed, type Room, type RoomOptionsByTour, type 
 /** Turun odaları (ekran sırasıyla) ve odalamadaki kişiler: iptal edilmemiş satışlar */
 export async function getRooming(tourId: number): Promise<{ rooms: Room[]; people: RoomPerson[] }> {
   const [rooms, sales] = await Promise.all([
-    prisma.tourRoom.findMany({ where: { tourId }, select: { id: true, size: true } }),
+    prisma.tourRoom.findMany({ where: { tourId }, select: { id: true, size: true, meccaNo: true, medinaNo: true } }),
     prisma.sale.findMany({
       where: { tourId, isCancelled: false },
       orderBy: { id: "asc" },
@@ -43,7 +43,7 @@ export async function getRoomOptions(tourIds: number[]): Promise<RoomOptionsByTo
   const ids = [...new Set(tourIds)];
   if (!ids.length) return {};
   const [rooms, placed] = await Promise.all([
-    prisma.tourRoom.findMany({ where: { tourId: { in: ids } }, select: { id: true, size: true, tourId: true } }),
+    prisma.tourRoom.findMany({ where: { tourId: { in: ids } }, select: { id: true, size: true, tourId: true, meccaNo: true, medinaNo: true } }),
     prisma.sale.findMany({
       where: { tourId: { in: ids }, isCancelled: false, roomId: { not: null } },
       orderBy: { id: "asc" },
@@ -56,6 +56,8 @@ export async function getRoomOptions(tourIds: number[]): Promise<RoomOptionsByTo
       id: r.id,
       no: i + 1,
       size: r.size,
+      meccaNo: r.meccaNo,
+      medinaNo: r.medinaNo,
       people: placed
         .filter((s) => s.roomId === r.id)
         .map((s) => ({
@@ -67,4 +69,33 @@ export async function getRoomOptions(tourIds: number[]): Promise<RoomOptionsByTo
         })),
     }));
   return out;
+}
+
+/**
+ * Görevli ekranı (/oda/<gizli bağlantı>): bağlantıdaki tur, odaları ve kişileri.
+ * Kişilerde yalnızca ad, cinsiyet, yolcu tipi ve aile adı gönderilir (T.C., telefon, fiyat yok).
+ */
+export async function getGuideView(token: string) {
+  if (!token || token.length < 20 || token.length > 64) return null;
+  const tour = await prisma.serviceTour.findUnique({
+    where: { guideToken: token },
+    select: { id: true, name: true, period: true, departureDate: true, returnDate: true, days: true, accommodation: true },
+  });
+  if (!tour) return null;
+  const { rooms, people } = await getRooming(tour.id);
+  return {
+    tour,
+    rooms,
+    people: people.map((p) => ({
+      saleId: p.saleId,
+      customerId: 0,
+      name: p.name,
+      gender: p.gender,
+      passenger: p.passenger,
+      roomSize: p.roomSize,
+      groupId: p.groupId,
+      groupName: p.groupName,
+      roomId: p.roomId,
+    })),
+  };
 }

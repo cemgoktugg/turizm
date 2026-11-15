@@ -21,6 +21,13 @@ export function isRoomSize(v: unknown): v is (typeof ROOM_SIZES)[number] {
   return v === 2 || v === 3 || v === 4;
 }
 
+/** Otel oda numarası: boş → null, geçersiz → false (harf, rakam, boşluk, - / ; en fazla 12 karakter) */
+export function cleanRoomNo(v: unknown): string | null | false {
+  const s = String(v ?? "").trim().replace(/\s+/g, " ");
+  if (!s) return null;
+  return s.length <= 12 && /^[\p{L}\p{N} \-/]+$/u.test(s) ? s : false;
+}
+
 /** Yatak kaplar mı? (0-2 yaş bebek kaplamaz) */
 export function takesBed(passenger: string | null | undefined) {
   return passenger !== "0-2";
@@ -44,13 +51,16 @@ export type RoomPerson = {
   phone?: string | null;
 };
 
-export type Room = { id: number; size: number };
+/** Oda; meccaNo / medinaNo: otelin verdiği gerçek oda numaraları */
+export type Room = { id: number; size: number; meccaNo?: string | null; medinaNo?: string | null };
 
 /** Satış ekranlarındaki oda seçimi: odanın numarası (odalama sırası) ve içindekiler */
 export type RoomOption = {
   id: number;
   no: number;
   size: number;
+  meccaNo: string | null;
+  medinaNo: string | null;
   people: { saleId: number; name: string; bed: boolean; gender: Gender | null; groupId: number | null }[];
 };
 export type RoomOptionsByTour = Record<number, RoomOption[]>;
