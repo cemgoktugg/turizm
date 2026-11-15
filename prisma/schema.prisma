@@ -11,20 +11,20 @@ generator client {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
+  id                String    @id @default(cuid())
+  name              String
+  email             String    @unique
   /// Girişte e-posta yerine yazılabilir; küçük harf, Türkçe harfler sadeleştirilmiş ("Ömer" → "omer")
-  username  String?  @unique
-  password  String
+  username          String?   @unique
+  password          String
   /// ADMIN: tüm yetkiler | STAFF: tahsilat silemez, kullanıcı işlemi yapamaz
-  role      String   @default("ADMIN")
+  role              String    @default("ADMIN")
   // Şifre değişince artırılır; eski oturumları geçersiz kılar
   tokenVersion      Int       @default(0)
   passwordChangedAt DateTime?
   lastLoginAt       DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 }
 
 model TourCategory {
@@ -41,48 +41,48 @@ model TourCategory {
 }
 
 model Tour {
-  id               String   @id @default(cuid())
+  id                String           @id @default(cuid())
   /// Müşteriye gösterilen tur numarası (boşsa otomatik verilir)
-  code             String?  @unique
+  code              String?          @unique
   /// Başlık üstündeki küçük etiket (ör. "Miraç Kandili Medine")
-  badge            String?
-  title            String
-  slug             String   @unique
-  shortDescription String?
-  description      String?
-  categoryId       String
-  category         TourCategory @relation(fields: [categoryId], references: [id])
-  departureDate    DateTime?
-  returnDate       DateTime?
-  durationDays     Int?
-  durationNights   Int?
-  departureCity    String?
-  airline          String?
-  startingPrice    Float?
-  currency         String   @default("USD")
-  priceNote        String?
-  coverImage       String?
-  includedServices String?
-  excludedServices String?
+  badge             String?
+  title             String
+  slug              String           @unique
+  shortDescription  String?
+  description       String?
+  categoryId        String
+  category          TourCategory     @relation(fields: [categoryId], references: [id])
+  departureDate     DateTime?
+  returnDate        DateTime?
+  durationDays      Int?
+  durationNights    Int?
+  departureCity     String?
+  airline           String?
+  startingPrice     Float?
+  currency          String           @default("USD")
+  priceNote         String?
+  coverImage        String?
+  includedServices  String?
+  excludedServices  String?
   requiredDocuments String?
   /// Kalan koltuk (boşsa gösterilmez)
-  seatsLeft        Int?
+  seatsLeft         Int?
   /// Tanıtım videosu (YouTube bağlantısı)
-  videoUrl         String?
-  isFeatured       Boolean  @default(false)
-  isPublished      Boolean  @default(true)
-  seoTitle         String?
-  seoDescription   String?
-  images           TourImage[]
-  prices           TourPrice[]
-  hotels           TourHotel[]
-  legs             TourLeg[]
-  dayPrograms      TourDayProgram[]
-  faqs             FAQ[]
-  reviews          Review[]
-  leads            Lead[]
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  videoUrl          String?
+  isFeatured        Boolean          @default(false)
+  isPublished       Boolean          @default(true)
+  seoTitle          String?
+  seoDescription    String?
+  images            TourImage[]
+  prices            TourPrice[]
+  hotels            TourHotel[]
+  legs              TourLeg[]
+  dayPrograms       TourDayProgram[]
+  faqs              FAQ[]
+  reviews           Review[]
+  leads             Lead[]
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 }
 
 model TourImage {
@@ -339,11 +339,21 @@ model LandingPage {
   updatedAt      DateTime @updatedAt
 }
 
-/* ------------------------------------------------------------------ */
-/* Satış ve alacak takibi (yalnızca panelde kullanılır)                 */
-/* Tutarlar tam sayıdır; "ödenen" ve "kalan" saklanmaz, tahsilatlardan    */
-/* hesaplanır.                                                          */
-/* ------------------------------------------------------------------ */
+/**
+ * ------------------------------------------------------------------
+ */
+/**
+ * Satış ve alacak takibi (yalnızca panelde kullanılır)
+ */
+/**
+ * Tutarlar tam sayıdır; "ödenen" ve "kalan" saklanmaz, tahsilatlardan
+ */
+/**
+ * hesaplanır.
+ */
+/**
+ * ------------------------------------------------------------------
+ */
 
 /// Tur görevlisi (rehber / kafile başkanı)
 model Staff {
@@ -360,7 +370,7 @@ model Staff {
 
 /// Satışı yapılan tur hizmeti (sitedeki katalog turlarından bağımsızdır)
 model ServiceTour {
-  id            Int      @id @default(autoincrement())
+  id            Int        @id @default(autoincrement())
   name          String
   /// Dönem (ör. "2026 Ramazan Umresi") — satış listesi bu alana göre süzülür
   period        String
@@ -374,24 +384,40 @@ model ServiceTour {
   priceAge0to2  Int?
   priceAge2to6  Int?
   priceAge6to11 Int?
-  currency      String   @default("USD")
+  currency      String     @default("USD")
   accommodation String?
   /// Görevli sonradan atanabilir
   guide1Id      Int?
-  guide1        Staff?   @relation("Guide1", fields: [guide1Id], references: [id])
+  guide1        Staff?     @relation("Guide1", fields: [guide1Id], references: [id])
   guide2Id      Int?
-  guide2        Staff?   @relation("Guide2", fields: [guide2Id], references: [id])
+  guide2        Staff?     @relation("Guide2", fields: [guide2Id], references: [id])
   days          Int
   /// Kişi kontenjanı; boşsa sınır yok. İptal edilmemiş satışlar yer kaplar, dolunca yeni satış yapılamaz
   capacity      Int?
   note          String?
   /// Pasif turlar yeni satışta listelenmez
-  isActive      Boolean  @default(true)
+  isActive      Boolean    @default(true)
   sales         Sale[]
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  /// Odalama: turun otel odaları (bkz. TourRoom)
+  rooms         TourRoom[]
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
   @@index([period])
+}
+
+/// Odalama: turun bir otel odası. Kişiler (satışlar) Sale.roomId ile yerleşir.
+/// size: yatak sayısı (2-4); 0-2 yaş bebekler ailesinin odasında kalır, yatak kaplamaz.
+/// Oda numarası saklanmaz: ekranda büyük odadan küçüğe sıralanıp numaralanır.
+model TourRoom {
+  id        Int         @id @default(autoincrement())
+  tourId    Int
+  tour      ServiceTour @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  size      Int
+  sales     Sale[]
+  createdAt DateTime    @default(now())
+
+  @@index([tourId])
 }
 
 model Customer {
@@ -399,6 +425,8 @@ model Customer {
   fullName  String
   tc        String?  @unique // opsiyonel; boşsa NULL (SQLite'ta birden çok NULL unique'i bozmaz)
   phone     String? // opsiyonel
+  /// "E" (erkek) | "K" (kadın); odalamada farklı ailelerden kişiler cinsiyete göre aynı odaya konur
+  gender    String?
   note      String?
   sales     Sale[]
   createdAt DateTime @default(now())
@@ -406,36 +434,40 @@ model Customer {
 }
 
 model Sale {
-  id          Int         @id @default(autoincrement())
-  date        DateTime
-  tourId      Int
-  tour        ServiceTour @relation(fields: [tourId], references: [id])
-  customerId  Int
-  customer    Customer    @relation(fields: [customerId], references: [id])
-  note        String?
-  reference   String?
+  id            Int         @id @default(autoincrement())
+  date          DateTime
+  tourId        Int
+  tour          ServiceTour @relation(fields: [tourId], references: [id])
+  customerId    Int
+  customer      Customer    @relation(fields: [customerId], references: [id])
+  note          String?
+  reference     String?
   /// Oda kişi sayısı (2-4) — seçilince turun o oda tipindeki fiyatı önerilir
-  roomSize    Int?
+  roomSize      Int?
   /// Yolcu: boş = yetişkin; "0-2" | "2-6" | "6-11" yaş çocuk (turun çocuk ücreti önerilir)
-  passenger   String?
+  passenger     String?
   /// Satış anındaki tur liste fiyatı (kişi başı); tur fiyatı sonradan değişse de korunur. Eski kayıtlarda boş
-  listPrice   Int?
+  listPrice     Int?
   /// Anlaşılan (pazarlıklı) ücret; bakiye bunun üzerinden hesaplanır
-  price       Int
+  price         Int
   /// İptal edilen satışlar toplamlara ve bakiyeye girmez
-  isCancelled Boolean     @default(false)
+  isCancelled   Boolean     @default(false)
   /// Kaydı yapan kullanıcının adı (kullanıcı silinse de kalır; eski kayıtlarda boş)
   createdByName String?
   /// Aile / grup (birlikte kayıt olup birlikte ödeyenler); grup silinirse satış kalır
-  groupId     Int?
-  group       SaleGroup?  @relation(fields: [groupId], references: [id], onDelete: SetNull)
-  payments    Payment[]
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  groupId       Int?
+  group         SaleGroup?  @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  /// Odalama: kişinin yerleştirildiği oda (aynı turun odası). İptalde ve tur değişince boşaltılır
+  roomId        Int?
+  room          TourRoom?   @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  payments      Payment[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
   @@index([tourId])
   @@index([customerId])
   @@index([groupId])
+  @@index([roomId])
 }
 
 /// Aile / grup: birlikte kayıt olan ve birlikte ödeyen kişiler. Her kişinin satışı
@@ -453,22 +485,22 @@ model SaleGroup {
 
 /// Tahsilat (satışa yapılan ödeme). Eksi tutar, iptal edilen satışın iadesidir.
 model Payment {
-  id        Int      @id @default(autoincrement())
-  saleId    Int
-  sale      Sale     @relation(fields: [saleId], references: [id])
-  date      DateTime
-  amount    Int
+  id             Int      @id @default(autoincrement())
+  saleId         Int
+  sale           Sale     @relation(fields: [saleId], references: [id])
+  date           DateTime
+  amount         Int
   /// Nakit | Havale | Kredi Kartı
-  method    String   @default("Nakit")
-  note      String?
+  method         String   @default("Nakit")
+  note           String?
   /// Parayı alan (iadede: parayı veren) kişi; kaydı girenden farklı olabilir
   receivedByName String?
   /// Kaydı yapan kullanıcının adı (kullanıcı silinse de kalır; eski kayıtlarda boş)
-  createdByName String?
+  createdByName  String?
   /// Grup tahsilatı: tek ödemenin kişilere dağıtılan parçaları aynı kimliği taşır
   /// (birlikte silinir); tek kişilik tahsilatta boş
-  batchId   String?
-  createdAt DateTime @default(now())
+  batchId        String?
+  createdAt      DateTime @default(now())
 
   @@index([saleId])
   @@index([date])

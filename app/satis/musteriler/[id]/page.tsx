@@ -91,7 +91,13 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
 
       <CustomerForm
         customerId={customer.id}
-        defaultValues={{ fullName: customer.fullName, tc: customer.tc ?? "", phone: customer.phone ?? "", note: customer.note ?? "" }}
+        defaultValues={{
+          fullName: customer.fullName,
+          tc: customer.tc ?? "",
+          phone: customer.phone ?? "",
+          gender: customer.gender === "E" || customer.gender === "K" ? customer.gender : "",
+          note: customer.note ?? "",
+        }}
       />
     </div>
   );

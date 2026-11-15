@@ -11,7 +11,7 @@ import { SidePanel } from "@/components/admin/sales/side-panel";
 import { SeatHint } from "@/components/admin/sales/seat-hint";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { CalendarRange, Pencil, Plus, UsersRound, X } from "lucide-react";
+import { BedDouble, CalendarRange, Pencil, Plus, UsersRound, X } from "lucide-react";
 import {
   SALE_STATUSES,
   getCashPeople,
@@ -132,7 +132,10 @@ export default async function SalesPage({
             </p>
             {tour.capacity == null ? <p className="mt-1 text-xs text-muted">Kontenjan girilmemiş</p> : <SeatHint capacity={tour.capacity} sold={tour._count.sales} adding={0} />}
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Link href={`${base}/turlar/${tour.id}/odalar`} className={buttonVariants({ variant: "primary", size: "sm" })}>
+              <BedDouble className="size-3.5" /> Odalama
+            </Link>
             <Link href={`${base}/turlar/${tour.id}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
               <Pencil className="size-3.5" /> Tur Bilgileri
             </Link>

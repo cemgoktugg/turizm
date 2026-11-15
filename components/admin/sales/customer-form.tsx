@@ -7,7 +7,8 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { customerSchema, type CustomerInput } from "@/lib/validations";
 import { createCustomer, updateCustomer } from "@/app/actions/sales";
-import { Input, Textarea, Field } from "@/components/ui/form-controls";
+import { Input, Textarea, Field, Select } from "@/components/ui/form-controls";
+import { GENDERS } from "@/lib/rooming";
 import { FormSection } from "../form-parts";
 import { useUnsavedChanges } from "../use-unsaved-changes";
 import { FormFooter } from "./form-footer";
@@ -69,6 +70,16 @@ export function CustomerFields({
       </Field>
       <Field label="Telefon" error={errors.phone?.message}>
         <Input type="tel" placeholder="05xx xxx xx xx" {...register("phone")} />
+      </Field>
+      <Field label="Cinsiyet" error={errors.gender?.message}>
+        <Select {...register("gender")} title="Odalamada aynı cinsiyetten kişiler aynı odaya yerleştirilir">
+          <option value="">Seçiniz</option>
+          {Object.entries(GENDERS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </Select>
       </Field>
       {!compact && (
         <Field label="Açıklama" error={errors.note?.message} className="sm:col-span-2">

@@ -558,6 +558,8 @@ export const customerSchema = z.object({
   fullName: z.string().trim().min(3, "Ad soyad gerekli").max(100),
   tc: tcField,
   phone: optionalSalesPhone,
+  /** Odalamada kullanılır: "E" erkek, "K" kadın */
+  gender: z.enum(["E", "K"], { error: "Cinsiyet seçiniz" }).or(z.literal("")).optional(),
   note: optionalText(1000),
 });
 export type CustomerInput = z.infer<typeof customerSchema>;

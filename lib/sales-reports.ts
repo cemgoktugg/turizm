@@ -15,9 +15,12 @@ import {
   referenceReport,
   shortDate,
   totalsOf,
+  tourParam,
   tourReport,
   type Money,
 } from "./sales";
+import { GENDERS, groupByRoom, takesBed } from "./rooming";
+import { getRooming } from "./rooming-server";
 
 /** Tutar hücresi: ekranda sembolle, CSV'de düz sayı olarak yazılır */
 export type MoneyCell = { amount: number; currency: string };
@@ -432,6 +435,47 @@ async function cashTable(): Promise<ReportTable> {
   };
 }
 
+/** Odalama listesi (tur seçilmeli): oda oda kişiler, sonda yerleşmemişler. Raporlar sekmesinde yok, odalama sayfasından indirilir */
+async function roomingTable(p: ReportParams): Promise<ReportTable> {
+  const tourId = tourParam(p.tur);
+  const columns: ReportTable["columns"] = [
+    { label: "Oda No", align: C },
+    { label: "Oda Tipi" },
+    { label: "Ad Soyad" },
+    { label: "Cinsiyet" },
+    { label: "Yolcu" },
+    { label: "Yatak" },
+    { label: "T.C." },
+    { label: "Telefon" },
+    { label: "Aile / Grup" },
+    { label: "Satıştaki Oda" },
+  ];
+  if (!tourId) return { columns, rows: [] };
+  const { rooms, people } = await getRooming(tourId);
+  const byRoom = groupByRoom(people);
+  const row = (p: (typeof people)[number], no: string, type: string) => ({
+    cells: [
+      no,
+      type,
+      p.name,
+      p.gender ? GENDERS[p.gender] : "",
+      passengerLabel(p.passenger),
+      takesBed(p.passenger) ? "Var" : "Yok",
+      p.tc ?? "",
+      p.phone ?? "",
+      p.groupName ?? "",
+      p.roomSize ? `${p.roomSize} kişilik` : "",
+    ],
+  });
+  return {
+    columns,
+    rows: [
+      ...rooms.flatMap((r, i) => (byRoom.get(r.id) ?? []).map((p) => row(p, String(i + 1), `${r.size} kişilik`))),
+      ...people.filter((p) => p.roomId == null).map((p) => ({ ...row(p, "", "Yerleşmemiş"), muted: true })),
+    ],
+  };
+}
+
 export const REPORT_BUILDERS = {
   satislar: salesTable,
   ozet: summaryTable,
@@ -442,6 +486,7 @@ export const REPORT_BUILDERS = {
   referans: referenceTable,
   indirim: discountTable,
   kasa: cashTable,
+  odalar: roomingTable,
 } as const;
 export type ReportName = keyof typeof REPORT_BUILDERS;
 

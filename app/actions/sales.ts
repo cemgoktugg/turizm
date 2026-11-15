@@ -98,7 +98,7 @@ export async function deleteStaff(id: string): Promise<ActionResult> {
 export type CustomerOption = { id: number; fullName: string; tc: string | null; phone: string | null };
 
 function customerData(d: CustomerInput) {
-  return { fullName: d.fullName, tc: d.tc || null, phone: d.phone || null, note: d.note || null };
+  return { fullName: d.fullName, tc: d.tc || null, phone: d.phone || null, gender: d.gender || null, note: d.note || null };
 }
 
 async function tcTaken(tc: string | undefined, exceptId?: number) {
@@ -373,7 +373,6 @@ export async function updateSale(id: string, input: unknown): Promise<ActionResu
       if (full) return full;
     }
 
-    // Tur ve oda aynı kaldıysa satış anındaki liste fiyatı korunur; değiştiyse turun güncel fiyatı alınır
     // Tur, oda ve yolcu tipi aynı kaldıysa satış anındaki liste fiyatı korunur; değiştiyse turun güncel fiyatı alınır
     const passenger = d.passenger || null;
     const sameRoom = d.tourId === current.tourId && (d.roomSize ?? null) === current.roomSize && passenger === current.passenger;
@@ -390,6 +389,8 @@ export async function updateSale(id: string, input: unknown): Promise<ActionResu
         passenger,
         listPrice,
         price: d.price,
+        // Başka tura taşınan kişi eski turun odasından çıkar (yeni turda yeniden yerleştirilir)
+        ...(d.tourId !== current.tourId ? { roomId: null } : {}),
       },
     });
     const changes = saleChanges([
@@ -424,7 +425,8 @@ export async function toggleSaleCancel(id: string): Promise<ActionResult> {
       const full = await capacityCheck(sale.tourId, 1);
       if (full) return { ok: false, message: `İptal geri alınamaz. ${full.message}` };
     }
-    await prisma.sale.update({ where: { id: saleId }, data: { isCancelled: !sale.isCancelled } });
+    // İptal edilen kişi odasından çıkar (yatağı boşalır); iptali geri alınınca yeniden yerleştirilir
+    await prisma.sale.update({ where: { id: saleId }, data: { isCancelled: !sale.isCancelled, ...(sale.isCancelled ? {} : { roomId: null }) } });
     audit({ entity: "Sale", entityId: saleId, detail: `Satış #${saleId} ${sale.isCancelled ? "iptali geri alındı" : "iptal edildi"}` });
     return { ok: true, message: sale.isCancelled ? "İptal geri alındı." : "Satış iptal edildi." };
   });

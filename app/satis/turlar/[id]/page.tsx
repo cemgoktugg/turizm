@@ -32,6 +32,10 @@ export default async function EditServiceTourPage({ params }: { params: Promise<
           {sold} kişi kayıtlı (iptaller hariç){tour.capacity == null ? " · kontenjan girilmemiş" : ""} ·{" "}
           <Link href={`${base}${qs({ donem: tour.period, tur: String(tour.id) })}`} className="font-semibold text-brand-700 hover:text-gold-600">
             Satışları gör
+          </Link>{" "}
+          ·{" "}
+          <Link href={`${base}/turlar/${tour.id}/odalar`} className="font-semibold text-brand-700 hover:text-gold-600">
+            Odalama
           </Link>
         </p>
         <SeatHint capacity={tour.capacity} sold={sold} adding={0} />

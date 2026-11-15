@@ -8,6 +8,7 @@ import { ToggleButton } from "@/components/admin/sales/toggle-button";
 import { SeatBar } from "@/components/admin/sales/seat-hint";
 import { deleteServiceTour, toggleServiceTour } from "@/app/actions/sales";
 import { getPeriods, money, shortDate } from "@/lib/sales";
+import { BedDouble } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getSalesBase } from "@/lib/sales-base-server";
 
@@ -21,7 +22,7 @@ export default async function ServiceToursPage({ searchParams }: { searchParams:
     ...(donem ? { period: donem } : {}),
     ...(term ? { OR: [{ name: { contains: term } }, { accommodation: { contains: term } }] } : {}),
   };
-  const [periods, tours] = await Promise.all([
+  const [periods, tours, unplacedRows] = await Promise.all([
     getPeriods(),
     prisma.serviceTour.findMany({
       where,
@@ -32,7 +33,10 @@ export default async function ServiceToursPage({ searchParams }: { searchParams:
         _count: { select: { sales: { where: { isCancelled: false } } } },
       },
     }),
+    // Odalama: turda henüz odaya yerleşmemiş kişi sayısı
+    prisma.sale.groupBy({ by: ["tourId"], where: { isCancelled: false, roomId: null }, _count: { _all: true } }),
   ]);
+  const unplaced = new Map(unplacedRows.map((r) => [r.tourId, r._count._all]));
 
   return (
     <div>
@@ -108,6 +112,17 @@ export default async function ServiceToursPage({ searchParams }: { searchParams:
                     </td>
                     <td className={td}>
                       <div className="flex items-center justify-end gap-2">
+                        <Link
+                          href={`${base}/turlar/${t.id}/odalar`}
+                          title={unplaced.get(t.id) ? `Odalama: ${unplaced.get(t.id)} kişi henüz yerleşmedi` : "Odalama"}
+                          className={cn(
+                            "inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold",
+                            unplaced.get(t.id) ? "border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100" : "border-border text-brand-800 hover:bg-cream-100",
+                          )}
+                        >
+                          <BedDouble className="size-3.5" /> Odalar
+                          {unplaced.get(t.id) ? <span className="rounded-full bg-amber-500 px-1.5 text-[10px] text-white">{unplaced.get(t.id)}</span> : null}
+                        </Link>
                         <EditLink href={`${base}/turlar/${t.id}`} />
                         <DeleteButton action={deleteServiceTour} id={String(t.id)} label="Bu turu silmek istediğinize emin misiniz?" />
                       </div>
