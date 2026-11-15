@@ -5,9 +5,9 @@ import { DeleteButton } from "@/components/admin/row-actions";
 import { StatBox } from "@/components/admin/sales/ui";
 import { ActionButton, GroupEditForm, GroupPaymentForm } from "@/components/admin/sales/group-client";
 import { ReceiptLink } from "@/components/admin/sales/sale-detail";
-import { RoomCell, RoomOptionsProvider, RoomPicker } from "@/components/admin/sales/room-picker";
+import { RoomCell, RoomChooser, RoomOptionsProvider, type RoomWho } from "@/components/admin/sales/room-picker";
 import { getRoomOptions } from "@/lib/rooming-server";
-import { takesBed } from "@/lib/rooming";
+import { isGender, takesBed } from "@/lib/rooming";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { deleteGroup, deletePayment, removeFromGroup } from "@/app/actions/sales";
@@ -50,6 +50,13 @@ export async function GroupDetail({
   const roomIds = [...new Set(active.map((s) => s.roomId))];
   const familyRoom = roomIds.length === 1 ? roomIds[0] : "karisik";
   const sizes = active.map((s) => s.roomSize).filter((n): n is number => n != null);
+  const whoOf = (s: (typeof sales)[number]): RoomWho => ({
+    saleId: s.id,
+    name: s.customer.fullName,
+    gender: isGender(s.customer.gender) ? s.customer.gender : null,
+    bed: takesBed(s.passenger),
+    groupId: s.groupId,
+  });
   const familySize = sizes.length ? sizes.sort((a, b) => sizes.filter((n) => n === b).length - sizes.filter((n) => n === a).length)[0] : null;
 
   // Grup tahsilatı tek para birimine dağıtılır: borcu olanların en çok görülen para birimi
@@ -116,19 +123,19 @@ export async function GroupDetail({
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
           <h3 className="font-serif text-lg font-bold text-brand-900">Kişiler</h3>
           {tourIds.length === 1 && active.length > 1 && (
-            <label className="flex items-center gap-2 text-xs font-semibold text-muted">
+            <div className="flex items-center gap-2 text-xs font-semibold text-muted">
               Hepsi aynı odaya:
-              <RoomPicker
-                key={active.map((s) => s.roomId).join(",")}
+              <RoomChooser
+                variant="cell"
                 tourId={tourIds[0]}
-                saleIds={active.map((s) => s.id)}
-                beds={active.filter((s) => takesBed(s.passenger)).length}
+                who={active.map(whoOf)}
                 roomId={familyRoom}
                 rooms={roomOptions[tourIds[0]] ?? []}
                 suggestedSize={familySize}
-                className="w-56"
+                title={group.name}
+                roomingHref={`${base}/turlar/${tourIds[0]}/odalar`}
               />
-            </label>
+            </div>
           )}
         </div>
         <ul className="divide-y divide-border text-sm">
@@ -155,7 +162,7 @@ export async function GroupDetail({
                 </p>
               </div>
               {!s.isCancelled && (
-                <RoomCell tourId={s.tourId} saleId={s.id} roomId={s.roomId} bed={takesBed(s.passenger)} suggestedSize={s.roomSize} />
+                <RoomCell tourId={s.tourId} who={whoOf(s)} roomId={s.roomId} suggestedSize={s.roomSize} roomingHref={`${base}/turlar/${s.tourId}/odalar`} />
               )}
               <div className="text-right tabular-nums">
                 <p className={cn("font-semibold", s.balance > 0 ? "text-red-600" : "text-green-700")}>{s.isCancelled ? "—" : money(s.balance, s.currency)}</p>

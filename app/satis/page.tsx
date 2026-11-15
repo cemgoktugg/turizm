@@ -11,7 +11,7 @@ import { SidePanel } from "@/components/admin/sales/side-panel";
 import { SeatHint } from "@/components/admin/sales/seat-hint";
 import { RoomCell, RoomOptionsProvider } from "@/components/admin/sales/room-picker";
 import { getRoomOptions } from "@/lib/rooming-server";
-import { takesBed } from "@/lib/rooming";
+import { isGender, takesBed } from "@/lib/rooming";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { BedDouble, CalendarRange, Pencil, Plus, UsersRound, X } from "lucide-react";
@@ -266,7 +266,19 @@ export default async function SalesPage({
                         {s.isCancelled ? (
                           <span className="text-muted">—</span>
                         ) : (
-                          <RoomCell tourId={s.tourId} saleId={s.id} roomId={s.roomId} bed={takesBed(s.passenger)} suggestedSize={s.roomSize} />
+                          <RoomCell
+                            tourId={s.tourId}
+                            who={{
+                              saleId: s.id,
+                              name: s.customer.fullName,
+                              gender: isGender(s.customer.gender) ? s.customer.gender : null,
+                              bed: takesBed(s.passenger),
+                              groupId: s.groupId,
+                            }}
+                            roomId={s.roomId}
+                            suggestedSize={s.roomSize}
+                            roomingHref={`${base}/turlar/${s.tourId}/odalar`}
+                          />
                         )}
                       </td>
                       <td className={cn(td, num)}>{money(s.price, s.currency)}</td>

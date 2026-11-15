@@ -47,7 +47,12 @@ export type RoomPerson = {
 export type Room = { id: number; size: number };
 
 /** Satış ekranlarındaki oda seçimi: odanın numarası (odalama sırası) ve içindekiler */
-export type RoomOption = { id: number; no: number; size: number; people: { saleId: number; name: string; bed: boolean }[] };
+export type RoomOption = {
+  id: number;
+  no: number;
+  size: number;
+  people: { saleId: number; name: string; bed: boolean; gender: Gender | null; groupId: number | null }[];
+};
 export type RoomOptionsByTour = Record<number, RoomOption[]>;
 
 export function bedsUsed(people: RoomPerson[]) {

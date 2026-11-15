@@ -1,16 +1,20 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef, useState, useTransition } from "react";
+import { createContext, useContext, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { BedDouble, Loader2 } from "lucide-react";
+import { AlertTriangle, Baby, BedDouble, BedSingle, ChevronDown, Loader2, Mars, Plus, Undo2, Venus } from "lucide-react";
 import { createRoom, placeInRoom, unplaceSales } from "@/app/actions/rooming";
-import { ROOM_SIZES, type RoomOption, type RoomOptionsByTour } from "@/lib/rooming";
+import { Modal } from "@/components/ui/modal";
+import { ROOM_SIZES, type Gender, type RoomOption, type RoomOptionsByTour } from "@/lib/rooming";
+import type { ActionResult } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /**
- * Satış ekranlarında oda ataması (odalama sayfasına gitmeden): kişiyi / aileyi mevcut bir
- * odaya koyar, yeni oda açar ya da odadan çıkarır. Kurallar sunucuda (app/actions/rooming.ts).
+ * Satış ekranlarında oda ataması (odalama sayfasına gitmeden). Oda seçimi görsel bir
+ * pencerede açılır: hangi odada kimin kaldığı, boş yataklar ve boş odalar görünür;
+ * odaya tıklayınca kişi / aile oraya yerleşir. Kurallar sunucuda (app/actions/rooming.ts).
  */
 
 const RoomOptionsContext = createContext<RoomOptionsByTour>({});
@@ -20,155 +24,368 @@ export function RoomOptionsProvider({ options, children }: { options: RoomOption
   return <RoomOptionsContext.Provider value={options}>{children}</RoomOptionsContext.Provider>;
 }
 
-const MIXED = "karisik";
+/** Yerleştirilecek kişi */
+export type RoomWho = { saleId: number; name: string; gender: Gender | null; bed: boolean; groupId: number | null };
 
-export function RoomPicker({
+const MIXED = "karisik";
+type CurrentRoom = number | null | typeof MIXED;
+
+function GenderIcon({ gender, className }: { gender: Gender | null; className?: string }) {
+  if (gender === "E") return <Mars className={cn("size-3.5 shrink-0 text-sky-700", className)} aria-label="Erkek" />;
+  if (gender === "K") return <Venus className={cn("size-3.5 shrink-0 text-rose-600", className)} aria-label="Kadın" />;
+  return <span className={cn("grid size-3.5 shrink-0 place-items-center rounded-full bg-slate-300 text-[9px] font-bold text-white", className)}>?</span>;
+}
+
+/** Odaya yerleşince oluşacak uyarı (engellemez): farklı kayıtlardan kadın-erkek / cinsiyeti bilinmeyen */
+function mixWarning(room: RoomOption, who: RoomWho[]): string | null {
+  const others = room.people.filter((p) => !who.some((w) => w.saleId === p.saleId));
+  if (!others.length) return null;
+  const all = [...others, ...who];
+  const groupIds = new Set(all.map((p) => p.groupId));
+  if (groupIds.size === 1 && !groupIds.has(null)) return null; // hepsi aynı aile
+  const genders = new Set(all.filter((p) => p.bed).map((p) => p.gender));
+  if (genders.has(null)) return "Cinsiyeti girilmemiş kişi var";
+  return genders.size > 1 ? "Kadın ve erkek aynı odada olur" : null;
+}
+
+/** Oda kartı: yataklar tek tek; tıklanınca seçilir */
+function RoomCard({
+  room,
+  who,
+  current,
+  onPick,
+  disabled,
+}: {
+  room: RoomOption;
+  who: RoomWho[];
+  current: boolean;
+  onPick?: () => void;
+  disabled?: boolean;
+}) {
+  const others = room.people.filter((p) => !who.some((w) => w.saleId === p.saleId));
+  const shown = current ? room.people : others;
+  const adults = shown.filter((p) => p.bed);
+  const babies = shown.filter((p) => !p.bed);
+  const free = Math.max(room.size - adults.length, 0);
+  const need = who.filter((w) => w.bed).length;
+  const fits = room.size - others.filter((p) => p.bed).length >= need;
+  const warning = !current && fits ? mixWarning(room, who) : null;
+  const clickable = !!onPick && !current && fits && !disabled;
+
+  return (
+    <button
+      type="button"
+      onClick={clickable ? onPick : undefined}
+      disabled={!clickable}
+      className={cn(
+        "flex w-full flex-col rounded-2xl border-2 bg-white p-3 text-left transition-colors",
+        current ? "border-gold-500 bg-gold-50/60" : clickable ? "border-border hover:border-brand-500 hover:bg-brand-50/40" : "border-border/70 opacity-60",
+        clickable ? "cursor-pointer" : "cursor-default",
+      )}
+    >
+      <span className="mb-2 flex w-full items-center gap-2">
+        <span className="font-serif text-base font-bold text-brand-900">Oda {room.no}</span>
+        <span className="text-xs text-muted">{room.size} kişilik</span>
+        <span
+          className={cn(
+            "ml-auto rounded-full px-2 py-0.5 text-[11px] font-bold",
+            current ? "bg-gold-200 text-gold-900" : free === 0 ? "bg-slate-100 text-slate-600" : adults.length === 0 ? "bg-green-100 text-green-800" : "bg-brand-100 text-brand-800",
+          )}
+        >
+          {current ? "Şu anki oda" : free === 0 ? "Dolu" : adults.length === 0 ? "Boş oda" : `${free} boş yatak`}
+        </span>
+      </span>
+      <span className="grid w-full gap-1">
+        {adults.map((p) => (
+          <span
+            key={p.saleId}
+            className={cn(
+              "flex min-w-0 items-center gap-1.5 rounded-lg px-2 py-1 text-xs",
+              p.gender === "E" ? "bg-sky-50" : p.gender === "K" ? "bg-rose-50" : "bg-slate-50",
+              who.some((w) => w.saleId === p.saleId) && "ring-1 ring-gold-500",
+            )}
+          >
+            <GenderIcon gender={p.gender} />
+            <span className="truncate font-semibold text-brand-900">{p.name}</span>
+          </span>
+        ))}
+        {Array.from({ length: free }, (_, i) => (
+          <span key={`bos-${i}`} className="flex items-center gap-1.5 rounded-lg border border-dashed border-border px-2 py-1 text-xs text-muted/80">
+            <BedSingle className="size-3.5" /> Boş yatak
+          </span>
+        ))}
+        {babies.length > 0 && (
+          <span className="flex flex-wrap items-center gap-1 text-[11px] text-muted">
+            <Baby className="size-3.5" /> {babies.map((p) => p.name).join(", ")}
+          </span>
+        )}
+      </span>
+      {warning && (
+        <span className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-amber-700">
+          <AlertTriangle className="size-3 shrink-0" /> {warning}
+        </span>
+      )}
+      {!current && !fits && free > 0 && <span className="mt-1.5 text-[11px] text-muted">{need} kişi sığmaz</span>}
+    </button>
+  );
+}
+
+/**
+ * Oda seçimi: düğme + açılan pencere. variant "cell": listede küçük düğme; "field": panelde
+ * odayı ve oda arkadaşlarını gösteren alan.
+ */
+export function RoomChooser({
   tourId,
-  saleIds,
-  beds,
+  who,
   roomId,
   rooms,
   suggestedSize,
-  className,
-  openOnMount,
-  onDone,
+  title,
+  roomingHref,
+  variant = "field",
 }: {
   tourId: number;
-  saleIds: number[];
-  /** Yerleşecek kişilerin kapladığı yatak (0-2 yaş bebek kaplamaz) */
-  beds: number;
+  who: RoomWho[];
   /** Şu anki oda; kişiler farklı odalardaysa "karisik" */
-  roomId: number | null | typeof MIXED;
+  roomId: CurrentRoom;
   rooms: RoomOption[];
-  /** Satışta seçilen oda tipi (yeni oda seçeneğinde belirtilir) */
+  /** Satışta seçilen oda tipi (önce bu tipteki odalar gösterilir) */
   suggestedSize?: number | null;
-  className?: string;
-  /** Listede tıklanınca açılan seçim: seçenekler hemen gösterilir */
-  openOnMount?: boolean;
-  onDone?: () => void;
+  title: string;
+  roomingHref?: string;
+  variant?: "cell" | "field";
 }) {
   const router = useRouter();
+  const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
-  const ref = useRef<HTMLSelectElement>(null);
-  const value = roomId === MIXED ? MIXED : roomId ? `r:${roomId}` : "";
+  const [size, setSize] = useState<number | null>(null);
+  // Dolu odalar da açık gelir: kime hangi odanın verildiği görünsün (kapatılabilir)
+  const [showFull, setShowFull] = useState(true);
+  const current = typeof roomId === "number" ? rooms.find((r) => r.id === roomId) : undefined;
+  const saleIds = who.map((w) => w.saleId);
+  const need = who.filter((w) => w.bed).length;
 
-  useEffect(() => {
-    if (!openOnMount) return;
-    ref.current?.focus();
-    try {
-      ref.current?.showPicker?.();
-    } catch {
-      // Tarayıcı desteklemiyorsa odaklanmış seçim kutusu kalır
-    }
-  }, [openOnMount]);
+  // Varsayılan süzgeç: satıştaki oda tipi (o tipte oda varsa)
+  const activeSize = size ?? (suggestedSize && rooms.some((r) => r.size === suggestedSize) ? suggestedSize : 0);
+  // Odalar: boş odalar, boş yatağı olanlar (en dolu önce), dolular
+  const list = rooms.filter((r) => r.id !== current?.id && (!activeSize || r.size === activeSize));
+  const freeOf = (r: RoomOption) => r.size - r.people.filter((p) => p.bed && !saleIds.includes(p.saleId)).length;
+  const groups = {
+    empty: list.filter((r) => r.people.length === 0),
+    partial: list.filter((r) => r.people.length > 0 && freeOf(r) > 0).sort((a, b) => freeOf(a) - freeOf(b) || a.no - b.no),
+    full: list.filter((r) => r.people.length > 0 && freeOf(r) <= 0),
+  };
 
-  function change(v: string) {
+  function run(fn: () => Promise<ActionResult>) {
     start(async () => {
-      const res =
-        v === ""
-          ? await unplaceSales(tourId, saleIds)
-          : v.startsWith("n:")
-            ? await createRoom(tourId, Number(v.slice(2)), saleIds)
-            : await placeInRoom(tourId, saleIds, Number(v.slice(2)));
-      if (res.ok) {
-        toast.success(res.message);
-        router.refresh();
-      } else toast.error(res.message);
-      onDone?.();
+      const res = await fn();
+      if (!res.ok) return void toast.error(res.message);
+      toast.success(res.message);
+      setOpen(false);
+      router.refresh();
     });
   }
 
-  return (
-    <span className={cn("inline-flex items-center gap-1.5", className)}>
-      <select
-        ref={ref}
-        value={value}
-        disabled={pending}
-        onChange={(e) => change(e.target.value)}
-        onBlur={() => !pending && onDone?.()}
-        aria-label="Oda"
-        className="h-9 w-full min-w-0 rounded-lg border border-border bg-white px-2 text-sm text-foreground focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:opacity-60"
+  const trigger =
+    variant === "cell" ? (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        title={current ? `Oda ${current.no}: ${current.people.map((p) => p.name).join(", ")}` : "Odaya yerleştirmek için tıklayın"}
+        className={cn(
+          "inline-flex items-center gap-1 whitespace-nowrap rounded-lg border px-2 py-1 text-xs font-semibold no-underline",
+          current ? "border-border bg-white text-brand-800 hover:bg-cream-100" : "border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100",
+        )}
       >
-        {roomId === MIXED && (
-          <option value={MIXED} disabled>
-            Farklı odalarda
-          </option>
+        <BedDouble className="size-3.5" />
+        {current ? `Oda ${current.no} · ${current.size} kişilik` : roomId === MIXED ? "Farklı odalarda" : "Oda ata"}
+      </button>
+    ) : (
+      <div className="flex w-full flex-col gap-1.5">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className={cn(
+            "inline-flex w-fit items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm font-semibold",
+            current ? "border-border bg-white text-brand-800 hover:bg-cream-100" : "border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100",
+          )}
+        >
+          <BedDouble className="size-4" />
+          {current ? `Oda ${current.no} · ${current.size} kişilik` : roomId === MIXED ? "Farklı odalarda" : "Oda ata"}
+          <span className="font-normal text-muted">· {current || roomId === MIXED ? "değiştir" : "seç"}</span>
+        </button>
+        {current && current.people.some((p) => !saleIds.includes(p.saleId)) && (
+          <span className="text-xs text-muted">
+            Birlikte: {current.people.filter((p) => !saleIds.includes(p.saleId)).map((p) => p.name).join(", ")}
+          </span>
         )}
-        <option value="">Odaya yerleşmedi</option>
-        <optgroup label="Yeni oda aç">
-          {ROOM_SIZES.map((n) => (
-            <option key={n} value={`n:${n}`} disabled={beds > n}>
-              {`Yeni ${n} kişilik oda${n === suggestedSize ? " (satıştaki)" : ""}`}
-            </option>
+      </div>
+    );
+
+  return (
+    <>
+      {trigger}
+      <Modal
+        open={open}
+        onClose={() => !pending && setOpen(false)}
+        title={`Oda seç: ${title}`}
+        size="xl"
+        footer={
+          <div className="flex flex-wrap items-center gap-2">
+            {roomingHref && (
+              <Link href={roomingHref} className="text-sm font-semibold text-brand-700 hover:text-gold-600">
+                Turun bütün odaları (Odalama)
+              </Link>
+            )}
+            {pending && <Loader2 className="size-4 animate-spin text-muted" />}
+            {(current || roomId === MIXED) && (
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => run(() => unplaceSales(tourId, saleIds))}
+                className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-xl border border-border bg-white px-3 text-sm font-semibold text-red-600 hover:bg-red-50"
+              >
+                <Undo2 className="size-4" /> Odadan çıkar
+              </button>
+            )}
+          </div>
+        }
+      >
+        {/* Yerleşecek kişiler */}
+        <div className="mb-4 flex flex-wrap items-center gap-1.5 text-sm">
+          {who.map((w) => (
+            <span key={w.saleId} className={cn("inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold", w.gender === "E" ? "bg-sky-50" : w.gender === "K" ? "bg-rose-50" : "bg-slate-100")}>
+              <GenderIcon gender={w.gender} /> {w.name}
+              {!w.bed && <span className="font-normal text-muted">(yataksız)</span>}
+            </span>
           ))}
-        </optgroup>
-        {rooms.length > 0 && (
-          <optgroup label="Mevcut odalar">
-            {rooms.map((r) => {
-              const others = r.people.filter((p) => !saleIds.includes(p.saleId));
-              const current = r.id === roomId;
-              // Şu anki odada boş yatak, kişilerin kendisi de sayılarak gösterilir
-              const free = r.size - (current ? r.people : others).filter((p) => p.bed).length;
-              const names = others.map((p) => p.name).join(", ");
-              const state = current ? `şu anki oda${free > 0 ? `, ${free} boş` : ""}` : free <= 0 ? "dolu" : `${free} boş`;
-              return (
-                <option key={r.id} value={`r:${r.id}`} disabled={!current && r.size - others.filter((p) => p.bed).length < beds}>
-                  {`Oda ${r.no} · ${r.size} kişilik · ${state}${names ? ` · ${names}` : ""}`}
-                </option>
-              );
-            })}
-          </optgroup>
+          <span className="text-xs text-muted">
+            · {need} yatak{suggestedSize ? ` · satışta ${suggestedSize} kişilik oda` : ""}
+          </span>
+        </div>
+
+        {current && (
+          <div className="mb-4 max-w-sm">
+            <RoomCard room={current} who={who} current />
+          </div>
         )}
-      </select>
-      {pending && <Loader2 className="size-4 shrink-0 animate-spin text-muted" />}
-    </span>
+
+        {/* Oda tipi süzgeci */}
+        <div className="mb-4 flex flex-wrap items-center gap-1.5">
+          {[0, ...ROOM_SIZES].map((n) => {
+            const count = n ? rooms.filter((r) => r.size === n).length : rooms.length;
+            return (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setSize(n)}
+                className={cn(
+                  "rounded-full border px-3 py-1 text-xs font-semibold",
+                  activeSize === n ? "border-brand-700 bg-brand-700 text-white" : "border-border bg-white text-brand-800 hover:bg-cream-100",
+                )}
+              >
+                {n ? `${n} kişilik` : "Tüm odalar"} ({count})
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Yeni oda */}
+        <div className="mb-5 flex flex-wrap items-center gap-2 rounded-2xl border border-dashed border-brand-300 bg-brand-50/40 p-3">
+          <span className="text-sm font-semibold text-brand-900">Yeni oda aç:</span>
+          {ROOM_SIZES.map((n) => (
+            <button
+              key={n}
+              type="button"
+              disabled={pending || need > n}
+              onClick={() => run(() => createRoom(tourId, n, saleIds))}
+              title={need > n ? `${need} kişi ${n} kişilik odaya sığmaz` : `Yeni ${n} kişilik oda açılır ve yerleştirilir`}
+              className={cn(
+                "inline-flex h-9 items-center gap-1 rounded-xl px-3 text-sm font-bold disabled:opacity-40",
+                n === suggestedSize ? "bg-gold-400 text-brand-950 hover:bg-gold-300" : "border border-border bg-white text-brand-800 hover:bg-cream-100",
+              )}
+            >
+              <Plus className="size-3.5" /> {n} kişilik{n === suggestedSize ? " (satıştaki)" : ""}
+            </button>
+          ))}
+        </div>
+
+        {rooms.length === 0 ? (
+          <p className="rounded-2xl bg-cream-50 p-4 text-sm text-muted">Bu turda henüz oda yok. Yukarıdan yeni oda açın.</p>
+        ) : (
+          <div className="space-y-5">
+            {groups.empty.length > 0 && (
+              <section>
+                <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-green-800">Boş odalar ({groups.empty.length})</h3>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {groups.empty.map((r) => (
+                    <RoomCard key={r.id} room={r} who={who} current={false} disabled={pending} onPick={() => run(() => placeInRoom(tourId, saleIds, r.id))} />
+                  ))}
+                </div>
+              </section>
+            )}
+            <section>
+              <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-brand-700">Boş yatağı olan odalar ({groups.partial.length})</h3>
+              {groups.partial.length === 0 ? (
+                <p className="text-sm text-muted">Bu tipte boş yatağı olan oda yok.</p>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {groups.partial.map((r) => (
+                    <RoomCard key={r.id} room={r} who={who} current={false} disabled={pending} onPick={() => run(() => placeInRoom(tourId, saleIds, r.id))} />
+                  ))}
+                </div>
+              )}
+            </section>
+            {groups.full.length > 0 && (
+              <section>
+                <button
+                  type="button"
+                  onClick={() => setShowFull((v) => !v)}
+                  className="mb-2 inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-muted hover:text-brand-800"
+                >
+                  Dolu odalar ({groups.full.length}) <ChevronDown className={cn("size-3.5 transition", showFull && "rotate-180")} />
+                </button>
+                {showFull && (
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {groups.full.map((r) => (
+                      <RoomCard key={r.id} room={r} who={who} current={false} />
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
+          </div>
+        )}
+      </Modal>
+    </>
   );
 }
 
 /** Satış listesi / aile paneli satırı: odayı gösterir, tıklanınca oda seçimi açılır */
 export function RoomCell({
   tourId,
-  saleId,
+  who,
   roomId,
-  bed,
   suggestedSize,
+  roomingHref,
 }: {
   tourId: number;
-  saleId: number;
+  who: RoomWho;
   roomId: number | null;
-  bed: boolean;
   suggestedSize?: number | null;
+  roomingHref?: string;
 }) {
   const rooms = useContext(RoomOptionsContext)[tourId] ?? [];
-  const [open, setOpen] = useState(false);
-  const room = rooms.find((r) => r.id === roomId);
-
-  if (open)
-    return (
-      <RoomPicker
-        tourId={tourId}
-        saleIds={[saleId]}
-        beds={bed ? 1 : 0}
-        roomId={roomId}
-        rooms={rooms}
-        suggestedSize={suggestedSize}
-        className="w-60"
-        openOnMount
-        onDone={() => setOpen(false)}
-      />
-    );
   return (
-    <button
-      type="button"
-      onClick={() => setOpen(true)}
-      title={room ? `${room.people.map((p) => p.name).join(", ")} — değiştirmek için tıklayın` : "Odaya yerleştirmek için tıklayın"}
-      className={cn(
-        "inline-flex items-center gap-1 whitespace-nowrap rounded-lg border px-2 py-1 text-xs font-semibold no-underline",
-        room ? "border-border bg-white text-brand-800 hover:bg-cream-100" : "border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100",
-      )}
-    >
-      <BedDouble className="size-3.5" />
-      {room ? `Oda ${room.no} · ${room.size} kişilik` : "Oda ata"}
-    </button>
+    <RoomChooser
+      variant="cell"
+      tourId={tourId}
+      who={[who]}
+      roomId={roomId}
+      rooms={rooms}
+      suggestedSize={suggestedSize}
+      title={who.name}
+      roomingHref={roomingHref}
+    />
   );
 }

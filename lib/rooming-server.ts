@@ -47,7 +47,7 @@ export async function getRoomOptions(tourIds: number[]): Promise<RoomOptionsByTo
     prisma.sale.findMany({
       where: { tourId: { in: ids }, isCancelled: false, roomId: { not: null } },
       orderBy: { id: "asc" },
-      select: { id: true, roomId: true, passenger: true, customer: { select: { fullName: true } } },
+      select: { id: true, roomId: true, passenger: true, groupId: true, customer: { select: { fullName: true, gender: true } } },
     }),
   ]);
   const out: RoomOptionsByTour = {};
@@ -56,7 +56,15 @@ export async function getRoomOptions(tourIds: number[]): Promise<RoomOptionsByTo
       id: r.id,
       no: i + 1,
       size: r.size,
-      people: placed.filter((s) => s.roomId === r.id).map((s) => ({ saleId: s.id, name: s.customer.fullName, bed: takesBed(s.passenger) })),
+      people: placed
+        .filter((s) => s.roomId === r.id)
+        .map((s) => ({
+          saleId: s.id,
+          name: s.customer.fullName,
+          bed: takesBed(s.passenger),
+          gender: isGender(s.customer.gender) ? s.customer.gender : null,
+          groupId: s.groupId,
+        })),
     }));
   return out;
 }

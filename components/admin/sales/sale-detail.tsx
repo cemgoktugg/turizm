@@ -5,9 +5,9 @@ import { DeleteButton } from "@/components/admin/row-actions";
 import { StatBox, th, td, num, theadRow } from "@/components/admin/sales/ui";
 import { PaymentForm } from "@/components/admin/sales/payment-form";
 import { SaleCancelButton } from "@/components/admin/sales/sale-cancel-button";
-import { RoomPicker } from "@/components/admin/sales/room-picker";
+import { RoomChooser } from "@/components/admin/sales/room-picker";
 import { getRoomOptions } from "@/lib/rooming-server";
-import { takesBed } from "@/lib/rooming";
+import { isGender, takesBed } from "@/lib/rooming";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { deletePayment, deleteSale } from "@/app/actions/sales";
@@ -86,21 +86,24 @@ export async function SaleDetail({
     [
       "Oda",
       roomOptions ? (
-        <div key="room" className="flex flex-wrap items-center gap-2">
-          <RoomPicker
-            key={`${sale.roomId}`}
-            tourId={tour.id}
-            saleIds={[sale.id]}
-            beds={takesBed(sale.passenger) ? 1 : 0}
-            roomId={sale.roomId}
-            rooms={roomOptions[tour.id] ?? []}
-            suggestedSize={sale.roomSize}
-            className="w-full max-w-xs"
-          />
-          <Link href={`${base}/turlar/${tour.id}/odalar`} className="text-xs font-semibold text-brand-700 hover:text-gold-600">
-            Odalama
-          </Link>
-        </div>
+        <RoomChooser
+          key="room"
+          tourId={tour.id}
+          who={[
+            {
+              saleId: sale.id,
+              name: customer.fullName,
+              gender: isGender(customer.gender) ? customer.gender : null,
+              bed: takesBed(sale.passenger),
+              groupId: sale.groupId,
+            },
+          ]}
+          roomId={sale.roomId}
+          rooms={roomOptions[tour.id] ?? []}
+          suggestedSize={sale.roomSize}
+          title={customer.fullName}
+          roomingHref={`${base}/turlar/${tour.id}/odalar`}
+        />
       ) : (
         "İptal edildi; odası boşaltıldı"
       ),

@@ -127,7 +127,7 @@ export function buildSaleWhere({ donem, tur, q, personel }: SaleFilter): Prisma.
 
 const saleInclude = {
   tour: { select: { id: true, name: true, period: true, currency: true, departureDate: true, returnDate: true } },
-  customer: { select: { id: true, fullName: true, tc: true, phone: true } },
+  customer: { select: { id: true, fullName: true, tc: true, phone: true, gender: true } },
   group: { select: { id: true, name: true } },
   payments: { select: { id: true, date: true, amount: true }, orderBy: { id: "asc" } },
 } satisfies Prisma.SaleInclude;
