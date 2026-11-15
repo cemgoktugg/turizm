@@ -9,6 +9,9 @@ import { SaleSelection, SelectBox, SelectionBar } from "@/components/admin/sales
 import { SaleDetail } from "@/components/admin/sales/sale-detail";
 import { SidePanel } from "@/components/admin/sales/side-panel";
 import { SeatHint } from "@/components/admin/sales/seat-hint";
+import { RoomCell, RoomOptionsProvider } from "@/components/admin/sales/room-picker";
+import { getRoomOptions } from "@/lib/rooming-server";
+import { takesBed } from "@/lib/rooming";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { BedDouble, CalendarRange, Pencil, Plus, UsersRound, X } from "lucide-react";
@@ -68,6 +71,8 @@ export default async function SalesPage({
       : null,
   ]);
   const periods = periodTours.map((g) => g.period);
+  // Oda sütunu: listedeki satışların turlarının odaları
+  const roomOptions = await getRoomOptions(sales.filter((s) => !s.isCancelled).map((s) => s.tourId));
   const totals = totalsOf(sales);
   const filters = { donem, tur, q, durum, personel, referans };
   const listHref = `${base}${qs(filters)}`;
@@ -168,9 +173,10 @@ export default async function SalesPage({
           </div>
 
           <SaleSelection>
+          <RoomOptionsProvider options={roomOptions}>
           <AdminCard className="overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1400px] text-sm">
+              <table className="w-full min-w-[1520px] text-sm">
                 <thead>
                   <tr className={theadRow}>
                     <th className={cn(th, "w-8 pr-0")} title="Aynı ailenin satırlarını seçip gruplayın">
@@ -186,6 +192,9 @@ export default async function SalesPage({
                     <th className={th}>Açıklama</th>
                     <th className={th}>Referans</th>
                     <th className={cn(th, "text-center")}>Oda Kişi</th>
+                    <th className={th} title="Odalama: kişinin yerleştiği oda">
+                      Oda
+                    </th>
                     <th className={cn(th, num)}>Ücret</th>
                     <th className={cn(th, num)}>Ödenen</th>
                     <th className={cn(th, num)}>Kalan</th>
@@ -253,6 +262,13 @@ export default async function SalesPage({
                       </td>
                       <td className={td}>{s.reference}</td>
                       <td className={cn(td, "text-center")}>{s.roomSize ?? ""}</td>
+                      <td className={cn(td, "no-underline")}>
+                        {s.isCancelled ? (
+                          <span className="text-muted">—</span>
+                        ) : (
+                          <RoomCell tourId={s.tourId} saleId={s.id} roomId={s.roomId} bed={takesBed(s.passenger)} suggestedSize={s.roomSize} />
+                        )}
+                      </td>
                       <td className={cn(td, num)}>{money(s.price, s.currency)}</td>
                       <td className={cn(td, num, "text-green-700")}>{money(s.paid, s.currency)}</td>
                       <td className={cn(td, num, "font-semibold", s.balance > 0 ? "text-red-600" : "text-green-700")}>
@@ -283,7 +299,7 @@ export default async function SalesPage({
                 </tbody>
                 <tfoot>
                   <tr className="border-t-2 border-border bg-cream-50 font-bold text-brand-900">
-                    <td className={td} colSpan={11}>
+                    <td className={td} colSpan={12}>
                       Toplam ({totals.count} satış{sales.length > totals.count ? `, ${sales.length - totals.count} iptal hariç` : ""})
                     </td>
                     <td className={cn(td, num)}>{moneyList(totals.price)}</td>
@@ -296,6 +312,7 @@ export default async function SalesPage({
               </table>
             </div>
           </AdminCard>
+          </RoomOptionsProvider>
           <SelectionBar listHref={listHref} />
           </SaleSelection>
         </>

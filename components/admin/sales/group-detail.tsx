@@ -5,6 +5,9 @@ import { DeleteButton } from "@/components/admin/row-actions";
 import { StatBox } from "@/components/admin/sales/ui";
 import { ActionButton, GroupEditForm, GroupPaymentForm } from "@/components/admin/sales/group-client";
 import { ReceiptLink } from "@/components/admin/sales/sale-detail";
+import { RoomCell, RoomOptionsProvider, RoomPicker } from "@/components/admin/sales/room-picker";
+import { getRoomOptions } from "@/lib/rooming-server";
+import { takesBed } from "@/lib/rooming";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { deleteGroup, deletePayment, removeFromGroup } from "@/app/actions/sales";
@@ -33,9 +36,21 @@ export async function GroupDetail({
   addHref: string;
   afterDeleteHref: string;
 }) {
-  const [me, batches, activity] = await Promise.all([getCurrentUser(), getGroupBatches(group.id), getActivityFor("SaleGroup", group.id)]);
-  const isAdmin = me?.role === "ADMIN";
   const { sales, totals } = group;
+  const active = sales.filter((s) => !s.isCancelled);
+  const [me, batches, activity, roomOptions] = await Promise.all([
+    getCurrentUser(),
+    getGroupBatches(group.id),
+    getActivityFor("SaleGroup", group.id),
+    getRoomOptions(active.map((s) => s.tourId)),
+  ]);
+  const isAdmin = me?.role === "ADMIN";
+  // "Hepsini aynı odaya": tek turdaki aileler için (kişiler farklı turlardaysa her kişi ayrı seçilir)
+  const tourIds = [...new Set(active.map((s) => s.tourId))];
+  const roomIds = [...new Set(active.map((s) => s.roomId))];
+  const familyRoom = roomIds.length === 1 ? roomIds[0] : "karisik";
+  const sizes = active.map((s) => s.roomSize).filter((n): n is number => n != null);
+  const familySize = sizes.length ? sizes.sort((a, b) => sizes.filter((n) => n === b).length - sizes.filter((n) => n === a).length)[0] : null;
 
   // Grup tahsilatı tek para birimine dağıtılır: borcu olanların en çok görülen para birimi
   const debtors = sales.filter((s) => s.balance > 0);
@@ -96,9 +111,25 @@ export async function GroupDetail({
         </AdminCard>
       )}
 
+      <RoomOptionsProvider options={roomOptions}>
       <AdminCard className="overflow-hidden">
-        <div className="border-b border-border px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
           <h3 className="font-serif text-lg font-bold text-brand-900">Kişiler</h3>
+          {tourIds.length === 1 && active.length > 1 && (
+            <label className="flex items-center gap-2 text-xs font-semibold text-muted">
+              Hepsi aynı odaya:
+              <RoomPicker
+                key={active.map((s) => s.roomId).join(",")}
+                tourId={tourIds[0]}
+                saleIds={active.map((s) => s.id)}
+                beds={active.filter((s) => takesBed(s.passenger)).length}
+                roomId={familyRoom}
+                rooms={roomOptions[tourIds[0]] ?? []}
+                suggestedSize={familySize}
+                className="w-56"
+              />
+            </label>
+          )}
         </div>
         <ul className="divide-y divide-border text-sm">
           {sales.map((s) => (
@@ -123,6 +154,9 @@ export async function GroupDetail({
                   {money(s.price, s.currency)}
                 </p>
               </div>
+              {!s.isCancelled && (
+                <RoomCell tourId={s.tourId} saleId={s.id} roomId={s.roomId} bed={takesBed(s.passenger)} suggestedSize={s.roomSize} />
+              )}
               <div className="text-right tabular-nums">
                 <p className={cn("font-semibold", s.balance > 0 ? "text-red-600" : "text-green-700")}>{s.isCancelled ? "—" : money(s.balance, s.currency)}</p>
                 <p className="text-xs text-green-700">{money(s.paid, s.currency)} ödendi</p>
@@ -138,6 +172,7 @@ export async function GroupDetail({
           ))}
         </ul>
       </AdminCard>
+      </RoomOptionsProvider>
 
       {batches.length > 0 && (
         <AdminCard className="overflow-hidden">

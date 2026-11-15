@@ -46,6 +46,10 @@ export type RoomPerson = {
 
 export type Room = { id: number; size: number };
 
+/** Satış ekranlarındaki oda seçimi: odanın numarası (odalama sırası) ve içindekiler */
+export type RoomOption = { id: number; no: number; size: number; people: { saleId: number; name: string; bed: boolean }[] };
+export type RoomOptionsByTour = Record<number, RoomOption[]>;
+
 export function bedsUsed(people: RoomPerson[]) {
   return people.filter((p) => takesBed(p.passenger)).length;
 }
@@ -53,6 +57,28 @@ export function bedsUsed(people: RoomPerson[]) {
 /** Aile (satış grubu) ya da tek kayıt */
 export function unitKey(p: RoomPerson) {
   return p.groupId ? `g${p.groupId}` : `s${p.saleId}`;
+}
+
+/** Soyadı: adın son kelimesi (küçük harf); tek kelimelik adlarda null */
+export function surnameOf(name: string): string | null {
+  const parts = name.trim().split(/\s+/);
+  return parts.length > 1 ? parts[parts.length - 1].toLocaleLowerCase("tr") : null;
+}
+
+/**
+ * Bir odaya sığmayan grubu odalara bölmek için kümeler: aynı soyadlılar (karı-koca, aile)
+ * bir arada, soyadı tek olanlar tek başına. Odadan büyük küme tam odalara bölünür.
+ * Karışık cinsiyetli kümeler önce (kendi odalarını alırlar), sonra büyükten küçüğe.
+ */
+function surnameClusters(people: RoomPerson[], size: number): RoomPerson[][] {
+  const map = new Map<string, RoomPerson[]>();
+  for (const p of people) {
+    const key = surnameOf(p.name) ?? `#${p.saleId}`;
+    map.set(key, [...(map.get(key) ?? []), p]);
+  }
+  const out: RoomPerson[][] = [];
+  for (const cluster of map.values()) for (let i = 0; i < cluster.length; i += size) out.push(cluster.slice(i, i + size));
+  return out.sort((a, b) => Number(roomGender(b) == null) - Number(roomGender(a) == null) || b.length - a.length);
 }
 
 /** Ekrandaki sıra ve numara: büyük odadan küçüğe, aynı tipte açılış sırasına göre */
@@ -138,10 +164,12 @@ function unitRoomSize(members: RoomPerson[]): number | null {
 
 /**
  * Yerleşmemiş kişileri yerleştirme planı (mevcut yerleşimlere dokunmaz):
- * 1. Aileler (büyükten küçüğe): önce ailenin zaten kaldığı odadaki boş yataklara, sonra
- *    satışta seçtikleri oda tipinde yeni odalara. Odayı dolduramayan tek cinsiyetli
- *    aile parçası aynı cinsiyetten kişilerin kaldığı odadaki boş yataklara da girebilir.
- *    Bebekler ailelerinden birinin odasına konur.
+ * 1. Aileler / gruplar (büyükten küçüğe), satışta seçtikleri oda tipinde:
+ *    - Grup tek odaya sığıyorsa hepsi aynı odaya (aile).
+ *    - Sığmıyorsa: aynı soyadlılar (karı-koca, aile) aynı odaya, diğerleri cinsiyete göre;
+ *      önce grubun zaten kaldığı odalardaki boş yataklar kullanılır.
+ *    - Odayı dolduramayan tek cinsiyetli parça aynı cinsiyetten kişilerin odasına da girebilir.
+ *    - Bebekler aynı soyadlı yetişkinin (yoksa grubun) odasına konur.
  * 2. Tek kayıtlar: aynı oda tipinde, aynı cinsiyetten kişilerin kaldığı ve boş yatağı
  *    olan odaya (en dolu olana); yoksa yeni oda açılır.
  * Cinsiyeti ya da oda tipi girilmemiş tek kayıtlar ve ailesiz bebekler atlanır.
@@ -161,11 +189,13 @@ export function planAutoPlacement(rooms: Room[], people: RoomPerson[]): AutoPlan
     state.push(r);
     return r;
   };
-  /** Aynı cinsiyetten kişilerin kaldığı (veya boş) ve yeterli boş yatağı olan oda; en dolu olan önce */
-  const openRoom = (size: number, gender: Gender, need: number) =>
-    state
+  /** Aynı cinsiyetten kişilerin kaldığı (veya boş) ve yeterli boş yatağı olan oda: aynı gruptakiler, sonra en dolu olan önce */
+  const openRoom = (size: number, gender: Gender, need: number, groupId: number | null = null) => {
+    const ownGroup = (r: PlanRoom) => (groupId != null && r.people.some((p) => p.groupId === groupId) ? 0 : 1);
+    return state
       .filter((r) => r.size === size && free(r) >= need && (r.people.length === 0 || roomGender(r.people) === gender))
-      .sort((a, b) => free(a) - free(b) || Number(a.people.length === 0) - Number(b.people.length === 0))[0];
+      .sort((a, b) => ownGroup(a) - ownGroup(b) || free(a) - free(b) || Number(a.people.length === 0) - Number(b.people.length === 0))[0];
+  };
 
   const units = new Map<string, RoomPerson[]>();
   for (const p of people) if (p.roomId == null) units.set(unitKey(p), [...(units.get(unitKey(p)) ?? []), p]);
@@ -178,27 +208,40 @@ export function planAutoPlacement(rooms: Room[], people: RoomPerson[]): AutoPlan
     const babies = members.filter((p) => !takesBed(p.passenger));
     const familyRooms = () => state.filter((r) => r.people.some((p) => p.groupId === groupId));
     const size = unitRoomSize(members);
-
-    // Ailenin zaten kaldığı odalardaki boş yataklar
-    const rest = [...adults];
-    for (const r of familyRooms()) {
-      const n = Math.min(free(r), rest.length);
-      if (n > 0) put(r, rest.splice(0, n));
-    }
-    if (rest.length && !size) {
-      for (const p of [...rest, ...babies]) skipped.push({ saleId: p.saleId, name: p.name, reason: "Satışta oda tipi seçilmemiş" });
+    if (adults.length && !size) {
+      for (const p of members) skipped.push({ saleId: p.saleId, name: p.name, reason: "Satışta oda tipi seçilmemiş" });
       continue;
     }
-    while (rest.length) {
-      const chunk = rest.splice(0, size!);
-      const gender = roomGender(chunk);
-      const target = chunk.length < size! && gender ? openRoom(size!, gender, chunk.length) : undefined;
-      put(target ?? newRoom(size!), chunk);
+    const kinOf = (p: RoomPerson) => surnameOf(p.name);
+
+    if (adults.length && adults.length <= size! && familyRooms().length === 0) {
+      // Grup tek odaya sığıyor: hepsi birlikte (odayı doldurmuyorsa ve tek cinsiyetliyse aynı cinsiyetten kişilerin odasına da girebilir)
+      const gender = roomGender(adults);
+      put((adults.length < size! && gender ? openRoom(size!, gender, adults.length, groupId) : undefined) ?? newRoom(size!), adults);
+    } else if (adults.length) {
+      // Grubun zaten kaldığı odalardaki boş yataklar: önce aynı soyadlılar, oda tek cinsiyetliyse aynı cinsiyetten olanlar
+      const rest = [...adults];
+      for (const r of familyRooms()) {
+        const kin = new Set(r.people.filter((p) => p.groupId === groupId).map(kinOf).filter(Boolean));
+        const gender = roomGender(r.people);
+        const picks = [...rest.filter((p) => kin.has(kinOf(p))), ...(gender ? rest.filter((p) => p.gender === gender && !kin.has(kinOf(p))) : [])].slice(0, free(r));
+        if (!picks.length) continue;
+        put(r, picks);
+        for (const p of picks) rest.splice(rest.indexOf(p), 1);
+      }
+      // Kalanlar: aynı soyadlılar birlikte, tek cinsiyetli kümeler aynı cinsiyetten kişilerin odasına
+      for (const cluster of surnameClusters(rest, size!)) {
+        const gender = roomGender(cluster);
+        put((gender ? openRoom(size!, gender, cluster.length, groupId) : undefined) ?? newRoom(size!), cluster);
+      }
     }
     if (babies.length) {
-      const home = familyRooms()[0];
-      if (home) put(home, babies);
-      else for (const p of babies) skipped.push({ saleId: p.saleId, name: p.name, reason: "Bebek: ailesinden yetişkin yok" });
+      for (const b of babies) {
+        const rooms = familyRooms();
+        const home = rooms.find((r) => r.people.some((p) => p.groupId === groupId && takesBed(p.passenger) && kinOf(p) && kinOf(p) === kinOf(b))) ?? rooms[0];
+        if (home) put(home, [b]);
+        else skipped.push({ saleId: b.saleId, name: b.name, reason: "Bebek: ailesinden yetişkin yok" });
+      }
     }
   }
 

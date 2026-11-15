@@ -31,9 +31,15 @@ const names = (rows: { customer: { fullName: string } }[]) => {
 async function movingSales(tourId: number, saleIds: number[]) {
   const rows = await prisma.sale.findMany({
     where: { id: { in: saleIds }, tourId, isCancelled: false },
-    select: { id: true, passenger: true, customer: { select: { fullName: true } } },
+    select: { id: true, passenger: true, roomId: true, customer: { select: { fullName: true } } },
   });
   return rows.length === saleIds.length ? rows : null;
+}
+
+/** Kişiler taşınınca boşalan odalar silinir (boş oda otele bildirilmez; listelerde kalabalık yapmasın) */
+async function dropEmptied(rows: { roomId: number | null }[], keep?: number) {
+  const ids = [...new Set(rows.map((r) => r.roomId).filter((id): id is number => id != null && id !== keep))];
+  if (ids.length) await prisma.tourRoom.deleteMany({ where: { id: { in: ids }, sales: { none: {} } } });
 }
 
 const bedsOf = (rows: { passenger: string | null }[]) => rows.filter((r) => takesBed(r.passenger)).length;
@@ -61,6 +67,7 @@ export async function placeInRoom(tourIdIn: number, saleIdsIn: number[], roomIdI
         message: free <= 0 ? `Bu ${room.size} kişilik oda dolu.` : `Odada ${free} boş yatak var; ${need} kişi sığmaz. Yeni oda açın ya da başka oda seçin.`,
       };
     await prisma.sale.updateMany({ where: { id: { in: saleIds } }, data: { roomId } });
+    await dropEmptied(moving, roomId);
     audit({ entity: "ServiceTour", entityId: tourId, detail: `Odalama: ${names(moving)} → ${room.size} kişilik oda` });
     return { ok: true, message: `${moving.length} kişi odaya yerleştirildi.` };
   });
@@ -82,6 +89,7 @@ export async function createRoom(tourIdIn: number, sizeIn: number, saleIdsIn: nu
       const room = await tx.tourRoom.create({ data: { tourId, size: sizeIn } });
       if (saleIds.length) await tx.sale.updateMany({ where: { id: { in: saleIds } }, data: { roomId: room.id } });
     });
+    await dropEmptied(moving);
     audit({
       entity: "ServiceTour",
       entityId: tourId,
@@ -100,6 +108,7 @@ export async function unplaceSales(tourIdIn: number, saleIdsIn: number[]): Promi
     const moving = await movingSales(tourId, saleIds);
     if (!moving) return stale;
     await prisma.sale.updateMany({ where: { id: { in: saleIds } }, data: { roomId: null } });
+    await dropEmptied(moving);
     audit({ entity: "ServiceTour", entityId: tourId, detail: `Odalama: ${names(moving)} odadan çıkarıldı` });
     return { ok: true, message: `${moving.length} kişi odadan çıkarıldı.` };
   });

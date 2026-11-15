@@ -41,6 +41,11 @@ function soldCount(tourId: number) {
   return prisma.sale.count({ where: { tourId, isCancelled: false } });
 }
 
+/** Odalama: iptal / tur değişikliğiyle boşalan oda silinir (boş oda otele bildirilmez) */
+async function dropEmptyRoom(roomId: number | null) {
+  if (roomId) await prisma.tourRoom.deleteMany({ where: { id: roomId, sales: { none: {} } } });
+}
+
 /** Eklenecek kişiler turun kontenjanını aşıyorsa hata sonucu, aşmıyorsa null */
 async function capacityCheck(tourId: number, adding: number) {
   const tour = await prisma.serviceTour.findUnique({ where: { id: tourId }, select: { name: true, capacity: true } });
@@ -393,6 +398,7 @@ export async function updateSale(id: string, input: unknown): Promise<ActionResu
         ...(d.tourId !== current.tourId ? { roomId: null } : {}),
       },
     });
+    if (d.tourId !== current.tourId) await dropEmptyRoom(current.roomId);
     const changes = saleChanges([
       ["Ücret", money(current.price, current.tour.currency), money(d.price, tour.currency)],
       [
@@ -418,7 +424,7 @@ export async function toggleSaleCancel(id: string): Promise<ActionResult> {
   return salesAction(async (_me, audit) => {
     const saleId = toId(id);
     if (!saleId) return notFound;
-    const sale = await prisma.sale.findUnique({ where: { id: saleId }, select: { isCancelled: true, tourId: true } });
+    const sale = await prisma.sale.findUnique({ where: { id: saleId }, select: { isCancelled: true, tourId: true, roomId: true } });
     if (!sale) return notFound;
     // İptali geri alınan satış yeniden yer kaplar
     if (sale.isCancelled) {
@@ -427,6 +433,7 @@ export async function toggleSaleCancel(id: string): Promise<ActionResult> {
     }
     // İptal edilen kişi odasından çıkar (yatağı boşalır); iptali geri alınınca yeniden yerleştirilir
     await prisma.sale.update({ where: { id: saleId }, data: { isCancelled: !sale.isCancelled, ...(sale.isCancelled ? {} : { roomId: null }) } });
+    if (!sale.isCancelled) await dropEmptyRoom(sale.roomId);
     audit({ entity: "Sale", entityId: saleId, detail: `Satış #${saleId} ${sale.isCancelled ? "iptali geri alındı" : "iptal edildi"}` });
     return { ok: true, message: sale.isCancelled ? "İptal geri alındı." : "Satış iptal edildi." };
   });
